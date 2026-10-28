@@ -387,7 +387,8 @@ function rewardSummary(){
     h('div', { class:'rw-row' }, doughEl(G.doughGame || 0, 'big'), h('span', { text:'Dough earned this game · you have ' + fmt(Profile.dough) })),
     h('div', { class:'rw-row' }, h('span', { class:'rw-lvl' }, svgEl(HAT_SVG), h('b', { text: String(L.level) })),
       h('div', { class:'rw-xp' }, h('span', { text:'Chef level ' + L.level + ' · +' + fmt(G.chefXpGame || 0) + ' XP this game' }), h('div', { class:'chef-xp-bar' }, h('i', { style:{ width: (L.pct * 100).toFixed(1) + '%' } })))),
-    heroOnDuty() ? h('div', { class:'rw-row' }, iconCanvas(Art.chefPortrait(heroOnDuty().type, 64), 'rw-chef'), h('span', { text: HEROES[heroOnDuty().type].name + ' finished at level ' + heroOnDuty().level + (heroOnDuty().level >= HERO_MAX ? ': Master Chef!' : '.') })) : null);
+    heroOnDuty() ? h('div', { class:'rw-row' }, iconCanvas(Art.chefPortrait(heroOnDuty().type, 64), 'rw-chef'), h('span', { text: HEROES[heroOnDuty().type].name + ' finished at level ' + heroOnDuty().level + (heroOnDuty().level >= HERO_MAX ? ': Master Chef!' : '.') })) : null,
+    G.attract ? null : statsButton());
 }
 function showChallengeVictory(reward){
   if (G.ch && G.ch.tm){ showTastingVictory(reward); return; }

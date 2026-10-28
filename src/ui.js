@@ -394,9 +394,10 @@ function redrawKitchens(){
 }
 function drawRange(ctx, x, y, r, ok, gold){
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);
-  ctx.fillStyle = ok ? (gold ? 'rgba(255,209,102,0.12)' : 'rgba(255,255,255,0.14)') : 'rgba(226,56,63,0.2)'; ctx.fill();
-  ctx.setLineDash([7, 6]); ctx.lineWidth = 2;
-  ctx.strokeStyle = ok ? (gold ? 'rgba(255,209,102,0.95)' : 'rgba(255,255,255,0.8)') : 'rgba(226,56,63,0.9)'; ctx.stroke();
+  const cb = cbOn();
+  ctx.fillStyle = ok ? (gold ? 'rgba(255,209,102,0.12)' : 'rgba(255,255,255,0.14)') : cb ? 'rgba(230,120,0,0.25)' : 'rgba(226,56,63,0.2)'; ctx.fill();
+  ctx.setLineDash(ok ? [7, 6] : cb ? [3, 4] : [7, 6]); ctx.lineWidth = 2;
+  ctx.strokeStyle = ok ? (gold ? 'rgba(255,209,102,0.95)' : 'rgba(255,255,255,0.8)') : cb ? 'rgba(230,120,0,0.95)' : 'rgba(226,56,63,0.9)'; ctx.stroke();
   ctx.restore();
 }
 function ghostRange(type, x, y){
@@ -1120,14 +1121,20 @@ function buildShop(){
   else if (G.M && G.M.only) shop.append(h('p', { class:'fnote ch-note', text: G.M.name + ': ' + FACTIONS[G.M.only].name + ' appliances and your head chef.' }));
   else bar.append(...factionChips(cur, f => { Profile.settings.shopFaction = f; saveProfile(); Sfx.play('click'); buildShop(); }, true));
   let last = null;
+  const card = (type, fav) => {
+    const T = TOWERS[type], F = FACTIONS[factionOf(type)];
+    return h('button', { class:'card' + (T.custom ? ' custom' : '') + (fav ? ' fav' : ''), style:'--fc:' + F.color, 'data-type': type, title: T.name + (T.hot ? ' (' + T.hot + ')' : ' (custom)') + ' · ' + F.name + (fav ? ' · favourite' : ''), onclick: () => startPlacing(type), onmouseenter: () => showInfo(type), onfocus: () => showInfo(type), onmouseleave: () => showInfo(UI.placing),
+      oncontextmenu: ev => { ev.preventDefault(); if (!T.hero){ const on = toggleFav(type); Sfx.play('click'); toast((on ? 'Starred ' : 'Unstarred ') + T.name + '.', 'info'); buildShop(); } } },
+      h('span', { class:'hk', text: T.custom ? '✦' : T.hot }), iconCanvas(Art.towerIcon(type, 64)), h('span', { class:'nm', text: T.name }), h('span', { class:'pr num' }), h('span', { class:'st' }));
+  };
+  favCards(shop, card);
   const shopTypes = factionSorted(TOWER_ORDER.filter(canBuild));
   if (adminUnitOn() && !G.towers.some(t => t.type === ADMIN_UNIT)) shopTypes.push(ADMIN_UNIT);
   for (const type of shopTypes){
     const T = TOWERS[type], f = factionOf(type), F = FACTIONS[f];
     if (!G.ch && !(G.M && G.M.only) && cur !== 'all' && f !== cur) continue;
     if (cur === 'all' && f !== last){ last = f; shop.append(h('div', { class:'fhead', style:'--fc:' + F.color, title: F.blurb }, h('i', { 'aria-hidden':'true' }), F.name)); }
-    shop.append(h('button', { class:'card' + (T.custom ? ' custom' : ''), style:'--fc:' + F.color, 'data-type': type, title: T.name + (T.hot ? ' (' + T.hot + ')' : ' (custom)') + ' · ' + F.name, onclick: () => startPlacing(type), onmouseenter: () => showInfo(type), onfocus: () => showInfo(type), onmouseleave: () => showInfo(UI.placing) },
-      h('span', { class:'hk', text: T.custom ? '✦' : T.hot }), iconCanvas(Art.towerIcon(type, 64)), h('span', { class:'nm', text: T.name }), h('span', { class:'pr num' }), h('span', { class:'st' })));
+    shop.append(card(type));
   }
   if (!G.ch && !(G.M && G.M.only) && cur !== 'all') shop.append(h('p', { class:'fnote', text: 'Showing ' + FACTIONS[cur].name + '. Hotkeys still pick any appliance.' }));
   updateShop(); showInfo(null);
@@ -1159,7 +1166,7 @@ function showInfo(type){
   }
   if (isHero(type)){ heroInfo(box, type); return; }
   const T = TOWERS[type];
-  box.append(h('b', { text: T.name + ' · ' + FACTIONS[factionOf(type)].name + (T.custom ? ' · custom ' + T.role.toLowerCase() : '') }), T.blurb + ' ', h('span', { style:{ color:'var(--mint)', fontWeight:600 }, text: RANKS[masteryRank(type)].name + ' mastery.' }));
+  box.append(h('b', { text: T.name + ' · ' + FACTIONS[factionOf(type)].name + (T.custom ? ' · custom ' + T.role.toLowerCase() : '') }), T.blurb + ' ', h('span', { style:{ color:'var(--mint)', fontWeight:600 }, text: RANKS[masteryRank(type)].name + ' mastery.' }), ' ', favButton(type));
 }
 
 /* ---------------------------------------------------------------------
@@ -2367,6 +2374,7 @@ function cycleSpeed(){
    Modals
    --------------------------------------------------------------------- */
 function modal(o){
+  UI.modalOpts = o;
   const wrap = $('#modal'), body = $('#modal-body');
   body.innerHTML = '';
   body.className = 'modal' + (o.wide ? ' wide' : '') + (o.cls ? ' ' + o.cls : '');
@@ -2424,7 +2432,7 @@ function pauseGame(){
   clock.addEventListener('click', clockTap);
   modal({ title:'Paused', lead: (G.ch ? G.ch.name + ' · ' : '') + MAPS[G.mapId].name + ' · ' + G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery Mode' : '') + ' · Round ' + G.round + (G.ch ? '. ' + challengeRulesText(G.ch) : G.M ? '. ' + modeRulesText() + '.' : ''),
     content:[settingsForm(true), G.doughGame || G.chefXpGame ? h('p', { class:'note', text:'This game so far: +' + fmt(G.doughGame || 0) + ' Dough and +' + fmt(G.chefXpGame || 0) + ' chef XP.' }) : null, h('p', { class:'note', text:'Progress saves at the start and end of every round, so leaving mid-round brings you back to the start of it.' })],
-    actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
+    actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Game stats', onClick: () => showGameStats(pauseGame) }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
       { label:'Restart', onClick: () => confirmBox('Restart this game?', 'Your towers and progress on this map will be wiped.', 'Restart', () => { pickSlot(activeSlot()); const ch = G.ch && G.ch.ex && exRecord() ? exLeg(exRecord()) : G.ch; startNewGame(G.mapId, G.diff, G.mm, ch, G.mode); }, pauseGame) }],
     onClose: resume, foot: clock });
 }
@@ -2452,15 +2460,14 @@ function settingsForm(compact){
   vol.addEventListener('change', save);
   const wrap = h('div', { style:{ display:'flex', flexDirection:'column', gap:'10px' } },
     sw('set-sound', 'Sound', null, S.sound, v => { S.sound = v; Sfx.unlock(); Sfx.setVolume(); }),
-    sw('set-music', 'Music', 'A kitchen tune in the background: calm on the menu, busier while rounds run, tense when a boss is out.', S.music !== false, v => { S.music = v; Music.refresh(); }),
-    sw('set-dmg', 'Damage numbers', 'Show how much each hit takes off a pest.', !!S.dmgNums, v => { S.dmgNums = v; }),
     sw('set-music', 'Music', 'The kitchen radio: a tune that swings during rounds and turns tense for bosses.', S.music !== false, v => { S.music = v; Sfx.unlock(); Sfx.setVolume(); }),
     h('div', { class:'form-row' }, h('label', { for:'vol', text:'Volume' }), vol),
     sw('set-dmg', 'Damage numbers', 'Hits add up over a pest for a moment, then float off it as a number.', !!S.dmgNums, v => { S.dmgNums = v; }),
     sw('set-fx', 'Full effects', 'Turn off to cut particles on slower devices.', S.fx !== 'low', v => { S.fx = v ? 'high' : 'low'; }),
     sw('set-depth', '3D kitchen', 'Appliances and the kitchens\' props are 3D models that cast shadows. Turn off for the flat look.', S.depth !== false, v => { S.depth = v; Art.clearIcons(); redrawKitchens(); if (UI.screen === 'game' && G.active){ buildShop(); updatePanel(true); buildAbilities(); } }),
     sw('set-abbar', 'Ability bar', 'Show the ability buttons at the bottom left of the kitchen. While they are hidden, their hotkeys and Auto still work.', !abHidden(), v => setAbHidden(!v)),
-    sw('set-perf', 'Performance mode', 'Removes most particles, screen flashes and shake, and draws at a lower resolution. Best for long games and slower devices. The 3D kitchen stays on (switch it off above for the flat look).', !!S.perf, v => setPerf(v)));
+    sw('set-perf', 'Performance mode', 'Removes most particles, screen flashes and shake, and draws at a lower resolution. Best for long games and slower devices. The 3D kitchen stays on (switch it off above for the flat look).', !!S.perf, v => setPerf(v)),
+    ...accessRows(sw));
   if (!compact) wrap.append(sw('set-auto', 'Auto-start rounds', 'Once you start a round, the next one begins as soon as it is cleared.', S.auto, v => setAutoStart(v)));
   return wrap;
 }
@@ -3331,6 +3338,7 @@ function boot(data){
   if (booted) return;
   booted = true;
   Store.init();
+  applyAccess();
   if (IS_TOUCH) document.body.classList.add('touch');
   wireHooks();
   wireMetaHooks();

@@ -1517,6 +1517,33 @@ button.crew{font:inherit;color:inherit;cursor:pointer}button.crew:disabled{opaci
 .ex-boon:hover,.ex-boon:focus-visible{border-color:var(--butter-deep);background:#fff8e2}
 .ex-boon b{font-family:var(--font-ui);font-size:16px}.ex-boon span{font-size:13px}.ex-bi{font-size:30px}
 .card.ex-packcard{border-style:dashed}
+/* Game stats and the build replay */
+.gs-open{justify-content:center;margin-top:4px}
+.gs-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:8px 0}
+.gs-chart-box{padding:8px 10px;border-radius:12px;background:var(--enamel-2);border:1px solid var(--enamel-3)}
+.gs-chart-box b{font-family:var(--font-ui);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.gs-chart{width:100%;height:auto;display:block}
+.gs-axis{stroke:var(--chrome);stroke-width:1}
+.gs-tick{font:11px var(--font-body);fill:var(--ink-3)}
+.gs-top{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.gs-row{display:grid;grid-template-columns:32px 40px 1fr auto;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;background:var(--enamel-2)}
+.gs-row canvas{width:36px;height:36px}.gs-rank{font-weight:700;color:var(--ink-3)}
+.gs-table{display:grid;grid-template-columns:1fr auto auto minmax(80px,1fr);gap:4px 12px;align-items:center;font-size:14px}
+.gs-table b{font-family:var(--font-ui);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.gs-bar{display:block;height:8px;border-radius:4px;background:var(--enamel-3);overflow:hidden}.gs-bar i{display:block;height:100%;background:var(--mint)}
+.rp-canvas{width:100%;height:auto;border-radius:12px;display:block;background:#e9e1d2}
+.rp-ctl{display:flex;gap:10px;align-items:center;margin-top:8px}.rp-ctl input{flex:1}
+.rp-label{margin:6px 0 0;font-size:14px;color:var(--ink-2)}
+/* favourites */
+.fav-btn{margin-top:6px;padding:3px 10px;font-size:12px}.fav-btn.on{border-color:var(--butter-deep);background:#fff3c4}
+.card.fav .hk::after{content:'★';margin-left:2px;color:var(--butter-deep)}
+/* colour-blind friendly: success colours turn blue, warnings orange */
+body.cb{--mint:#2f7fd8;--led:#5aa9ff;--cherry:#e07800;--cherry-deep:#a85a00;--p1:#e07800;--p3:#2f7fd8}
+/* text size: menus, dialogs, notices and the info boxes grow; the kitchen and its side panel keep their layout */
+body.txt-l .modal,body.txt-l .fridge,body.txt-l .toasts,body.txt-l .topbar{zoom:1.12}
+body.txt-xl .modal,body.txt-xl .fridge,body.txt-xl .toasts,body.txt-xl .topbar{zoom:1.25}
+body.txt-l #shop-info,body.txt-l .tpanel p,body.txt-l .tpanel small{font-size:115%}
+body.txt-xl #shop-info,body.txt-xl .tpanel p,body.txt-xl .tpanel small{font-size:130%}
 
 </style>
 <style>[hidden]{display:none!important}body{margin:0}</style>
@@ -4005,7 +4032,7 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     storms:[], orbs:[], piles:[], noIncome:false, pestHP:0, oakAt:null, loadT:0,
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
-    doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null,
+    doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
     mode:'standard', M:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
@@ -4038,7 +4065,8 @@ function serializeGame(){
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
     ch: G.ch || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
-    towers: G.towers.map(t => ({ type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
+    hs: G.hist && G.hist.length ? G.hist : undefined, bl: G.blog && G.blog.length ? G.blog : undefined,
+    towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
       spot: t.spot ? [Math.round(t.spot.x), Math.round(t.spot.y)] : null, fm: t.flyMode || undefined, nz: t.nozzle || undefined, lk: t.lock ? [Math.round(t.lock.x), Math.round(t.lock.y)] : undefined,
       hl: t.hero ? t.level : undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
@@ -4067,6 +4095,7 @@ function loadGame(data){
     made.push(null);
     if (!TOWERS[d.type]) continue;
     const t = makeTower(d.type, d.x, d.y);
+    if (Number.isInteger(d.id) && d.id > 0 && !G.towers.some(o => o.id === d.id)) t.id = d.id;
     t.up = d.up.slice(); t.paragon = !!d.par; t.degree = d.par || 0; t.tg = d.tg || 'first';
     if (d.nz === 'mist' || d.nz === 'stream') t.nozzle = d.nz;
     t.dmg = d.dmg || 0; t.kills = d.kills || 0; t.invested = d.inv || 0; t.bank = d.bank || 0; t.cashGen = d.cashGen || 0;
@@ -4094,6 +4123,10 @@ function loadGame(data){
     G.towers.push(t);
     made[made.length - 1] = t;
   }
+  G.nextId = Math.max(G.nextId, Math.floor(+data.nextId || 0), ...G.towers.map(t => t.id + 1));
+  G.hist = Array.isArray(data.hs) ? data.hs.filter(Array.isArray).slice(-400) : [];
+  G.blog = Array.isArray(data.bl) ? data.bl.filter(Array.isArray).slice(-3000) : [];
+  G.blPrev = typeof buildNow === 'function' ? buildNow() : null;
   /* riders back on their turntables */
   data.towers.forEach((d, i) => {
     const t = made[i], s = Number.isInteger(d.on) ? made[d.on] : null;
@@ -5553,6 +5586,7 @@ function roundGroupsFor(n){
 }
 function startRound(){
   if (!G.active || G.roundActive || G.over || G.won && !G.freeplay) return false;
+  if (typeof buildLogTick === 'function') buildLogTick(G.round);
   G.lastSnap = serializeGame();
   storeGame(G.lastSnap);
   const groups = roundGroupsFor(G.round);
@@ -5624,6 +5658,7 @@ function endRound(){
   /* appliances that bring in lives (a proofing drawer's bounty) */
   if (!G.attract && G.diff !== 'michelin') for (const t of G.towers) if (!t.hero && t.s.lifeRound){ G.lives += t.s.lifeRound; G.lastRoundLives = (G.lastRoundLives || 0) + t.s.lifeRound; }
   commitXP();
+  if (typeof histRoundEnd === 'function') histRoundEnd(n);
   G.round++;
   G.lastSnap = serializeGame();
   storeGame(G.lastSnap);
@@ -5650,6 +5685,7 @@ function commitXP(){
 }
 function victory(){
   G.won = true;
+  if (typeof buildLogTick === 'function') buildLogTick(G.round);
   let fresh = false, freshMM = false;
   if (!G.ch && !G.ev && !G.adminUsed && !isCustomMap(G.mapId)){
     const m = Profile.medals[G.mapId] = Profile.medals[G.mapId] || {}, key = medalKey(G.diff, G.mode);
@@ -5670,6 +5706,7 @@ function gameOver(){
   G.over = true;
   if (G.ch && G.ch.ex && typeof exDefeat === 'function') exDefeat();
   commitXP();
+  if (typeof buildLogTick === 'function') buildLogTick(G.round);
   checkAchievements();
   Hooks.sfx('lose');
   Hooks.gameOver();
@@ -15187,6 +15224,83 @@ function exAbandon(){ Profile.expedition = null; saveProfile(); }
 
 'use strict';
 /* =====================================================================
+   Kitchen Siege — the game's own record: round history and build replay
+   G.hist: one entry per cleared round (lives, cash, pests cooked, leaks,
+   cash earned, damage dealt) for the end-of-game stats screen.
+   G.blog: the build, as changes between rounds: an appliance added
+   ['a', round, id, type, x, y, up], upgraded ['u', round, id, up],
+   or gone ['d', round, id]. The replay steps through it round by round.
+   Both go in the save (hs and bl) and are trimmed so a long freeplay game
+   stays small.
+   ===================================================================== */
+const HIST_MAX = 400, BLOG_MAX = 3000;
+function histRoundEnd(n){
+  if (!G.hist) G.hist = [];
+  G.hist.push([n, Math.max(0, Math.round(G.lives)), Math.floor(G.cash), G.stats.kills, G.stats.leaked, Math.round(G.stats.earned), Math.round(G.stats.damage)]);
+  if (G.hist.length > HIST_MAX) G.hist.splice(0, G.hist.length - HIST_MAX);
+  buildLogTick(n + 1);
+}
+/* what the build looks like now, by appliance id */
+function buildNow(){
+  const m = {};
+  for (const t of G.towers) if (!t.minion && !t.clone) m[t.id] = { type: t.type, x: Math.round(t.x), y: Math.round(t.y), up: (t.paragon ? [9, 9, 9] : t.up).join('') };
+  return m;
+}
+/* record what changed since the last look, as of round r */
+function buildLogTick(r){
+  if (!G.blog) G.blog = [];
+  r = r || G.round;
+  const now = buildNow(), prev = G.blPrev || {};
+  for (const id in prev) if (!now[id]) G.blog.push(['d', r, +id]);
+  for (const id in now){
+    const a = now[id], b = prev[id];
+    if (!b) G.blog.push(['a', r, +id, a.type, a.x, a.y, a.up]);
+    else if (b.up !== a.up) G.blog.push(['u', r, +id, a.up]);
+  }
+  G.blPrev = now;
+  if (G.blog.length > BLOG_MAX) G.blog.splice(0, G.blog.length - BLOG_MAX);
+}
+/* the build as it stood at the start of round r */
+function buildAt(r, log){
+  const m = {};
+  for (const e of log || G.blog || []){
+    if (e[1] > r) break;
+    if (e[0] === 'a') m[e[2]] = { type: e[3], x: e[4], y: e[5], up: e[6] };
+    else if (e[0] === 'u' && m[e[2]]) m[e[2]].up = e[3];
+    else if (e[0] === 'd') delete m[e[2]];
+  }
+  return m;
+}
+function buildRounds(log){ const s = new Set((log || G.blog || []).map(e => e[1])); return [...s].sort((a, b) => a - b); }
+/* the game's totals and its busiest appliances, for the stats screen */
+function gameSummary(){
+  const by = {};
+  for (const t of G.towers){
+    const k = t.type;
+    if (!by[k]) by[k] = { type: k, n: 0, dmg: 0, kills: 0, spent: 0 };
+    by[k].n++; by[k].dmg += t.dmg || 0; by[k].kills += t.kills || 0; by[k].spent += t.invested || 0;
+  }
+  const kinds = Object.values(by).sort((a, b) => b.dmg - a.dmg);
+  const top = G.towers.slice().sort((a, b) => (b.dmg || 0) - (a.dmg || 0)).slice(0, 5).map(t => ({ type: t.type, up: t.paragon ? null : t.up.slice(), paragon: !!t.paragon, dmg: Math.round(t.dmg || 0), kills: t.kills || 0 }));
+  const H = G.hist || [];
+  const leakRounds = H.filter((e, i) => e[4] > (i ? H[i - 1][4] : 0)).map(e => e[0]);
+  return { rounds: Math.max(0, G.round - G.stats.start), kills: G.stats.kills, leaked: G.stats.leaked, earned: Math.round(G.stats.earned), damage: Math.round(G.stats.damage), towers: G.towers.length, kinds, top, leakRounds, hist: H.slice() };
+}
+/* ---------------- shop favourites ----------------
+   Starred appliances sit at the top of the shop under Favourites. */
+const FAV_MAX = 12;
+function favList(){ const f = Profile.settings.favs; return Array.isArray(f) ? f.filter(t => TOWERS[t] && !TOWERS[t].hero) : []; }
+function toggleFav(type){
+  if (!TOWERS[type] || TOWERS[type].hero) return false;
+  const f = favList(), i = f.indexOf(type);
+  if (i >= 0) f.splice(i, 1); else { if (f.length >= FAV_MAX) f.shift(); f.push(type); }
+  Profile.settings.favs = f;
+  saveProfile();
+  return i < 0;
+}
+
+'use strict';
+/* =====================================================================
    Kitchen Siege — drawing helpers and map backgrounds
    ===================================================================== */
 function mkCanvas(w, h){ const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
@@ -16002,7 +16116,8 @@ const Art = (() => {
   function hpBar(g, e, w, y){
     const p = clamp(e.hp / e.maxHp, 0, 1);
     g.fillStyle = 'rgba(20,24,28,0.75)'; rr(g, -w / 2 - 1, y - 1, w + 2, 6, 3); g.fill();
-    g.fillStyle = p > 0.5 ? '#7ee07a' : p > 0.25 ? '#ffd166' : '#ff5a4e'; rr(g, -w / 2, y, Math.max(2, w * p), 4, 2); g.fill();
+    const cb = typeof cbOn === 'function' && cbOn();
+    g.fillStyle = p > 0.5 ? (cb ? '#5aa9ff' : '#7ee07a') : p > 0.25 ? '#ffd166' : (cb ? '#ff9a1f' : '#ff5a4e'); rr(g, -w / 2, y, Math.max(2, w * p), 4, 2); g.fill();
   }
   const BIG = {
     cheese(g, e, t){
@@ -27831,7 +27946,8 @@ function rewardSummary(){
     h('div', { class:'rw-row' }, doughEl(G.doughGame || 0, 'big'), h('span', { text:'Dough earned this game · you have ' + fmt(Profile.dough) })),
     h('div', { class:'rw-row' }, h('span', { class:'rw-lvl' }, svgEl(HAT_SVG), h('b', { text: String(L.level) })),
       h('div', { class:'rw-xp' }, h('span', { text:'Chef level ' + L.level + ' · +' + fmt(G.chefXpGame || 0) + ' XP this game' }), h('div', { class:'chef-xp-bar' }, h('i', { style:{ width: (L.pct * 100).toFixed(1) + '%' } })))),
-    heroOnDuty() ? h('div', { class:'rw-row' }, iconCanvas(Art.chefPortrait(heroOnDuty().type, 64), 'rw-chef'), h('span', { text: HEROES[heroOnDuty().type].name + ' finished at level ' + heroOnDuty().level + (heroOnDuty().level >= HERO_MAX ? ': Master Chef!' : '.') })) : null);
+    heroOnDuty() ? h('div', { class:'rw-row' }, iconCanvas(Art.chefPortrait(heroOnDuty().type, 64), 'rw-chef'), h('span', { text: HEROES[heroOnDuty().type].name + ' finished at level ' + heroOnDuty().level + (heroOnDuty().level >= HERO_MAX ? ': Master Chef!' : '.') })) : null,
+    G.attract ? null : statsButton());
 }
 function showChallengeVictory(reward){
   if (G.ch && G.ch.tm){ showTastingVictory(reward); return; }
@@ -28426,6 +28542,138 @@ function startPackPlace(i){
   if (UI.pointer) setGhost(UI.pointer.x, UI.pointer.y);
   updatePanel(); updateShop(); updateClip(); showInfo(p.type);
   Sfx.play('click');
+}
+
+'use strict';
+/* =====================================================================
+   Kitchen Siege — polish: the end-of-game stats screen, the build replay,
+   colour-blind mode and text size, and shop favourites.
+   ===================================================================== */
+
+/* ---------------- accessibility ---------------- */
+const TEXT_SIZES = { normal:'Normal', large:'Large', larger:'Larger' };
+function cbOn(){ return !!(Profile.settings && Profile.settings.cb); }
+function applyAccess(){
+  const S = Profile.settings || {}, B = document.body;
+  if (!B) return;
+  B.classList.toggle('cb', !!S.cb);
+  B.classList.toggle('txt-l', S.text === 'large');
+  B.classList.toggle('txt-xl', S.text === 'larger');
+}
+function accessRows(sw){
+  const S = Profile.settings;
+  const seg = h('div', { class:'seg', role:'group', 'aria-label':'Text size' }, Object.keys(TEXT_SIZES).map(k => h('button', { 'aria-pressed': String((S.text || 'normal') === k), 'data-size': k, onclick: ev => {
+    S.text = k; saveProfile(); applyAccess();
+    for (const b of ev.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b.dataset.size === k));
+  } }, TEXT_SIZES[k])));
+  return [
+    sw('set-cb', 'Colour-blind friendly', 'Health bars, range circles and success colours use blue and orange instead of green and red.', !!S.cb, v => { S.cb = v; applyAccess(); }),
+    h('div', { class:'form-row' }, h('label', { text:'Text size' }), seg)];
+}
+
+/* ---------------- the stats screen ---------------- */
+/* a small line chart of one column of the round history */
+function histChart(H, col, label, color, fmtv){
+  const Wc = 520, Hc = 120, pad = 30;
+  const svgNS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 ' + Wc + ' ' + Hc); svg.setAttribute('class', 'gs-chart'); svg.setAttribute('role', 'img');
+  const vals = H.map(e => e[col]), max = Math.max(1, ...vals), min = Math.min(0, ...vals);
+  svg.setAttribute('aria-label', label + ' by round: from ' + fmtv(vals[0] || 0) + ' to ' + fmtv(vals[vals.length - 1] || 0));
+  const X = i => pad + (H.length < 2 ? 0 : i / (H.length - 1)) * (Wc - pad - 8), Y = v => 20 + (1 - (v - min) / (max - min || 1)) * (Hc - 44);
+  const el = (n, a) => { const e = document.createElementNS(svgNS, n); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
+  el('line', { x1: pad, y1: Hc - 22, x2: Wc - 8, y2: Hc - 22, class:'gs-axis' });
+  const d = H.map((e, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(e[col]).toFixed(1)).join(' ');
+  if (H.length > 1) el('path', { d, fill:'none', stroke: color, 'stroke-width': 2.5, 'stroke-linejoin':'round' });
+  else if (H.length) el('circle', { cx: X(0), cy: Y(H[0][col]), r: 3, fill: color });
+  const t1 = el('text', { x: pad, y: 12, class:'gs-tick' }); t1.textContent = fmtv(max);
+  const t2 = el('text', { x: pad, y: Hc - 6, class:'gs-tick' }); t2.textContent = 'Round ' + (H[0] ? H[0][0] : '');
+  const t3 = el('text', { x: Wc - 8, y: Hc - 6, class:'gs-tick', 'text-anchor':'end' }); t3.textContent = 'Round ' + (H.length ? H[H.length - 1][0] : '');
+  return h('div', { class:'gs-chart-box' }, h('b', { text: label }), svg);
+}
+function showGameStats(back){
+  const S = gameSummary();
+  const cb = cbOn();
+  const content = [
+    statBlock([['Rounds', fmt(S.rounds)], ['Pests cooked', fmt(S.kills)], ['Pests through', fmt(S.leaked)], ['Cash earned', money(S.earned)], ['Appliances', fmt(S.towers)]]),
+    S.hist.length ? h('div', { class:'gs-charts' },
+      histChart(S.hist, 1, 'Lives', cb ? '#2f7fd8' : '#e2383f', fmt),
+      histChart(S.hist, 2, 'Cash in hand', cb ? '#e08a00' : '#2a9d8f', money)) : h('p', { class:'dly-note', text:'Play a round or two and the charts fill in.' }),
+    S.leakRounds.length ? h('p', { class:'dly-note', text:'Pests got through on round' + (S.leakRounds.length > 1 ? 's ' : ' ') + S.leakRounds.slice(0, 20).join(', ') + (S.leakRounds.length > 20 ? '…' : '') + '.' }) : S.hist.length ? h('p', { class:'dly-note', text:'Flawless so far: nothing got through.' }) : null,
+    S.top.length ? h('div', { class:'gs-top' }, h('div', { class:'dly-label', text:'Hardest workers' }), S.top.map((t, i) => h('div', { class:'gs-row' },
+      h('span', { class:'gs-rank num', text: '#' + (i + 1) }), iconCanvas(Art.towerIcon(t.type, 64, t.up || [0, 0, 0], t.paragon)),
+      h('span', {}, h('b', { text: TOWERS[t.type] ? TOWERS[t.type].name : t.type }), ' ' + (t.paragon ? 'Paragon' : t.up.join('-'))),
+      h('span', { class:'num', text: fmt(t.dmg) + ' dmg · ' + fmt(t.kills) + ' cooked' })))) : null,
+    S.kinds.length ? h('div', { class:'gs-kinds' }, h('div', { class:'dly-label', text:'By kind' }), h('div', { class:'gs-table' },
+      h('b', { text:'Appliance' }), h('b', { text:'Count' }), h('b', { text:'Damage' }), h('b', { text:'Share' }),
+      ...S.kinds.flatMap(k => [h('span', { text: TOWERS[k.type] ? TOWERS[k.type].name : k.type }), h('span', { class:'num', text: fmt(k.n) }), h('span', { class:'num', text: fmt(Math.round(k.dmg)) }),
+        h('span', { class:'gs-bar' }, h('i', { style:{ width: (S.damage ? Math.min(100, k.dmg / Math.max(1, S.kinds.reduce((a, b) => a + b.dmg, 0)) * 100) : 0).toFixed(1) + '%' } }))]))) : null];
+  modal({ title:'Game stats', lead: MAPS[G.mapId].name + ' · ' + G.D.name + ' · round ' + G.round + '.', wide:true, cls:'gstats', content,
+    actions:[{ label:'Back', onClick: back }, { label:'Watch the build', kind:'primary', onClick: () => showReplay(() => showGameStats(back)) }], dismissable: !back, onClose: back });
+}
+/* a button for the end-of-game modals: opens the stats, then comes back to the same modal */
+function statsButton(){
+  return h('div', { class:'acts-row gs-open' }, h('button', { class:'btn btn-small', id:'btn-gstats', onclick: () => { const prev = UI.modalOpts; Sfx.play('click'); showGameStats(() => modal(prev)); } }, 'Game stats & build replay'));
+}
+
+/* ---------------- the build replay ---------------- */
+function showReplay(back){
+  const rounds = buildRounds();
+  const cv = h('canvas', { class:'rp-canvas', width: 880, height: 544, 'aria-label':'The kitchen as you built it, round by round' });
+  const g = cv.getContext('2d'), k = 880 / W;
+  let bg = null;
+  try { bg = MapArt.render(G.mapId, 0.8); } catch (e) { bg = null; }
+  const slider = h('input', { type:'range', min:'0', max: String(Math.max(0, rounds.length - 1)), step:'1', value: String(Math.max(0, rounds.length - 1)), 'aria-label':'Round' });
+  const label = h('p', { class:'rp-label' });
+  let playing = false, timer = 0;
+  const icons = {};
+  const iconFor = (type, up) => { const key = type + ':' + up; if (!icons[key]) icons[key] = TOWERS[type] ? Art.towerIcon(type, 64, up === '999' ? [0, 0, 0] : up.split('').map(Number), up === '999') : null; return icons[key]; };
+  const draw = () => {
+    const i = +slider.value, r = rounds[i];
+    g.clearRect(0, 0, cv.width, cv.height);
+    if (bg) g.drawImage(bg, 0, 0, cv.width, cv.height); else { g.fillStyle = '#e9e1d2'; g.fillRect(0, 0, cv.width, cv.height); }
+    if (r == null){ label.textContent = 'Nothing built yet.'; return; }
+    const now = buildAt(r), before = i ? buildAt(rounds[i - 1]) : {};
+    let n = 0, fresh = 0, ups = 0;
+    for (const id in now){
+      const t = now[id], ic = iconFor(t.type, t.up);
+      n++;
+      const isNew = !before[id], isUp = !isNew && before[id].up !== t.up;
+      if (isNew) fresh++; else if (isUp) ups++;
+      const s = 44;
+      if (isNew || isUp){ g.beginPath(); g.arc(t.x * k, t.y * k, s * 0.62, 0, TAU); g.fillStyle = isNew ? (cbOn() ? 'rgba(47,127,216,.35)' : 'rgba(126,224,122,.45)') : 'rgba(255,209,102,.5)'; g.fill(); }
+      if (ic) g.drawImage(ic, t.x * k - s / 2, t.y * k - s / 2, s, s);
+    }
+    label.textContent = 'Before round ' + r + ': ' + n + ' appliance' + (n === 1 ? '' : 's') + (fresh ? ' · ' + fresh + ' new' : '') + (ups ? ' · ' + ups + ' upgraded' : '') + '.';
+  };
+  const play = h('button', { class:'btn btn-small', onclick: () => {
+    playing = !playing; play.textContent = playing ? 'Pause' : 'Play';
+    clearInterval(timer);
+    if (playing){
+      if (+slider.value >= rounds.length - 1) slider.value = '0';
+      draw();
+      timer = setInterval(() => { if (!cv.isConnected || +slider.value >= rounds.length - 1){ clearInterval(timer); playing = false; play.textContent = 'Play'; return; } slider.value = String(+slider.value + 1); draw(); }, 600);
+    }
+  } }, 'Play');
+  slider.addEventListener('input', draw);
+  modal({ title:'Build replay', lead:'Your kitchen as it stood at the start of each round. Green marks new appliances, gold marks upgrades.', wide:true, cls:'replay',
+    content:[cv, h('div', { class:'rp-ctl' }, play, slider), label],
+    actions:[{ label:'Back', onClick: () => { clearInterval(timer); back && back(); } }], dismissable: !back, onClose: () => { clearInterval(timer); if (back) back(); } });
+  draw();
+}
+
+/* ---------------- shop favourites ---------------- */
+function favButton(type){
+  if (!TOWERS[type] || TOWERS[type].hero) return null;
+  const on = favList().includes(type);
+  return h('button', { class:'btn btn-small fav-btn' + (on ? ' on' : ''), 'aria-pressed': String(on), title: on ? 'Remove from favourites' : 'Add to favourites (or right-click its card)',
+    onclick: ev => { ev.stopPropagation(); toggleFav(type); buildShop(); showInfo(type); } }, on ? '★ Favourite' : '☆ Favourite');
+}
+/* cards for the starred appliances, at the top of the shop */
+function favCards(shop, card){
+  const favs = favList().filter(t => canBuild(t));
+  if (!favs.length) return;
+  shop.append(h('div', { class:'fhead fav-head', style:'--fc:#c79a1c' }, h('i', { 'aria-hidden':'true' }), '★ Favourites'));
+  for (const t of favs) shop.append(card(t, true));
 }
 
 'use strict';
@@ -29161,9 +29409,10 @@ function redrawKitchens(){
 }
 function drawRange(ctx, x, y, r, ok, gold){
   ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU);
-  ctx.fillStyle = ok ? (gold ? 'rgba(255,209,102,0.12)' : 'rgba(255,255,255,0.14)') : 'rgba(226,56,63,0.2)'; ctx.fill();
-  ctx.setLineDash([7, 6]); ctx.lineWidth = 2;
-  ctx.strokeStyle = ok ? (gold ? 'rgba(255,209,102,0.95)' : 'rgba(255,255,255,0.8)') : 'rgba(226,56,63,0.9)'; ctx.stroke();
+  const cb = cbOn();
+  ctx.fillStyle = ok ? (gold ? 'rgba(255,209,102,0.12)' : 'rgba(255,255,255,0.14)') : cb ? 'rgba(230,120,0,0.25)' : 'rgba(226,56,63,0.2)'; ctx.fill();
+  ctx.setLineDash(ok ? [7, 6] : cb ? [3, 4] : [7, 6]); ctx.lineWidth = 2;
+  ctx.strokeStyle = ok ? (gold ? 'rgba(255,209,102,0.95)' : 'rgba(255,255,255,0.8)') : cb ? 'rgba(230,120,0,0.95)' : 'rgba(226,56,63,0.9)'; ctx.stroke();
   ctx.restore();
 }
 function ghostRange(type, x, y){
@@ -29887,14 +30136,20 @@ function buildShop(){
   else if (G.M && G.M.only) shop.append(h('p', { class:'fnote ch-note', text: G.M.name + ': ' + FACTIONS[G.M.only].name + ' appliances and your head chef.' }));
   else bar.append(...factionChips(cur, f => { Profile.settings.shopFaction = f; saveProfile(); Sfx.play('click'); buildShop(); }, true));
   let last = null;
+  const card = (type, fav) => {
+    const T = TOWERS[type], F = FACTIONS[factionOf(type)];
+    return h('button', { class:'card' + (T.custom ? ' custom' : '') + (fav ? ' fav' : ''), style:'--fc:' + F.color, 'data-type': type, title: T.name + (T.hot ? ' (' + T.hot + ')' : ' (custom)') + ' · ' + F.name + (fav ? ' · favourite' : ''), onclick: () => startPlacing(type), onmouseenter: () => showInfo(type), onfocus: () => showInfo(type), onmouseleave: () => showInfo(UI.placing),
+      oncontextmenu: ev => { ev.preventDefault(); if (!T.hero){ const on = toggleFav(type); Sfx.play('click'); toast((on ? 'Starred ' : 'Unstarred ') + T.name + '.', 'info'); buildShop(); } } },
+      h('span', { class:'hk', text: T.custom ? '✦' : T.hot }), iconCanvas(Art.towerIcon(type, 64)), h('span', { class:'nm', text: T.name }), h('span', { class:'pr num' }), h('span', { class:'st' }));
+  };
+  favCards(shop, card);
   const shopTypes = factionSorted(TOWER_ORDER.filter(canBuild));
   if (adminUnitOn() && !G.towers.some(t => t.type === ADMIN_UNIT)) shopTypes.push(ADMIN_UNIT);
   for (const type of shopTypes){
     const T = TOWERS[type], f = factionOf(type), F = FACTIONS[f];
     if (!G.ch && !(G.M && G.M.only) && cur !== 'all' && f !== cur) continue;
     if (cur === 'all' && f !== last){ last = f; shop.append(h('div', { class:'fhead', style:'--fc:' + F.color, title: F.blurb }, h('i', { 'aria-hidden':'true' }), F.name)); }
-    shop.append(h('button', { class:'card' + (T.custom ? ' custom' : ''), style:'--fc:' + F.color, 'data-type': type, title: T.name + (T.hot ? ' (' + T.hot + ')' : ' (custom)') + ' · ' + F.name, onclick: () => startPlacing(type), onmouseenter: () => showInfo(type), onfocus: () => showInfo(type), onmouseleave: () => showInfo(UI.placing) },
-      h('span', { class:'hk', text: T.custom ? '✦' : T.hot }), iconCanvas(Art.towerIcon(type, 64)), h('span', { class:'nm', text: T.name }), h('span', { class:'pr num' }), h('span', { class:'st' })));
+    shop.append(card(type));
   }
   if (!G.ch && !(G.M && G.M.only) && cur !== 'all') shop.append(h('p', { class:'fnote', text: 'Showing ' + FACTIONS[cur].name + '. Hotkeys still pick any appliance.' }));
   updateShop(); showInfo(null);
@@ -29926,7 +30181,7 @@ function showInfo(type){
   }
   if (isHero(type)){ heroInfo(box, type); return; }
   const T = TOWERS[type];
-  box.append(h('b', { text: T.name + ' · ' + FACTIONS[factionOf(type)].name + (T.custom ? ' · custom ' + T.role.toLowerCase() : '') }), T.blurb + ' ', h('span', { style:{ color:'var(--mint)', fontWeight:600 }, text: RANKS[masteryRank(type)].name + ' mastery.' }));
+  box.append(h('b', { text: T.name + ' · ' + FACTIONS[factionOf(type)].name + (T.custom ? ' · custom ' + T.role.toLowerCase() : '') }), T.blurb + ' ', h('span', { style:{ color:'var(--mint)', fontWeight:600 }, text: RANKS[masteryRank(type)].name + ' mastery.' }), ' ', favButton(type));
 }
 
 /* ---------------------------------------------------------------------
@@ -31134,6 +31389,7 @@ function cycleSpeed(){
    Modals
    --------------------------------------------------------------------- */
 function modal(o){
+  UI.modalOpts = o;
   const wrap = $('#modal'), body = $('#modal-body');
   body.innerHTML = '';
   body.className = 'modal' + (o.wide ? ' wide' : '') + (o.cls ? ' ' + o.cls : '');
@@ -31191,7 +31447,7 @@ function pauseGame(){
   clock.addEventListener('click', clockTap);
   modal({ title:'Paused', lead: (G.ch ? G.ch.name + ' · ' : '') + MAPS[G.mapId].name + ' · ' + G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery Mode' : '') + ' · Round ' + G.round + (G.ch ? '. ' + challengeRulesText(G.ch) : G.M ? '. ' + modeRulesText() + '.' : ''),
     content:[settingsForm(true), G.doughGame || G.chefXpGame ? h('p', { class:'note', text:'This game so far: +' + fmt(G.doughGame || 0) + ' Dough and +' + fmt(G.chefXpGame || 0) + ' chef XP.' }) : null, h('p', { class:'note', text:'Progress saves at the start and end of every round, so leaving mid-round brings you back to the start of it.' })],
-    actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
+    actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Game stats', onClick: () => showGameStats(pauseGame) }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
       { label:'Restart', onClick: () => confirmBox('Restart this game?', 'Your towers and progress on this map will be wiped.', 'Restart', () => { pickSlot(activeSlot()); const ch = G.ch && G.ch.ex && exRecord() ? exLeg(exRecord()) : G.ch; startNewGame(G.mapId, G.diff, G.mm, ch, G.mode); }, pauseGame) }],
     onClose: resume, foot: clock });
 }
@@ -31219,15 +31475,14 @@ function settingsForm(compact){
   vol.addEventListener('change', save);
   const wrap = h('div', { style:{ display:'flex', flexDirection:'column', gap:'10px' } },
     sw('set-sound', 'Sound', null, S.sound, v => { S.sound = v; Sfx.unlock(); Sfx.setVolume(); }),
-    sw('set-music', 'Music', 'A kitchen tune in the background: calm on the menu, busier while rounds run, tense when a boss is out.', S.music !== false, v => { S.music = v; Music.refresh(); }),
-    sw('set-dmg', 'Damage numbers', 'Show how much each hit takes off a pest.', !!S.dmgNums, v => { S.dmgNums = v; }),
     sw('set-music', 'Music', 'The kitchen radio: a tune that swings during rounds and turns tense for bosses.', S.music !== false, v => { S.music = v; Sfx.unlock(); Sfx.setVolume(); }),
     h('div', { class:'form-row' }, h('label', { for:'vol', text:'Volume' }), vol),
     sw('set-dmg', 'Damage numbers', 'Hits add up over a pest for a moment, then float off it as a number.', !!S.dmgNums, v => { S.dmgNums = v; }),
     sw('set-fx', 'Full effects', 'Turn off to cut particles on slower devices.', S.fx !== 'low', v => { S.fx = v ? 'high' : 'low'; }),
     sw('set-depth', '3D kitchen', 'Appliances and the kitchens\' props are 3D models that cast shadows. Turn off for the flat look.', S.depth !== false, v => { S.depth = v; Art.clearIcons(); redrawKitchens(); if (UI.screen === 'game' && G.active){ buildShop(); updatePanel(true); buildAbilities(); } }),
     sw('set-abbar', 'Ability bar', 'Show the ability buttons at the bottom left of the kitchen. While they are hidden, their hotkeys and Auto still work.', !abHidden(), v => setAbHidden(!v)),
-    sw('set-perf', 'Performance mode', 'Removes most particles, screen flashes and shake, and draws at a lower resolution. Best for long games and slower devices. The 3D kitchen stays on (switch it off above for the flat look).', !!S.perf, v => setPerf(v)));
+    sw('set-perf', 'Performance mode', 'Removes most particles, screen flashes and shake, and draws at a lower resolution. Best for long games and slower devices. The 3D kitchen stays on (switch it off above for the flat look).', !!S.perf, v => setPerf(v)),
+    ...accessRows(sw));
   if (!compact) wrap.append(sw('set-auto', 'Auto-start rounds', 'Once you start a round, the next one begins as soon as it is cleared.', S.auto, v => setAutoStart(v)));
   return wrap;
 }
@@ -32098,6 +32353,7 @@ function boot(data){
   if (booted) return;
   booted = true;
   Store.init();
+  applyAccess();
   if (IS_TOUCH) document.body.classList.add('touch');
   wireHooks();
   wireMetaHooks();

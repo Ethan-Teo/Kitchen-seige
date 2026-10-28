@@ -609,7 +609,7 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     storms:[], orbs:[], piles:[], noIncome:false, pestHP:0, oakAt:null, loadT:0,
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
-    doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null,
+    doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
     mode:'standard', M:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
@@ -642,7 +642,8 @@ function serializeGame(){
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
     ch: G.ch || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
-    towers: G.towers.map(t => ({ type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
+    hs: G.hist && G.hist.length ? G.hist : undefined, bl: G.blog && G.blog.length ? G.blog : undefined,
+    towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
       spot: t.spot ? [Math.round(t.spot.x), Math.round(t.spot.y)] : null, fm: t.flyMode || undefined, nz: t.nozzle || undefined, lk: t.lock ? [Math.round(t.lock.x), Math.round(t.lock.y)] : undefined,
       hl: t.hero ? t.level : undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
@@ -671,6 +672,7 @@ function loadGame(data){
     made.push(null);
     if (!TOWERS[d.type]) continue;
     const t = makeTower(d.type, d.x, d.y);
+    if (Number.isInteger(d.id) && d.id > 0 && !G.towers.some(o => o.id === d.id)) t.id = d.id;
     t.up = d.up.slice(); t.paragon = !!d.par; t.degree = d.par || 0; t.tg = d.tg || 'first';
     if (d.nz === 'mist' || d.nz === 'stream') t.nozzle = d.nz;
     t.dmg = d.dmg || 0; t.kills = d.kills || 0; t.invested = d.inv || 0; t.bank = d.bank || 0; t.cashGen = d.cashGen || 0;
@@ -698,6 +700,10 @@ function loadGame(data){
     G.towers.push(t);
     made[made.length - 1] = t;
   }
+  G.nextId = Math.max(G.nextId, Math.floor(+data.nextId || 0), ...G.towers.map(t => t.id + 1));
+  G.hist = Array.isArray(data.hs) ? data.hs.filter(Array.isArray).slice(-400) : [];
+  G.blog = Array.isArray(data.bl) ? data.bl.filter(Array.isArray).slice(-3000) : [];
+  G.blPrev = typeof buildNow === 'function' ? buildNow() : null;
   /* riders back on their turntables */
   data.towers.forEach((d, i) => {
     const t = made[i], s = Number.isInteger(d.on) ? made[d.on] : null;
@@ -2157,6 +2163,7 @@ function roundGroupsFor(n){
 }
 function startRound(){
   if (!G.active || G.roundActive || G.over || G.won && !G.freeplay) return false;
+  if (typeof buildLogTick === 'function') buildLogTick(G.round);
   G.lastSnap = serializeGame();
   storeGame(G.lastSnap);
   const groups = roundGroupsFor(G.round);
@@ -2228,6 +2235,7 @@ function endRound(){
   /* appliances that bring in lives (a proofing drawer's bounty) */
   if (!G.attract && G.diff !== 'michelin') for (const t of G.towers) if (!t.hero && t.s.lifeRound){ G.lives += t.s.lifeRound; G.lastRoundLives = (G.lastRoundLives || 0) + t.s.lifeRound; }
   commitXP();
+  if (typeof histRoundEnd === 'function') histRoundEnd(n);
   G.round++;
   G.lastSnap = serializeGame();
   storeGame(G.lastSnap);
@@ -2254,6 +2262,7 @@ function commitXP(){
 }
 function victory(){
   G.won = true;
+  if (typeof buildLogTick === 'function') buildLogTick(G.round);
   let fresh = false, freshMM = false;
   if (!G.ch && !G.ev && !G.adminUsed && !isCustomMap(G.mapId)){
     const m = Profile.medals[G.mapId] = Profile.medals[G.mapId] || {}, key = medalKey(G.diff, G.mode);
@@ -2274,6 +2283,7 @@ function gameOver(){
   G.over = true;
   if (G.ch && G.ch.ex && typeof exDefeat === 'function') exDefeat();
   commitXP();
+  if (typeof buildLogTick === 'function') buildLogTick(G.round);
   checkAchievements();
   Hooks.sfx('lose');
   Hooks.gameOver();

@@ -1507,3 +1507,30 @@ button.crew{font:inherit;color:inherit;cursor:pointer}button.crew:disabled{opaci
 .ex-boon:hover,.ex-boon:focus-visible{border-color:var(--butter-deep);background:#fff8e2}
 .ex-boon b{font-family:var(--font-ui);font-size:16px}.ex-boon span{font-size:13px}.ex-bi{font-size:30px}
 .card.ex-packcard{border-style:dashed}
+/* Game stats and the build replay */
+.gs-open{justify-content:center;margin-top:4px}
+.gs-charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin:8px 0}
+.gs-chart-box{padding:8px 10px;border-radius:12px;background:var(--enamel-2);border:1px solid var(--enamel-3)}
+.gs-chart-box b{font-family:var(--font-ui);font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2)}
+.gs-chart{width:100%;height:auto;display:block}
+.gs-axis{stroke:var(--chrome);stroke-width:1}
+.gs-tick{font:11px var(--font-body);fill:var(--ink-3)}
+.gs-top{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.gs-row{display:grid;grid-template-columns:32px 40px 1fr auto;align-items:center;gap:8px;padding:4px 8px;border-radius:10px;background:var(--enamel-2)}
+.gs-row canvas{width:36px;height:36px}.gs-rank{font-weight:700;color:var(--ink-3)}
+.gs-table{display:grid;grid-template-columns:1fr auto auto minmax(80px,1fr);gap:4px 12px;align-items:center;font-size:14px}
+.gs-table b{font-family:var(--font-ui);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.gs-bar{display:block;height:8px;border-radius:4px;background:var(--enamel-3);overflow:hidden}.gs-bar i{display:block;height:100%;background:var(--mint)}
+.rp-canvas{width:100%;height:auto;border-radius:12px;display:block;background:#e9e1d2}
+.rp-ctl{display:flex;gap:10px;align-items:center;margin-top:8px}.rp-ctl input{flex:1}
+.rp-label{margin:6px 0 0;font-size:14px;color:var(--ink-2)}
+/* favourites */
+.fav-btn{margin-top:6px;padding:3px 10px;font-size:12px}.fav-btn.on{border-color:var(--butter-deep);background:#fff3c4}
+.card.fav .hk::after{content:'★';margin-left:2px;color:var(--butter-deep)}
+/* colour-blind friendly: success colours turn blue, warnings orange */
+body.cb{--mint:#2f7fd8;--led:#5aa9ff;--cherry:#e07800;--cherry-deep:#a85a00;--p1:#e07800;--p3:#2f7fd8}
+/* text size: menus, dialogs, notices and the info boxes grow; the kitchen and its side panel keep their layout */
+body.txt-l .modal,body.txt-l .fridge,body.txt-l .toasts,body.txt-l .topbar{zoom:1.12}
+body.txt-xl .modal,body.txt-xl .fridge,body.txt-xl .toasts,body.txt-xl .topbar{zoom:1.25}
+body.txt-l #shop-info,body.txt-l .tpanel p,body.txt-l .tpanel small{font-size:115%}
+body.txt-xl #shop-info,body.txt-xl .tpanel p,body.txt-xl .tpanel small{font-size:130%}

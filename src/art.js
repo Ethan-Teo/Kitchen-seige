@@ -252,7 +252,8 @@ const Art = (() => {
   function hpBar(g, e, w, y){
     const p = clamp(e.hp / e.maxHp, 0, 1);
     g.fillStyle = 'rgba(20,24,28,0.75)'; rr(g, -w / 2 - 1, y - 1, w + 2, 6, 3); g.fill();
-    g.fillStyle = p > 0.5 ? '#7ee07a' : p > 0.25 ? '#ffd166' : '#ff5a4e'; rr(g, -w / 2, y, Math.max(2, w * p), 4, 2); g.fill();
+    const cb = typeof cbOn === 'function' && cbOn();
+    g.fillStyle = p > 0.5 ? (cb ? '#5aa9ff' : '#7ee07a') : p > 0.25 ? '#ffd166' : (cb ? '#ff9a1f' : '#ff5a4e'); rr(g, -w / 2, y, Math.max(2, w * p), 4, 2); g.fill();
   }
   const BIG = {
     cheese(g, e, t){
