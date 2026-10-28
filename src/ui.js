@@ -3306,7 +3306,7 @@ function frame(now){
       updateHud();
       updateAbilities();
       slowT += dt;
-      if (slowT > 0.2){ slowT = 0; if (Coop.on) updateCoopBadge(); updateShop(); updatePanel(); updateClip(); if (UI.placing && UI.ghost) setGhost(UI.ghost.px != null ? UI.ghost.px : UI.ghost.x, UI.ghost.py != null ? UI.ghost.py : UI.ghost.y); }
+      if (slowT > 0.2){ slowT = 0; if (Coop.on || Net.role) updateCoopBadge(); updateShop(); updatePanel(); updateClip(); if (UI.placing && UI.ghost) setGhost(UI.ghost.px != null ? UI.ghost.px : UI.ghost.x, UI.ghost.py != null ? UI.ghost.py : UI.ghost.y); }
     }
   } catch (err) { console.error(err); }
   requestAnimationFrame(frame);

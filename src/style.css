@@ -1563,3 +1563,4 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .coop-badge.off{background:var(--enamel-3);color:var(--ink-3)}
 .toggle-inline{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:14px}
 @media (max-width:640px){.coop-pick{grid-template-columns:1fr}}
+.coop-badge.link{cursor:pointer;text-decoration:underline;pointer-events:auto}

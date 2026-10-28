@@ -166,7 +166,7 @@ function coopLeave(){
   const wasGuest = coopGuest(), wasHost = coopHost();
   if (wasHost){ G.cash = Math.floor(G.cash + Coop.wallet[1]); }
   try { Net.close && Net.close(); } catch (e) {}
-  Object.assign(Net, { kind:null, role:null, send:null, close:null, room:null, pc:null, dc:null, alive:false, tParts:null, sig:'' });
+  Object.assign(Net, { waitOpts:null, kind:null, role:null, send:null, close:null, room:null, pc:null, dc:null, alive:false, tParts:null, sig:'' });
   coopReset();
   UI.coopStarted = false;
   updateCoopBadge();
@@ -175,7 +175,11 @@ function coopLeave(){
 function updateCoopBadge(){
   const b = $('#coop-badge');
   if (!b) return;
-  b.hidden = !Coop.on;
+  const waiting = !Coop.on && Net.role === 'host' && !Net.alive && Net.waitOpts;
+  b.hidden = !Coop.on && !waiting;
+  b.onclick = waiting ? () => { G.paused = true; modal(Net.waitOpts); } : null;
+  b.classList.toggle('link', !!waiting);
+  if (waiting){ b.textContent = '○ Waiting for your partner · show the invite'; b.classList.add('off'); return; }
   if (!Coop.on) return;
   const other = Coop.role === 'host' ? Coop.names[1] : Coop.names[0];
   b.textContent = (Net.alive ? '● ' : '○ ') + 'Co-op with ' + other + ' · their cash ' + money(Math.floor(Coop.wallet[Coop.role === 'host' ? 1 : 0]));
@@ -225,8 +229,11 @@ function coopHostSetup(useRoom){
     } }] });
 }
 function coopWaitModal(title, lead, body){
+  Net.waitOpts = null;
   modal({ title, lead, cls:'coop', content:[body, h('p', { class:'dly-note', text:'Waiting for your partner…' })],
-    actions:[{ label:'Cancel', onClick: () => { coopLeave(); G.paused = false; } }, { label:'Play alone for now', onClick: () => { G.paused = false; } }], dismissable:false });
+    actions:[{ label:'Cancel', onClick: () => { coopLeave(); G.paused = false; } }, { label:'Play alone for now', onClick: () => { G.paused = false; updateCoopBadge(); } }], dismissable:false });
+  Net.waitOpts = UI.modalOpts;
+  updateCoopBadge();
 }
 function coopJoinSetup(useRoom){
   const name = h('input', { type:'text', maxlength:'20', placeholder:'Your name', 'aria-label':'Your name', value: Profile.settings.galBy || '' });
