@@ -78,7 +78,7 @@ function modeAllows(type){
   const T = TOWERS[type];
   return !!T && (!!T.hero || factionOf(type) === G.M.only);
 }
-function modeNoRetry(){ return !!(G.M && G.M.chimps); }
+function modeNoRetry(){ return !!(G.M && G.M.chimps) || !!(G.ch && G.ch.ex); }
 function modeNoPowers(){ return !!(G.M && (G.M.chimps || G.M.deflation)); }
 /* Chef's Special: odd rounds are promoted, even rounds send armored vehicles */
 function modeGroups(n, groups){

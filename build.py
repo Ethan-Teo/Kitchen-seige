@@ -5,7 +5,7 @@ root = pathlib.Path(__file__).parent
 src = root / 'src'
 shell = (src / 'shell.html').read_text()
 css = (src / 'style.css').read_text()
-js = '\n'.join((src / f).read_text() for f in ['data.js', 'engine.js', 'paragon.js', 'more.js', 'more_para.js', 'mixer.js', 'chess.js', 'utensils.js', 'spray.js', 'custom.js', 'objects.js', 'bodies.js', 'kitchens.js', 'meta.js', 'modes.js', 'events.js', 'tasting.js', 'bosses.js', 'heroes.js', 'admin_unit.js', 'sandbox.js', 'pests.js', 'art_map.js', 'art.js', 'gl3d.js', 'models3d.js', 'props3d.js', 'ui_custom.js', 'ui_objects.js', 'ui_bodies.js', 'ui_kitchens.js', 'ui_sandbox.js', 'ui_music.js', 'ui_tutorial.js', 'ui_meta.js', 'ui_events.js', 'ui_heroes.js', 'ui.js'])
+js = '\n'.join((src / f).read_text() for f in ['data.js', 'engine.js', 'paragon.js', 'more.js', 'more_para.js', 'mixer.js', 'chess.js', 'utensils.js', 'spray.js', 'custom.js', 'objects.js', 'bodies.js', 'kitchens.js', 'meta.js', 'modes.js', 'events.js', 'tasting.js', 'bosses.js', 'heroes.js', 'admin_unit.js', 'sandbox.js', 'pests.js', 'expeditions.js', 'art_map.js', 'art.js', 'gl3d.js', 'models3d.js', 'props3d.js', 'ui_custom.js', 'ui_objects.js', 'ui_bodies.js', 'ui_kitchens.js', 'ui_sandbox.js', 'ui_music.js', 'ui_tutorial.js', 'ui_meta.js', 'ui_events.js', 'ui_expeditions.js', 'ui_heroes.js', 'ui.js'])
 if '</script' in js.lower():
     sys.exit('script contains a closing script tag')
 out = shell.replace('/*__CSS__*/', css).replace('/*__JS__*/', js)

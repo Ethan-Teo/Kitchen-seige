@@ -320,7 +320,7 @@ function slotForNew(){
 function slotLabel(g){
   if (g && g.cm && typeof adoptKitchen === 'function') adoptKitchen(g.mapId, g.cm);
   if (!g || !MAPS[g.mapId]) return 'Empty';
-  return (g.ev && g.ev.n ? g.ev.n + ' · ' : g.ch ? (g.ch.tm ? 'Tasting Menu · ' : 'Daily · ') : '') + MAPS[g.mapId].name + ' · ' + (DIFFS[g.diff] ? DIFFS[g.diff].name : g.diff) + (g.mode && MODES[g.mode] && g.mode !== 'standard' ? ' · ' + MODES[g.mode].name : '') + (g.mm ? ' · Mastery' : '') + ' · Round ' + g.round;
+  return (g.ev && g.ev.n ? g.ev.n + ' · ' : g.ch ? (g.ch.tm ? 'Tasting Menu · ' : g.ch.ex ? 'Expedition · ' : 'Daily · ') : '') + MAPS[g.mapId].name + ' · ' + (DIFFS[g.diff] ? DIFFS[g.diff].name : g.diff) + (g.mode && MODES[g.mode] && g.mode !== 'standard' ? ' · ' + MODES[g.mode].name : '') + (g.mm ? ' · Mastery' : '') + ' · Round ' + g.round;
 }
 
 /* ---------------------------------------------------------------------
@@ -2272,6 +2272,7 @@ function continueFreeplay(){ G.freeplay = true; storeGame(serializeGame()); }
 function gameOver(){
   if (G.over) return;
   G.over = true;
+  if (G.ch && G.ch.ex && typeof exDefeat === 'function') exDefeat();
   commitXP();
   checkAchievements();
   Hooks.sfx('lose');

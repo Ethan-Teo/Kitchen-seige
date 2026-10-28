@@ -50,6 +50,7 @@ function showEvents(){
       h('section', { class:'dly-sec' }, h('div', { class:'dly-h' }, h('h3', { text:'Boss Night' }), h('span', { class:'dly-streak', text: wk.week.replace('-W', ' · week ') })), bossCard, h('div', { class:'dly-label', text:'Best times' }), boardList('boss')),
       h('section', { class:'dly-sec' }, h('div', { class:'dly-h' }, h('h3', { text:'The Race' })), raceCard, h('div', { class:'dly-label', text:'Best times' }), boardList('race')),
       tastingSection(existing),
+      expeditionSection(),
       h('p', { class:'note', text: slotStartNote() }),
     ],
     actions:[{ label:'Close' }] });

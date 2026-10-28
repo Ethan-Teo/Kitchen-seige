@@ -1494,3 +1494,16 @@ ul.pools li.full b{color:#2f6d2a}
 .ked-code{width:100%;margin-top:8px;font-family:monospace;font-size:12px}
 .ked-status{display:block;margin-top:8px;font-size:14px;color:var(--ink-2);min-height:1.3em}
 .ked-top .seg button,.ked-opts .seg button{padding:6px 14px}
+/* Expeditions */
+.ex-legs{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:640px){.ex-legs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ex-pack{display:flex;flex-wrap:wrap;gap:6px}
+.ex-pk{display:flex;flex-direction:column;align-items:center;padding:4px;border-radius:10px;background:var(--enamel-2);border:1px solid var(--enamel-3)}
+.ex-pk canvas{width:40px;height:40px}.ex-pk small{font-size:11px;color:var(--ink-3)}
+button.crew{font:inherit;color:inherit;cursor:pointer}button.crew:disabled{opacity:.45;cursor:default}
+.ex-crew small{font-size:11px;color:var(--ink-3)}
+.ex-boons{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:10px}
+.ex-boon{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:14px 10px;border-radius:14px;border:2px solid var(--enamel-3);background:var(--enamel);font:inherit;color:inherit;cursor:pointer}
+.ex-boon:hover,.ex-boon:focus-visible{border-color:var(--butter-deep);background:#fff8e2}
+.ex-boon b{font-family:var(--font-ui);font-size:16px}.ex-boon span{font-size:13px}.ex-bi{font-size:30px}
+.card.ex-packcard{border-style:dashed}

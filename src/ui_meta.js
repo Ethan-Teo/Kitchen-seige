@@ -391,6 +391,7 @@ function rewardSummary(){
 }
 function showChallengeVictory(reward){
   if (G.ch && G.ch.tm){ showTastingVictory(reward); return; }
+  if (G.ch && G.ch.ex){ showExVictory(reward); return; }
   const C = reward && reward.crate ? CRATES[reward.crate] : null;
   modal({ title:'Challenge complete!', lead: G.ch.name + ' on ' + MAPS[G.mapId].name + ' is done. ' + (reward && reward.first ? 'Today’s reward: ' + fmt(G.ch.reward.dough) + ' Dough and a ' + C.name + '.' : 'You already claimed today’s reward. A new challenge arrives at midnight.'),
     content:[h('div', { class:'big-medal daily' }, svgEl(HAT_SVG)), statBlock([['Rounds', fmt(G.round - G.stats.start)], ['Pests cooked', fmt(G.stats.kills)], ['Cash earned', money(G.stats.earned)]]), rewardSummary()],

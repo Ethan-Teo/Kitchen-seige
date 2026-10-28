@@ -79,6 +79,9 @@ function metaVictory(fresh, freshMM){
   if (G.ch && G.ch.tm){
     const r = tmLegDone();
     if (r){ out.tm = r; out.dough += r.dough; out.crate = r.crate; out.first = !!r.dough; }
+  } else if (G.ch && G.ch.ex){
+    const r = exLegDone();
+    if (r){ out.ex = r; out.dough += r.dough; out.crate = r.crate; out.first = !!r.crate; }
   } else if (G.ch){
     out.daily = true;
     if (!Profile.daily.ch[G.ch.date]){

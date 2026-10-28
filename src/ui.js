@@ -340,7 +340,7 @@ function enterGame(){
   show('game'); updateClip();
   $('#auto-start').checked = !!Profile.settings.auto;
   UI.autoArmed = false; UI.autoLeft = null;
-  $('#mode-label').textContent = G.ev ? eventLabel() : G.ch ? 'Daily · ' + G.D.name : G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery' : '');
+  $('#mode-label').textContent = G.ev ? eventLabel() : G.ch ? (G.ch.ex ? 'Expedition ' + (G.ch.ex.leg + 1) + '/5 · ' : G.ch.tm ? 'Tasting Menu · ' : 'Daily · ') + G.D.name : G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery' : '');
   $('#mode-label').title = G.ch ? G.ch.name + ' · rounds ' + G.ch.start + ' to ' + G.ch.end + '. ' + challengeRulesText(G.ch) : G.M ? G.M.name + ': ' + modeRulesText() : '';
   UI.abKey = '';
   buildShop(); buildAbilities(); updatePanel(true); UI.bossKey = null; bossBar(); UI.previewKey = null; buildPreview();
@@ -658,7 +658,7 @@ function copyTower(t){
 function clipName(c){ return TOWERS[c.type].name + ' ' + c.up.join('-'); }
 /* total price of a pasted copy at (x, y): the appliance plus every upgrade, bought in order */
 function pasteCost(c, x, y){
-  if (c.insta) return { cost:0, ok:true };
+  if (c.insta || c.pack != null) return { cost:0, ok:true };
   const fake = { type: c.type, x, y, up:[0, 0, 0], paragon:false };
   let cost = towerCost(c.type, x, y);
   for (let p = 0; p < 3; p++) while (fake.up[p] < c.up[p]){
@@ -685,7 +685,7 @@ function updateClip(){
   box.hidden = !c;
   if (!c) return;
   const pc = pasteCost(c);
-  const pasting = !!(UI.pasting && !UI.pasting.insta);
+  const pasting = !!(UI.pasting && !UI.pasting.insta && UI.pasting.pack == null);
   const key = clipName(c) + '|' + pc.cost + '|' + canAfford(pc.cost) + '|' + pasting;
   if (box.dataset.key === key) return;
   box.dataset.key = key;
@@ -706,6 +706,13 @@ function tryPlace(x, y, keep){
     return false;
   }
   const clip = UI.pasting;
+  if (clip && clip.pack != null){
+    const r = exPlacePack(clip.pack, x, y);
+    if (!r.ok){ Sfx.play('error'); toast(r.why + '.', 'warn'); return false; }
+    toast('Unpacked your ' + TOWERS[type].name + ' ' + r.t.up.join('-') + '.', 'gold');
+    cancelPlacing(); buildAbilities(); buildShop();
+    return true;
+  }
   if (clip && clip.insta){
     const r = placeInsta(clip.insta, x, y);
     if (!r.ok){ Sfx.play('error'); toast(r.why + '.', 'warn'); return false; }
@@ -1108,6 +1115,7 @@ function buildShop(){
   bar.hidden = !!G.ch;
   if (G.M && G.M.only) bar.hidden = true;
   if (G.ch && G.ch.tm) shop.append(h('p', { class:'fnote ch-note', id:'crew-note', text: crewNoteText() }));
+  else if (G.ch && G.ch.ex) exShopBits(shop);
   else if (G.ch) shop.append(h('p', { class:'fnote ch-note', text:'Daily challenge: these ' + G.ch.towers.length + ' appliances only.' }));
   else if (G.M && G.M.only) shop.append(h('p', { class:'fnote ch-note', text: G.M.name + ': ' + FACTIONS[G.M.only].name + ' appliances and your head chef.' }));
   else bar.append(...factionChips(cur, f => { Profile.settings.shopFaction = f; saveProfile(); Sfx.play('click'); buildShop(); }, true));
@@ -1130,7 +1138,7 @@ function crewNoteText(){ return 'Your crew: ' + G.ch.towers.map(t => TOWERS[t].n
 function updateShop(){
   updateHeroCard();
   if (G.ch && G.ch.tm){ const n = $('#crew-note'); const txt = crewNoteText(); if (n && n.textContent !== txt){ n.textContent = txt; buildShopSoon(); } }
-  for (const card of $$('#shop .card')){
+  for (const card of $$('#shop .card[data-type]')){
     const type = card.dataset.type;
     const c = towerCost(type);
     const pr = '$' + fmt(c);
@@ -2399,6 +2407,7 @@ function showVictory(fresh, freshMM, reward){
     dismissable:false });
 }
 function showDefeat(){
+  if (G.ch && G.ch.ex){ showExDefeat(); return; }
   const noRetry = modeNoRetry();
   modal({ title:'The pantry fell', lead:'The pests broke through on round ' + G.round + '. ' + (noRetry ? G.M.name + ' allows no retries: start again from round ' + G.M.start + '.' : 'You can retry from the start of this round with the same kitchen.'),
     content:[statBlock([['Rounds survived', fmt(Math.max(0, G.round - G.stats.start))], ['Pests cooked', fmt(G.stats.kills)], ['Cash earned', money(G.stats.earned)]]), rewardSummary(), xpList()],
@@ -2416,7 +2425,7 @@ function pauseGame(){
   modal({ title:'Paused', lead: (G.ch ? G.ch.name + ' · ' : '') + MAPS[G.mapId].name + ' · ' + G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery Mode' : '') + ' · Round ' + G.round + (G.ch ? '. ' + challengeRulesText(G.ch) : G.M ? '. ' + modeRulesText() + '.' : ''),
     content:[settingsForm(true), G.doughGame || G.chefXpGame ? h('p', { class:'note', text:'This game so far: +' + fmt(G.doughGame || 0) + ' Dough and +' + fmt(G.chefXpGame || 0) + ' chef XP.' }) : null, h('p', { class:'note', text:'Progress saves at the start and end of every round, so leaving mid-round brings you back to the start of it.' })],
     actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
-      { label:'Restart', onClick: () => confirmBox('Restart this game?', 'Your towers and progress on this map will be wiped.', 'Restart', () => { pickSlot(activeSlot()); startNewGame(G.mapId, G.diff, G.mm, G.ch, G.mode); }, pauseGame) }],
+      { label:'Restart', onClick: () => confirmBox('Restart this game?', 'Your towers and progress on this map will be wiped.', 'Restart', () => { pickSlot(activeSlot()); const ch = G.ch && G.ch.ex && exRecord() ? exLeg(exRecord()) : G.ch; startNewGame(G.mapId, G.diff, G.mm, ch, G.mode); }, pauseGame) }],
     onClose: resume, foot: clock });
 }
 function confirmBox(title, lead, label, yes, no){
