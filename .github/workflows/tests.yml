@@ -16,6 +16,6 @@ jobs:
         run: cmp dist/kitchen-siege-standalone.html index.html
       - name: Game tests
         run: |
-          for t in rounds modes saves slots meta heroes events tasting bosses sandbox workshop bodies spray chess utensils mixer more degree; do
+          for t in rounds pests modes saves slots meta heroes events tasting bosses sandbox workshop bodies spray chess utensils mixer more degree; do
             echo "== $t"; node test/$t.js | tail -1
           done

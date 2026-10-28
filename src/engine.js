@@ -1025,6 +1025,7 @@ function damage(e, amt, type, tw, o){
   if (e.freezeT > 0 && e.brittle) d += e.brittle;
   if (e.vulnT > 0) d += e.vulnAmt;
   if (e.sprayed) d = sprayDamage(e, d, type, tw, o);   // a spray bottle's soak and lather
+  if (e.guardUntil > G.time) d = pestGuard(e, d);       // a shield beetle's cover
   if (type === 'heat'){ if (e.soakT > 0) d += 1; if (e.smokeT > 0 && e.heatMult > 1) d *= e.heatMult; }
   if (e.crippleT > 0) d *= e.crippleMult;
   if (tw){ if (tw.dmgMul) d *= tw.dmgMul; if (tw.heroBoost) d *= tw.heroBoost; }
@@ -1039,6 +1040,7 @@ function damage(e, amt, type, tw, o){
   G.stats.damage += dealt;
   if (G.vis && dmgNumbersOn()){ e.dmgAcc = (e.dmgAcc || 0) + dealt; if (!(e.dmgAccT > 0)) e.dmgAccT = 0.18; }
   if (tw){ tw.dmg += dealt; G.xp[tw.type] = (G.xp[tw.type] || 0) + dealt * G.xpMult; if (tw.wrathOn) wrathFeed(tw, dealt); if (tw.on) riderXp(tw, dealt); }
+  if (e.def.segs) shedSegs(e);
   if (e.hp <= 0) kill(e, tw);
   return dealt;
 }
@@ -2147,7 +2149,7 @@ function promote(type, i){
 }
 /* the round's groups with Mastery Mode's promotions and the game mode's changes */
 function roundGroupsFor(n){
-  const groups = roundGroups(n);
+  const groups = newPestGroups(n, roundGroups(n));
   if (G.mm) groups.forEach((g, i) => { g.type = promote(g.type, i); });
   return evRoundGroups(n, modeGroups(n, groups));
 }
@@ -2516,7 +2518,8 @@ function updateProjs(dt){
     for (let i = 0; i < list.length; i++){
       const e = list[i];
       if (e.dead || hitBefore(p, e)) continue;
-      if (sp.only && p.target && e !== p.target) continue;   // a seeking shot passes everything but its mark
+      if (sp.only && p.target && e !== p.target) continue;
+      if (e.def.dodge && !sp.explode && pestDodge(e, p)) continue;   // a silverfish darts aside   // a seeking shot passes everything but its mark
       p.hitSomething = true;
       if (sp.explode){ explodeAt(p.x, p.y, sp.explode, p.tw, sp); landZone(p.x, p.y, sp, p.tw); p.done = true; p.exploded = true; break; }
       p.hit.add(e.id);
@@ -2744,6 +2747,7 @@ function updateEnemies(dt){
     if (e.vulnT > 0) e.vulnT -= dt;
     if (e.soakT > 0) e.soakT -= dt;
     if (e.sprayed) sprayPestTick(e, dt);
+    if (e.def.trick) pestTrick(e, dt);
     if (e.smokeT > 0){ e.smokeT -= dt; if (e.smokeT <= 0) e.heatMult = 1; }
     if (e.crippleT > 0) e.crippleT -= dt;
     if (e.batterT > 0){ e.batterT -= dt; if (e.batterT <= 0) e.batterMult = 1; }

@@ -45,6 +45,60 @@ const Art = (() => {
   }
   const PEST = {
     ant(g, f){ antBody(g, f, '#3a2418', '#4a2f1f', '#1a0f09'); },
+    /* a silver teardrop with scaled bands and three tail bristles */
+    silverfish(g, f){
+      legs(g, [-1, 1, 3], 5, f, '#5d6670', 0.7);
+      g.strokeStyle = '#7f8b95'; g.lineWidth = 0.7; g.lineCap = 'round';
+      for (const s of [-1, 0, 1]){ g.beginPath(); g.moveTo(-6.5, 0); g.lineTo(-12, s * 3.2 + (f ? s * 0.6 : 0)); g.stroke(); }
+      antennae(g, 4.5, 6, 4, '#7f8b95', 0.7);
+      g.beginPath(); g.moveTo(5, 0); g.quadraticCurveTo(3, -3.6, -2, -3.2); g.quadraticCurveTo(-6, -2.2, -7.5, 0); g.quadraticCurveTo(-6, 2.2, -2, 3.2); g.quadraticCurveTo(3, 3.6, 5, 0); g.closePath();
+      fillStroke(g, '#c9d2d6', '#5d6670', 0.8);
+      g.strokeStyle = 'rgba(93,102,112,0.55)'; g.lineWidth = 0.6; for (let x = -5; x <= 2; x += 1.8){ g.beginPath(); g.moveTo(x, -2.8); g.lineTo(x + 0.6, 2.8); g.stroke(); }
+      sheen(g, -1, -1.4, 3, 0.9);
+    },
+    /* a green cricket with its big folded jumping legs */
+    cricket(g, f){
+      legs(g, [1, 2.6], 5, f, '#3c5a24', 0.9);
+      g.strokeStyle = '#3c5a24'; g.lineWidth = 1.5; g.lineCap = 'round'; g.lineJoin = 'round';
+      for (const s of [-1, 1]){ g.beginPath(); g.moveTo(-1, s * 2); g.lineTo(-5, s * (6.5 + f)); g.lineTo(-10, s * (3 + f * 0.5)); g.stroke(); }
+      antennae(g, 4.5, 9, 5, '#3c5a24', 0.6);
+      ell(g, -2.5, 0, 6, 3.4); fillStroke(g, '#6f9a3a', '#3c5a24', 0.8);
+      g.strokeStyle = 'rgba(40,60,20,0.5)'; g.lineWidth = 0.6; for (let x = -6; x <= 0; x += 2){ g.beginPath(); g.moveTo(x, -3); g.lineTo(x, 3); g.stroke(); }
+      ell(g, 3.6, 0, 2.4, 2.6); fillStroke(g, '#7fae46', '#3c5a24', 0.8);
+      circle(g, 4.6, -1.6, 0.8); g.fillStyle = '#1d2124'; g.fill(); circle(g, 4.6, 1.6, 0.8); g.fill();
+      sheen(g, -3, -1.4, 3, 0.8);
+    },
+    /* an ant carrying a great round belly of honey */
+    honeypot(g, f){
+      legs(g, [1, 2.4, 3.8], 6, f, '#2a1a10', 0.9);
+      antennae(g, 7.5, 4.5, 3, '#2a1a10', 0.8);
+      circle(g, -4, 0, 6.6); fillStroke(g, '#f0a12e', '#8a5410', 1);
+      g.strokeStyle = 'rgba(138,84,16,0.45)'; g.lineWidth = 0.8; for (const r of [2.6, 4.6]){ g.beginPath(); g.arc(-4, 0, r, -1.2, 1.2); g.stroke(); }
+      ell(g, -6, -2.6, 2.6, 1.4, -0.4); g.fillStyle = 'rgba(255,248,214,0.8)'; g.fill();
+      ell(g, 2.4, 0, 2.2, 1.8); fillStroke(g, '#3a2418', '#1a0f09', 0.7);
+      circle(g, 6, 0, 2.4); fillStroke(g, '#3a2418', '#1a0f09', 0.7);
+    },
+    /* a long reddish centipede, segment after segment, legs all along it */
+    centipede(g, f){
+      g.strokeStyle = '#6a2a14'; g.lineWidth = 0.8; g.lineCap = 'round';
+      for (let i = 0; i < 6; i++){ const x = -11 + i * 3.8; for (const s of [-1, 1]){ const k = ((i + f + (s > 0 ? 1 : 0)) % 2) ? 1.2 : -1.2; g.beginPath(); g.moveTo(x, s * 2); g.lineTo(x + k, s * 6); g.stroke(); } }
+      antennae(g, 9, 5, 4, '#6a2a14', 0.7);
+      for (let i = 0; i < 6; i++){ const x = -11 + i * 3.8; ell(g, x, Math.sin(i * 1.3 + f) * 0.6, 2.4, 2.9); fillStroke(g, i % 2 ? '#b24a24' : '#c8602c', '#6a2a14', 0.7); }
+      circle(g, 10, 0, 2.6); fillStroke(g, '#8a3018', '#4a1a0c', 0.7);
+      sheen(g, -2, -1.6, 6, 0.6);
+    },
+    /* a broad shield-shaped beetle in green bronze */
+    shieldbug(g, f){
+      legs(g, [-2, 0.5, 3], 7.5, f, '#2a3320', 1.1);
+      antennae(g, 7, 5, 4, '#2a3320', 0.8);
+      g.beginPath(); g.moveTo(7, 0); g.lineTo(3, -6.5); g.lineTo(-6, -6); g.lineTo(-10, 0); g.lineTo(-6, 6); g.lineTo(3, 6.5); g.closePath();
+      fillStroke(g, '#5f7a3a', '#2a3320', 1);
+      g.beginPath(); g.moveTo(3, -6); g.lineTo(-2, 0); g.lineTo(3, 6); g.strokeStyle = 'rgba(42,51,32,0.6)'; g.lineWidth = 0.8; g.stroke();
+      g.beginPath(); g.moveTo(-2, 0); g.lineTo(-9, 0); g.stroke();
+      circle(g, 7.6, 0, 2); fillStroke(g, '#3c4a28', '#2a3320', 0.7);
+      sheen(g, -3, -3, 3.5, 1.2, -0.3);
+      g.strokeStyle = 'rgba(242,193,78,0.6)'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(-6, -5.4); g.lineTo(2.6, -5.9); g.stroke();
+    },
     fireant(g, f){ antBody(g, f, '#d4511c', '#e0692c', '#7a2508'); circle(g, -5, 0, 1.4); g.fillStyle = 'rgba(255,214,102,0.8)'; g.fill(); },
     fruitfly(g, f){
       legs(g, [-0.5, 1, 2.4], 4.5, f, '#5a3a1e', 0.7);
@@ -527,6 +581,8 @@ const Art = (() => {
       g.restore();
       g.translate(0, -7 * air);
     }
+    /* a cricket mid-leap: up off the floor */
+    if (e.hopT > 0) g.translate(0, -Math.sin(Math.PI * (1 - e.hopT / 0.35)) * 12);
     if (e.camo) g.globalAlpha = 0.42;
     const frozen = e.freezeT > 0, stunned = e.stunT > 0;
     const moving = !frozen && !stunned;
@@ -575,6 +631,8 @@ const Art = (() => {
       g.beginPath(); g.moveTo(sx, sy - sr); g.quadraticCurveTo(sx, sy, sx + sr, sy); g.quadraticCurveTo(sx, sy, sx, sy + sr); g.quadraticCurveTo(sx, sy, sx - sr, sy); g.quadraticCurveTo(sx, sy, sx, sy - sr); g.fill();
     }
     if (e.flashT > 0){ g.globalAlpha = e.big ? 0.2 : 0.5; circle(g, 0, 0, e.r * (e.big ? 0.7 : 0.9)); g.fillStyle = '#ffffff'; g.fill(); g.globalAlpha = 1; }
+    /* under a shield beetle's cover: a faint green shell over it */
+    if (e.guardUntil > G.time && !e.def.guard){ g.beginPath(); g.arc(0, 0, e.r * 1.25, Math.PI * 1.05, Math.PI * 1.95); g.strokeStyle = 'rgba(160,200,90,0.85)'; g.lineWidth = 1.8; g.stroke(); circle(g, 0, 0, e.r * 1.2); g.fillStyle = 'rgba(140,190,80,0.12)'; g.fill(); }
     /* soaked by a spray bottle: a wet sheen and drips; lathered: soap foam, and a skid when it slips */
     if (e.sprayed){
       if (e.wetT > 0){
