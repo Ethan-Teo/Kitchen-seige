@@ -1,0 +1,21 @@
+name: tests
+on:
+  push:
+  pull_request:
+jobs:
+  game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build
+        run: python3 build.py
+      - name: The built game matches index.html
+        run: cmp dist/kitchen-siege-standalone.html index.html
+      - name: Game tests
+        run: |
+          for t in rounds modes saves slots meta heroes events tasting bosses sandbox workshop bodies spray chess utensils mixer more degree; do
+            echo "== $t"; node test/$t.js | tail -1
+          done

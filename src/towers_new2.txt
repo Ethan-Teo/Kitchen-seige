@@ -1,0 +1,105 @@
+  /* ------------------------------------------------------- PIZZA OVEN */
+  oven: {
+    name:'Pizza Oven', cost:650, size:21, hot:'P', group:'Specialist',
+    blurb:'Lobs pizzas anywhere on the map. Pick a target spot, or let it choose pests itself.',
+    base:{ range:9999, global:true, spot:true, atk:{ main:{ kind:'lob', mortar:true, rate:2.0, travel:0.9, type:'blast', sprite:'pizza', spreadR:34, impact:{ r:50, dmg:1, pierce:20, type:'blast' } } } },
+    paths:[
+      { name:'Deep Dish', ups:[
+        { name:'Thick Crust', cost:300, desc:'+25% blast radius.', apply:s=>{ s.atk.main.impact.r *= 1.25; } },
+        { name:'Extra Cheese', cost:450, desc:'+1 damage and 10 more pests per blast.', apply:s=>{ const im=s.atk.main.impact; im.dmg += 1; im.pierce += 10; } },
+        { name:'Deep Dish', cost:1200, desc:'+3 damage and bigger blasts that stun for 0.4s.', apply:s=>{ const im=s.atk.main.impact; im.dmg += 3; im.r *= 1.3; im.stun = 0.4; im.pierce += 15; } },
+        { name:'Chicago Bomb', cost:3800, desc:'+10 damage, +30 to vehicles and 0.8s stuns.', apply:s=>{ const im=s.atk.main.impact; im.dmg += 10; im.bonusBig = (im.bonusBig||0) + 30; im.stun = 0.8; im.stunBig = 0.2; im.pierce += 20; } },
+        { name:'Pizzapocalypse', cost:35000, desc:'+60 damage, +200 to vehicles, huge blasts that stun for 1.2s.', apply:s=>{ const a=s.atk.main, im=a.impact; im.dmg += 60; im.bonusBig += 170; im.r *= 1.4; im.stun = 1.2; im.stunBig = 0.4; im.pierce += 60; a.sprite = 'bigpizza'; } },
+      ]},
+      { name:'Wood-Fired', ups:[
+        { name:'Hotter Stone', cost:260, desc:'Bakes 20% faster.', apply:s=>{ s.atk.main.rate /= 1.2; } },
+        { name:'Wood-Fired', cost:400, desc:'Pizzas set pests burning.', apply:s=>{ s.atk.main.impact.burn = { dmg:1, tick:0.5, dur:2 }; } },
+        { name:'Pizza Party', cost:1150, desc:'3 pizzas per bake.', apply:s=>{ s.atk.main.count = 3; } },
+        { name:'Brick Oven Barrage', cost:3600, desc:'Bakes twice as fast. Burns deal 4.', apply:s=>{ const a=s.atk.main; a.rate /= 2; a.impact.burn.dmg = 4; } },
+        { name:'Inferno Oven', cost:30000, desc:'5 pizzas per bake, +10 damage, burns of 12. Ability: Delivery Rush bakes 4× faster for 8s.', apply:s=>{ const a=s.atk.main; a.count = 5; a.impact.dmg += 10; a.impact.burn.dmg = 12; s.abilities.push({ id:'delivery', cd:45, dur:8, mult:4, global:false }); } },
+      ]},
+      { name:'Delivery', ups:[
+        { name:'Pizza Cutter', cost:200, desc:'Pizzas split into 6 sharp slices.', apply:s=>{ s.atk.main.frag = { count:6, dmg:1, pierce:2, speed:300, life:0.3, type:'sharp', sprite:'slice' }; } },
+        { name:'Steady Peel', cost:260, desc:'Pinpoint aim and ghost sight.', apply:s=>{ s.atk.main.spreadR = 6; s.camo = true; } },
+        { name:'Calzone Clusters', cost:950, desc:'Each pizza scatters 6 calzones that explode.', apply:s=>{ s.atk.main.cluster = { count:6, r:32, dmg:2, pierce:12, spread:50, depth:1, type:'blast' }; } },
+        { name:'Stuffed Crust', cost:3300, desc:'Slices hit 3 more pests for +2. Calzones scatter calzones.', apply:s=>{ const a=s.atk.main; a.frag.pierce += 3; a.frag.dmg += 2; a.cluster.depth = 2; a.cluster.dmg += 2; } },
+        { name:'Party Pack', cost:26000, desc:'12 slices for 8 each and big calzone storms with +40 to vehicles.', apply:s=>{ const a=s.atk.main; a.frag.count = 12; a.frag.dmg = 8; a.frag.pierce += 3; a.cluster.dmg = 20; a.cluster.r *= 1.3; a.cluster.bonusBig = 40; a.cluster.count = 8; } },
+      ]},
+    ],
+    paragon:{ name:'Il Forno Supremo', cost:260000, desc:'A brick-oven barrage of giant pizzas anywhere on the map, each one bursting into slices and calzones.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:9999, global:true, spot:true, camo:true, atk:{
+        main:{ kind:'lob', mortar:true, rate:0.4/k, travel:0.8, count:5, type:'normal', sprite:'bigpizza', spreadR:40, ignoreImmune:true, impact:{ r:110, dmg:120+dd*12, pierce:Math.round(200*k), type:'normal', stun:1.2, stunBig:0.4, burn:{ dmg:40, tick:0.5, dur:3 }, bonusBig:Math.round((900+dd*90)*big) },
+          frag:{ count:12, dmg:30, pierce:6, speed:320, life:0.35, type:'normal', sprite:'slice' }, cluster:{ count:8, r:45, dmg:40, pierce:30, spread:70, depth:2, type:'normal', bonusBig:120 } },
+      }, abilities:[{ id:'delivery', cd:30, dur:10, mult:3, global:false }] }; } },
+  },
+
+  /* ------------------------------------------------------ STAND MIXER */
+  mixer: {
+    name:'Stand Mixer', cost:600, size:19, hot:'A', group:'Specialist',
+    blurb:'Whips up whirlwinds that rush back up the trail, shoving pests away from the pantry.',
+    base:{ range:150, atk:{ main:{ kind:'whirl', rate:2.2, dmg:1, pierce:10, type:'normal', r:22, speed:170, dist:230, knock:8, count:1 } } },
+    paths:[
+      { name:'Whisk', ups:[
+        { name:'Balloon Whisk', cost:200, desc:'Whirls hit 6 more pests.', apply:s=>{ s.atk.main.pierce += 6; } },
+        { name:'Double Whisk', cost:320, desc:'+1 damage and whirls 25% more often.', apply:s=>{ const a=s.atk.main; a.dmg += 1; a.rate /= 1.25; } },
+        { name:'Whirlwind', cost:1000, desc:'Bigger whirls that travel twice as far and shove harder.', apply:s=>{ const a=s.atk.main; a.r *= 1.5; a.dist *= 2; a.knock = 16; a.dmg += 1; a.pierce += 10; } },
+        { name:'Cyclone Speed', cost:3600, desc:'Two whirls per spin, +3 damage, 20 more pests, and they nudge vehicles.', apply:s=>{ const a=s.atk.main; a.count = 2; a.dmg += 3; a.pierce += 20; a.bigKnock = 3; } },
+        { name:'Hurricane Mixer', cost:30000, desc:'Three hurricanes per spin: +12 damage, 60 more pests, much bigger, and they shove vehicles hard.', apply:s=>{ const a=s.atk.main; a.r *= 1.6; a.dmg += 12; a.pierce += 60; a.bigKnock = 10; a.knock = 26; a.count = 3; a.rate /= 1.3; a.hurricane = true; } },
+      ]},
+      { name:'Dough Hook', ups:[
+        { name:'Dough Hook', cost:250, desc:'Every 2.5s, hooks the toughest small pest in range and holds it for 1.5s.', apply:s=>{ s.atk.hook = { kind:'grab', rate:2.5, count:1, dmg:2, type:'normal', hold:1.5, hook:true }; } },
+        { name:'Stretchy Dough', cost:350, desc:'Hooks 2 pests for 2s each, with 25% more reach.', apply:s=>{ const k=s.atk.hook; k.count = 2; k.hold = 2; k.rangeMul = 1.25; } },
+        { name:'Kneading Hook', cost:1100, desc:'Hooked pests get kneaded for 10 damage. Hooks 3.', apply:s=>{ const k=s.atk.hook; k.count = 3; k.dmg = 10; } },
+        { name:'Bread Proofer', cost:3800, desc:'Hooks can grab vehicles for 0.6s and deal 120 to them.', apply:s=>{ const k=s.atk.hook; k.bigs = true; k.bigHold = 0.6; k.bonusBig = 100; k.dmg += 10; k.rate = 2.0; } },
+        { name:'Dough Golem', cost:28000, desc:'Hooks 6 pests for 2.5s: 60 damage, 600 to vehicles, and hooked pests take +3 damage from everything.', apply:s=>{ const k=s.atk.hook; k.count = 6; k.hold = 2.5; k.bigHold = 1; k.dmg = 60; k.bonusBig = 540; k.vuln = { amt:3, dur:3 }; k.rate = 1.8; } },
+      ]},
+      { name:'Beaters', ups:[
+        { name:'Long Cord', cost:150, desc:'+20% range.', apply:s=>{ s.range *= 1.2; } },
+        { name:'Paddle Beater', cost:250, desc:'Adds a beater that smacks the closest pest twice a second.', apply:s=>{ s.atk.beat = { kind:'hitscan', rate:0.5, dmg:1, pierce:1, type:'normal', shots:1, melee:true, mode:'close', rangeMul:0.6, knock:3 }; } },
+        { name:'Twin Beaters', cost:900, desc:'Beats twice as fast for 2 damage, smacking 2 pests at once.', apply:s=>{ const b=s.atk.beat; b.rate = 0.25; b.dmg += 1; b.shots = 2; b.multi = true; } },
+        { name:'Power Mixer', cost:3300, desc:'Beaters deal 6, beat faster still and spot ghosts.', apply:s=>{ const b=s.atk.beat; b.dmg += 4; b.rate = 0.14; b.knock = 6; s.camo = true; } },
+        { name:'Planetary Mixer', cost:26000, desc:'Beaters smack 4 pests for 22 (+20 to vehicles), 12 times a second.', apply:s=>{ const b=s.atk.beat; b.dmg += 16; b.rate = 0.08; b.shots = 4; b.bonusBig = 20; b.rangeMul = 0.75; } },
+      ]},
+    ],
+    paragon:{ name:'The Grand Planetary Mixer', cost:230000, desc:'Hurricanes tearing up every trail, hooks that hold vehicles and beaters that never stop.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:210, camo:true, atk:{
+        main:{ kind:'whirl', rate:0.6/k, dmg:40+dd*4, pierce:Math.round(150*k), type:'normal', r:60, speed:240, dist:900, knock:40, bigKnock:18, count:3, hurricane:true, ignoreImmune:true, bonusBig:Math.round((60+dd*6)*big) },
+        hook:{ kind:'grab', rate:1.2/k, count:10, dmg:200+dd*20, type:'normal', hold:2.5, bigHold:1.2, bigs:true, hook:true, bonusBig:Math.round((2500+dd*250)*big), vuln:{ amt:6, dur:3 } },
+        beat:{ kind:'hitscan', rate:0.05/k, dmg:60+dd*6, pierce:1, type:'normal', shots:6, multi:true, melee:true, mode:'close', rangeMul:0.7, knock:6, bonusBig:Math.round((80+dd*8)*big) },
+      } }; } },
+  },
+
+  /* ------------------------------------------------------ PASTA MAKER */
+  pasta: {
+    name:'Pasta Maker', cost:700, size:19, hot:'S', group:'Specialist',
+    blurb:'Extrudes tangles of pasta onto the trail. Each nest hits several pests before it falls apart.',
+    base:{ range:110, atk:{ main:{ kind:'trap', rate:2.0, dmg:1, pierce:6, type:'normal', r:14, life:20, sprite:'spaghetti', slow:{ mult:0.8, dur:0.6, bigMult:1 } } } },
+    paths:[
+      { name:'Spaghetti', ups:[
+        { name:'Thicker Strands', cost:200, desc:'Each nest hits 3 more pests.', apply:s=>{ s.atk.main.pierce += 3; } },
+        { name:'Faster Rollers', cost:320, desc:'Extrudes 30% faster.', apply:s=>{ s.atk.main.rate /= 1.3; } },
+        { name:'Spaghetti Junction', cost:1050, desc:'Bigger nests that hit 14 pests and tangle them (50% slower for 1.5s).', apply:s=>{ const a=s.atk.main; a.r *= 1.4; a.pierce += 5; a.slow = { mult:0.5, dur:1.5, bigMult:1 }; } },
+        { name:'Pasta Factory', cost:3500, desc:'Extrudes twice as fast. Nests hit 20 pests for +2 damage.', apply:s=>{ const a=s.atk.main; a.rate /= 2; a.pierce += 6; a.dmg += 2; } },
+        { name:'Infinite Linguine', cost:28000, desc:'A nest every 0.2s: 30 hits, +6 damage, +6 to vehicles, lasting 40s.', apply:s=>{ const a=s.atk.main; a.rate = 0.2; a.pierce += 10; a.dmg += 6; a.bonusBig = (a.bonusBig||0) + 6; a.life = 40; a.sprite = 'linguine'; } },
+      ]},
+      { name:'Lasagna', ups:[
+        { name:'Al Dente', cost:250, desc:'+1 damage.', apply:s=>{ s.atk.main.dmg += 1; } },
+        { name:'Penne Spikes', cost:400, desc:'Stiff penne: +1 damage and 2 more hits.', apply:s=>{ const a=s.atk.main; a.dmg += 1; a.pierce += 2; if (a.sprite === 'spaghetti') a.sprite = 'penne'; } },
+        { name:'Lasagna Sheets', cost:1300, desc:'Lays lasagna sheets: 8 damage a hit and +20 to vehicles.', apply:s=>{ const a=s.atk.main; a.sprite = 'lasagna'; a.dmg += 5; a.bonusBig = (a.bonusBig||0) + 20; a.r = Math.max(a.r, 16); } },
+        { name:'Cannelloni Crush', cost:4000, desc:'Sheets deal 20, +80 to vehicles, and stun vehicles for 0.3s.', apply:s=>{ const a=s.atk.main; a.dmg += 12; a.bonusBig += 60; a.bigStun = 0.3; } },
+        { name:'Lasagna Fortress', cost:30000, desc:'Sheets deal 60, +400 to vehicles, stun vehicles 0.6s and hit at least 12 pests.', apply:s=>{ const a=s.atk.main; a.dmg += 40; a.bonusBig += 320; a.bigStun = 0.6; a.pierce = Math.max(a.pierce, 12); } },
+      ]},
+      { name:'Ravioli', ups:[
+        { name:'Longer Chute', cost:150, desc:'+20% range.', apply:s=>{ s.range *= 1.2; } },
+        { name:'Ravioli Bombs', cost:300, desc:'Every 3rd nest is a ravioli bomb that explodes when touched.', apply:s=>{ const a=s.atk.main; a.mineEvery = 3; a.mine = { r:40, dmg:2, pierce:15, type:'blast' }; } },
+        { name:'Ravioli Mines', cost:950, desc:'Every nest is a ravioli mine: 4 damage in a wide blast.', apply:s=>{ const a=s.atk.main; a.mineEvery = 1; a.mine = { r:46, dmg:4, pierce:22, type:'blast' }; } },
+        { name:'Tortellini Clusters', cost:3300, desc:'Mines deal +2 and burst into 6 tortellini that explode too.', apply:s=>{ const a=s.atk.main; a.mine.dmg += 2; a.cluster = { count:6, r:26, dmg:3, pierce:10, spread:44, depth:1, type:'blast' }; } },
+        { name:'Pasta Bomb Pantry', cost:27000, desc:'Mines deal 40 (+100 to vehicles) with double clusters. Ability: Pasta Rain drops 30 mines along the trail.', apply:s=>{ const a=s.atk.main; a.mine.dmg = 40; a.mine.r *= 1.4; a.mine.bonusBig = 100; a.cluster.depth = 2; a.cluster.dmg = 12; s.abilities.push({ id:'pastarain', cd:40, count:30 }); } },
+      ]},
+    ],
+    paragon:{ name:'The Pasta Pantheon', cost:250000, desc:'Endless lasagna fortresses and ravioli minefields covering every trail.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:260, camo:true, atk:{
+        main:{ kind:'trap', rate:0.1/k, dmg:80+dd*8, pierce:20, type:'normal', r:20, life:40, sprite:'lasagna', bonusBig:Math.round((600+dd*60)*big), bigStun:0.5, ignoreImmune:true, slow:{ mult:0.5, dur:1.5, bigMult:0.8 } },
+        mines:{ kind:'trap', rate:0.4/k, dmg:0, pierce:1, type:'normal', r:16, life:40, sprite:'ravioli', mineEvery:1, mine:{ r:80, dmg:150+dd*15, pierce:80, type:'normal', bonusBig:Math.round((800+dd*80)*big) }, cluster:{ count:8, r:40, dmg:50, pierce:30, spread:60, depth:2, type:'normal', bonusBig:150 } },
+      }, abilities:[{ id:'pastarain', cd:25, count:60 }] }; } },
+  },

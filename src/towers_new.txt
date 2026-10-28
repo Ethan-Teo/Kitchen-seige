@@ -1,0 +1,107 @@
+  /* ------------------------------------------------------- DISHWASHER */
+  dish: {
+    name:'Dishwasher', cost:450, size:20, hot:'R', group:'Primary',
+    blurb:'Spins plates out in a loop. They slice through pests and fly back like boomerangs.',
+    base:{ range:150, atk:{ main:{ kind:'proj', boomerang:true, rate:1.3, dmg:1, pierce:4, speed:380, size:8, type:'normal', sprite:'plate', count:1, spin:true } } },
+    paths:[
+      { name:'Plate Rack', ups:[
+        { name:'Stacked Plates', cost:180, desc:'Plates hit 3 more pests.', apply:s=>{ s.atk.main.pierce += 3; } },
+        { name:'Fine China', cost:280, desc:'Plates fly 25% faster and get thrown 20% faster.', apply:s=>{ const a=s.atk.main; a.speed *= 1.25; a.rate /= 1.2; } },
+        { name:'Serving Platters', cost:950, desc:'Big platters: +2 damage and 8 more pierce.', apply:s=>{ const a=s.atk.main; a.sprite = 'platter'; a.dmg += 2; a.pierce += 8; a.size = 12; } },
+        { name:'Dish Rack Barrage', cost:3400, desc:'Throws 3 platters at once, +2 damage.', apply:s=>{ const a=s.atk.main; a.count = 3; a.dmg += 2; } },
+        { name:'Banquet Service', cost:28000, desc:'5 silver platters: +8 damage, 30 more pierce, +20 to vehicles.', apply:s=>{ const a=s.atk.main; a.count = 5; a.dmg += 8; a.pierce += 30; a.bonusBig = (a.bonusBig||0) + 20; a.sprite = 'silver'; a.size = 14; } },
+      ]},
+      { name:'Power Wash', ups:[
+        { name:'Rinse Jet', cost:250, desc:'Adds a water jet that pushes pests back up the trail.', apply:s=>{ s.atk.jet = { kind:'beam', rate:1.4, dmg:1, pierce:4, type:'normal', width:8, knock:10, water:true, rangeMul:0.9 }; } },
+        { name:'High Pressure', cost:380, desc:'The jet pushes harder, deals +1 and fires 30% faster.', apply:s=>{ const j=s.atk.jet; j.knock = 18; j.rate /= 1.3; j.dmg += 1; } },
+        { name:'Scrub Cycle', cost:1200, desc:'The jet scrubs armor and mold off every pest it hits.', apply:s=>{ const j=s.atk.jet; j.strip = true; j.demold = true; j.pierce += 4; } },
+        { name:'Pressure Washer', cost:3800, desc:'Jet deals 6, stuns small pests 0.3s and shoves vehicles back.', apply:s=>{ const j=s.atk.jet; j.dmg += 4; j.stun = 0.3; j.bigKnock = 12; j.pierce += 6; j.rate /= 1.3; } },
+        { name:'Industrial Dish Pit', cost:27000, desc:'Jet deals 30 and blasts pests 40 back. Ability: Rinse Cycle washes every pest back up the trail and scrubs off armor.', apply:s=>{ const j=s.atk.jet; j.dmg += 24; j.knock = 40; j.bigKnock = 25; j.pierce += 20; s.abilities.push({ id:'rinse', cd:45, push:160, bigPush:60 }); } },
+      ]},
+      { name:'Soap', ups:[
+        { name:'Soap Suds', cost:180, desc:'Plates leave pests sudsy and 25% slower for 1.5s.', apply:s=>{ s.atk.main.slow = { mult:0.75, dur:1.5, bigMult:1 }; } },
+        { name:'Bubble Sight', cost:250, desc:'Spots ghost pests.', apply:s=>{ s.camo = true; } },
+        { name:'Bubble Trap', cost:950, desc:'Every 3s, traps a pest in a floating bubble for 2.5s. It pops for 10 damage.', apply:s=>{ s.atk.bubble = { kind:'grab', rate:3, count:1, dmg:0, type:'normal', bubble:{ dur:2.5, pop:10 }, rangeMul:1.1 }; } },
+        { name:'Foam Party', cost:3500, desc:'Traps 4 pests at a time. Bubbles pop for 40 into slowing foam.', apply:s=>{ const b=s.atk.bubble; b.count = 4; b.bubble.pop = 40; b.bubble.foam = true; b.rate = 2.5; } },
+        { name:'Soap Opera', cost:26000, desc:'Traps 12 pests and even vehicles (1s). Bubbles pop for 150, or 800 on vehicles.', apply:s=>{ const b=s.atk.bubble; b.count = 12; b.bubble.pop = 150; b.bubble.popBig = 800; b.bubble.bigDur = 1; b.bigs = true; b.rate = 2.2; } },
+      ]},
+    ],
+    paragon:{ name:'The Commercial Dish Pit', cost:230000, desc:'Silver platter storms, a pressure cannon that blasts pests back and bubbles that swallow vehicles.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:220, camo:true, atk:{
+        main:{ kind:'proj', boomerang:true, rate:0.2/k, dmg:40+dd*4, pierce:Math.round(90*k), speed:520, size:15, type:'normal', sprite:'silver', count:5, spin:true, bonusBig:Math.round((120+dd*12)*big) },
+        jet:{ kind:'beam', rate:0.25/k, dmg:120+dd*12, pierce:60, type:'normal', width:16, knock:60, bigKnock:30, stun:0.4, strip:true, demold:true, water:true, bonusBig:Math.round((300+dd*30)*big) },
+        bubble:{ kind:'grab', rate:1.2/k, count:20, dmg:0, type:'normal', bigs:true, bubble:{ dur:2.5, bigDur:1.2, pop:500+dd*50, popBig:Math.round((4000+dd*400)*big), foam:true } },
+      }, abilities:[{ id:'rinse', cd:25, push:300, bigPush:120 }] }; } },
+  },
+
+  /* ------------------------------------------------------------ GRILL */
+  grill: {
+    name:'Grill', cost:400, size:19, hot:'T', group:'Heat & Cold',
+    blurb:'Tosses glowing coals that splash and set pests burning. Fire ants ignore the heat.',
+    base:{ range:130, atk:{ main:{ kind:'lob', rate:1.25, travel:0.4, type:'heat', sprite:'coal', impact:{ r:24, dmg:1, pierce:6, type:'heat', burn:{ dmg:1, tick:0.6, dur:2 } } } } },
+    paths:[
+      { name:'Sear', ups:[
+        { name:'Hotter Coals', cost:150, desc:'Burning pests take 2 damage a tick instead of 1.', apply:s=>{ s.atk.main.impact.burn.dmg += 1; } },
+        { name:'Grill Marks', cost:240, desc:'Coals sear pests: they take +1 damage from every hit for 3s.', apply:s=>{ s.atk.main.impact.vuln = { amt:1, dur:3 }; } },
+        { name:'Branding Iron', cost:900, desc:'Bigger searing splashes: +2 damage, 10 more pests, and seared pests take +2.', apply:s=>{ const im=s.atk.main.impact; im.r *= 1.35; im.dmg += 2; im.pierce += 10; im.vuln.amt = 2; s.atk.main.sprite = 'flare'; } },
+        { name:'Charcoal Chimney', cost:3200, desc:'Tosses 50% faster. Every 4th toss is a flare-up: a wide fire column for 20 damage.', apply:s=>{ const a=s.atk.main; a.rate /= 1.5; a.impact.burn.dmg += 2; a.crit = { every:4, over:{ sprite:'flare', impact:{ r:70, dmg:20, pierce:40, type:'heat', burn:{ dmg:4, tick:0.5, dur:3 }, vuln:{ amt:2, dur:3 }, bonusBig:20 } } }; } },
+        { name:'Inferno Pit', cost:30000, desc:'Volcanic coals: +20 damage, +60 to vehicles, seared pests take +4. A flare-up every 3rd toss for 150.', apply:s=>{ const a=s.atk.main, im=a.impact; im.dmg += 20; im.bonusBig = (im.bonusBig||0) + 60; im.r *= 1.3; im.burn = { dmg:15, tick:0.5, dur:3 }; im.vuln = { amt:4, dur:3 }; im.pierce += 30; a.crit = { every:3, over:{ sprite:'flare', impact:{ r:95, dmg:150, pierce:80, type:'heat', burn:{ dmg:20, tick:0.5, dur:3 }, vuln:{ amt:4, dur:3 }, bonusBig:250 } } }; } },
+      ]},
+      { name:'Flame', ups:[
+        { name:'Lump Charcoal', cost:160, desc:'+1 splash damage and +1 burn damage.', apply:s=>{ const im=s.atk.main.impact; im.dmg += 1; im.burn.dmg += 1; } },
+        { name:'Lighter Fluid', cost:280, desc:'Tosses coals 30% faster.', apply:s=>{ s.atk.main.rate /= 1.3; } },
+        { name:'Flame Grill', cost:980, desc:'Adds a flamethrower that scorches a cone of pests.', apply:s=>{ s.atk.flame = { kind:'flame', rate:0.12, dmg:1, pierce:5, type:'heat', cone:0.5, rangeMul:0.9, burn:{ dmg:1, tick:0.5, dur:1.5 } }; } },
+        { name:'Inferno Grill', cost:3900, desc:'Flames deal 2, hit 12 pests and burn for 3 per tick.', apply:s=>{ const f=s.atk.flame; f.dmg += 1; f.pierce += 7; f.burn.dmg = 3; f.rangeMul *= 1.15; f.rate = 0.1; } },
+        { name:'Dragon Grill', cost:33000, desc:'Dragon breath: +6 damage, triple damage to vehicles, 30 pests at once.', apply:s=>{ const f=s.atk.flame; f.dmg += 6; f.bigMult = 3; f.pierce += 18; f.cone = 0.7; f.rangeMul *= 1.3; f.burn.dmg = 10; f.dragon = true; } },
+      ]},
+      { name:'Smoke', ups:[
+        { name:'Hickory', cost:120, desc:'+20% range.', apply:s=>{ s.range *= 1.2; } },
+        { name:'Smoke Signal', cost:210, desc:'Spots ghost pests.', apply:s=>{ s.camo = true; } },
+        { name:'Smokehouse', cost:820, desc:'Lays smoke on the trail that strips ghost cloaks and makes pests take +1 damage for 4s.', apply:s=>{ s.atk.smoke = { kind:'cloud', rate:2.5, travel:0.5, cloud:{ r:56, dur:3, vuln:{ amt:1, dur:4 }, decamo:true } }; } },
+        { name:'Pitmaster', cost:3100, desc:'Smoked pests take +2 damage. Towers in range can spot ghosts.', apply:s=>{ const c=s.atk.smoke.cloud; c.vuln.amt = 2; c.r *= 1.2; s.buff = Object.assign(s.buff||{}, { camo:true }); } },
+        { name:'Smoke Baron', cost:25000, desc:'Smoked pests take +4 damage and double heat damage. Smoked vehicles lose 4% health a second.', apply:s=>{ const sm=s.atk.smoke; sm.rate = 1.6; const c=sm.cloud; c.vuln.amt = 4; c.heatMult = 2; c.bigBurn = 0.04; c.r *= 1.15; } },
+      ]},
+    ],
+    paragon:{ name:'The Eternal Barbecue', cost:250000, desc:'Volcanic coal bombs, dragon fire and smoke so thick pests take ten extra damage.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:230, camo:true, buff:{ camo:true }, atk:{
+        main:{ kind:'lob', rate:0.3/k, travel:0.35, type:'heat', sprite:'flare', ignoreImmune:true, impact:{ r:90, dmg:60+dd*6, pierce:Math.round(120*k), type:'heat', burn:{ dmg:40+dd*4, tick:0.4, dur:3 }, vuln:{ amt:8+dd, dur:3 }, bonusBig:Math.round((400+dd*40)*big) } },
+        flame:{ kind:'flame', rate:0.06/k, dmg:22+dd*3, pierce:Math.round(60*k), type:'heat', cone:0.9, rangeMul:0.9, bigMult:3*big, burn:{ dmg:40, tick:0.5, dur:3 }, dragon:true, ignoreImmune:true },
+        smoke:{ kind:'cloud', rate:1.4, travel:0.4, cloud:{ r:95, dur:3.5, vuln:{ amt:10+dd, dur:4 }, decamo:true, heatMult:2, bigBurn:0.05 } },
+      } }; } },
+  },
+
+  /* ------------------------------------------------------- DEEP FRYER */
+  fryer: {
+    name:'Deep Fryer', cost:440, size:19, hot:'Y', group:'Heat & Cold',
+    blurb:'Spills hot oil on the trail. Puddles slow pests and fry them; fire ants only get slowed.',
+    base:{ range:120, atk:{ main:{ kind:'lob', rate:1.6, travel:0.42, type:'heat', sprite:'oil', impact:{ r:22, dmg:1, pierce:6, type:'heat' }, puddle:{ r:26, dur:4, slow:0.65, bigSlow:1, burn:{ dmg:1, tick:0.7, dur:1.6 } } } } },
+    paths:[
+      { name:'Grease', ups:[
+        { name:'Thick Grease', cost:170, desc:'Puddles slow 45% and last 1.5s longer.', apply:s=>{ const p=s.atk.main.puddle; p.slow = 0.55; p.dur += 1.5; } },
+        { name:'Splatter', cost:260, desc:'Oil splashes into 2 extra puddles.', apply:s=>{ s.atk.main.puddle.splits = 2; } },
+        { name:'Oil Slick', cost:850, desc:'Pours wide slicks on the trail ahead of pests. Slows 55%, and vehicles 25%.', apply:s=>{ const a=s.atk.main, p=a.puddle; a.kind = 'slick'; p.r *= 1.5; p.slow = 0.45; p.bigSlow = 0.75; } },
+        { name:'Grease Fire', cost:2700, desc:'Slicks ignite: triple burn, and pests stay oil-soaked (+1 heat damage taken).', apply:s=>{ const p=s.atk.main.puddle; p.burn.dmg += 2; p.burn.dur += 1.4; p.soak = true; p.fire = true; } },
+        { name:'Bottomless Vat', cost:29000, desc:'Floods the trail with boiling oil. Ability: Vat Dunk deals 2,500 to vehicles and 60 to everything else nearby.', apply:s=>{ const a=s.atk.main, p=a.puddle; p.r *= 1.4; p.burn.dmg += 5; p.burn.tick = 0.5; p.slow = 0.35; p.bigSlow = 0.6; p.fire = true; p.soak = true; a.rate /= 1.3; a.fryer = true; s.abilities.push({ id:'vat', cd:45, bigDmg:2500, dmg:60, stun:2 }); } },
+      ]},
+      { name:'Fry Basket', ups:[
+        { name:'Batter Up', cost:180, desc:'Oil coats pests in batter: they stay 25% slower for 2s after leaving a puddle.', apply:s=>{ s.atk.main.puddle.batter = { mult:0.75, dur:2 }; } },
+        { name:'Tempura', cost:300, desc:'Battered pests turn crispy and take +1 damage from heat.', apply:s=>{ s.atk.main.puddle.soak = true; } },
+        { name:'Fry Basket', cost:1000, desc:'Every 3.5s the basket dunks up to 6 nearby pests for 6 damage and a 1.2s stun.', apply:s=>{ s.atk.basket = { kind:'pulse', rate:3.5, dmg:6, pierce:6, type:'heat', stun:1.2, soak:true, vfx:'basket', rangeMul:0.85 }; } },
+        { name:'Fish and Chips', cost:3600, desc:'Dunks 12 pests for 20. Vehicles in the basket take 60 and are stunned briefly.', apply:s=>{ const b=s.atk.basket; b.dmg += 14; b.pierce = 12; b.stun = 1.5; b.bonusBig = 40; b.bigStun = 0.3; b.rate = 2.8; } },
+        { name:'Deep-Fried Everything', cost:31000, desc:'Dunks 40 pests for 80 every 2.2s. Vehicles take 480 and freeze in place for 0.8s.', apply:s=>{ const b=s.atk.basket; b.dmg = 80; b.pierce = 40; b.stun = 2; b.bonusBig = 400; b.bigStun = 0.8; b.rate = 2.2; s.range *= 1.2; } },
+      ]},
+      { name:'Snack Bar', ups:[
+        { name:'Hot Fries', cost:200, desc:'Also flings 3 hot fries at pests.', apply:s=>{ s.atk.snack = { kind:'proj', rate:1.0, dmg:1, pierce:1, speed:520, size:5, type:'normal', sprite:'fry', count:3, spread:0.22, rangeMul:1.3 }; } },
+        { name:'Seasoned Fries', cost:320, desc:'5 fries that each hit 2 pests.', apply:s=>{ const f=s.atk.snack; f.count = 5; f.pierce += 1; } },
+        { name:'Doughnut Rings', cost:1100, desc:'Rolls 2 doughnuts that plough through 12 pests for 2 damage.', apply:s=>{ const f=s.atk.snack; f.sprite = 'donut'; f.count = 2; f.dmg += 1; f.pierce = 12; f.speed = 320; f.size = 9; f.spin = true; f.lifeMul = 1.6; f.spread = 0.3; } },
+        { name:'Churro Lances', cost:3500, desc:'Fires 3 churros: 8 damage, 20 pierce, +10 to vehicles, and they set pests burning.', apply:s=>{ const f=s.atk.snack; f.sprite = 'churro'; f.count = 3; f.dmg = 8; f.pierce = 20; f.bonusBig = 10; f.speed = 620; f.size = 7; f.spin = false; f.burn = { dmg:3, tick:0.5, dur:2 }; f.rate = 0.8; } },
+        { name:'Funnel Cake Storm', cost:27000, desc:'Hurls 3 giant funnel cakes: 25 damage, 80 pierce, +60 to vehicles. They burst into churros.', apply:s=>{ const f=s.atk.snack; f.sprite = 'funnel'; f.dmg = 25; f.pierce = 80; f.bonusBig = 60; f.size = 16; f.speed = 380; f.spin = true; f.lifeMul = 1.8; f.split = { count:6, sprite:'churro', dmg:8, pierce:10, bonusBig:10, size:6, speed:520, type:'normal', life:0.5 }; } },
+      ]},
+    ],
+    paragon:{ name:'The Bottomless Fryer', cost:240000, desc:'Lakes of boiling oil, a basket that dunks whole crowds and a funnel cake barrage.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:220, camo:true, atk:{
+        main:{ kind:'slick', rate:0.5/k, travel:0.35, type:'heat', sprite:'oil', ignoreImmune:true, fryer:true, impact:{ r:60, dmg:30+dd*3, pierce:60, type:'heat' }, puddle:{ r:85, dur:6, slow:0.3, bigSlow:0.5, burn:{ dmg:45+dd*5, tick:0.4, dur:4 }, soak:true, fire:true, batter:{ mult:0.6, dur:2, bigMult:0.85 } } },
+        basket:{ kind:'pulse', rate:1.6/k, dmg:250+dd*25, pierce:Math.round(100*k), type:'normal', stun:2, bigStun:1, soak:true, bonusBig:Math.round((2500+dd*250)*big), vfx:'basket', rangeMul:0.9 },
+        snack:{ kind:'proj', rate:0.35/k, dmg:60+dd*6, pierce:150, bonusBig:Math.round((300+dd*30)*big), speed:420, size:18, type:'normal', sprite:'funnel', count:3, spread:0.3, spin:true, lifeMul:1.8, split:{ count:8, sprite:'churro', dmg:25, pierce:20, bonusBig:40, size:7, speed:560, type:'normal', life:0.5 } },
+      }, abilities:[{ id:'vat', cd:25, bigDmg:25000, dmg:500, stun:2 }] }; } },
+  },

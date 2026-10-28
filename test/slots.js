@@ -1,0 +1,40 @@
+// Save slots: six games side by side; new games take a free slot; Continue follows the active one; the cloud merges slot by slot.
+require('./sim_load.js');
+const E = require('./.combined.js');
+const { G, X } = E;
+E.Store.init();
+let fails = 0;
+function ok(c, m){ console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) fails++; }
+const S0 = E.slotsData();
+ok(S0.slots.length === E.SLOT_N && S0.active === 0, 'six empty slots to start');
+E.newGame('block', 'easy', false);
+ok(E.activeSlot() === 0 && E.slotGame(0) && E.slotGame(0).mapId === 'block' && E.readStoredGame().mapId === 'block', 'the first game lands in slot 1, and Continue sees it');
+E.newGame('diner', 'medium', false);
+ok(E.activeSlot() === 1 && E.slotGame(1).mapId === 'diner' && E.slotGame(0).mapId === 'block', 'a second game takes slot 2 and leaves slot 1 alone');
+E.pickSlot(0); E.newGame('pantry', 'hard', false);
+ok(E.activeSlot() === 0 && E.slotGame(0).mapId === 'pantry' && E.slotGame(1).mapId === 'diner', 'a picked slot is replaced');
+G.round = 7; E.storeGame(E.serializeGame());
+ok(E.slotGame(0).round === 7 && E.readStoredGame().round === 7, 'saving the game saves its slot');
+E.setActiveSlot(1);
+ok(E.readStoredGame().mapId === 'diner', 'switching the active slot switches what Continue loads');
+E.loadGame(E.readStoredGame());
+ok(G.mapId === 'diner', 'and it loads');
+for (let i = 2; i < E.SLOT_N; i++) E.newGame('bar', 'easy', false);
+ok(E.slotsData().slots.every(Boolean), 'all six fill up');
+const before = E.slotsData().slots.map(g => g.mapId);
+E.newGame('corner', 'easy', false);
+const after = E.slotsData().slots.map(g => g.mapId);
+ok(after.filter((m, i) => m !== before[i]).length === 1 && after[E.activeSlot()] === 'corner', 'when every slot is full, only the active one is replaced');
+E.deleteSlot(2);
+ok(!E.slotGame(2) && E.slotForNew() === 2, 'a deleted slot is free again and the next game goes there');
+E.setActiveSlot(2);
+ok(!E.readStoredGame(), 'an empty active slot means nothing to continue');
+ok(/Pantry|Butcher/.test(E.slotLabel(E.slotGame(0))) && E.slotLabel(null) === 'Empty', 'slot labels');
+/* cloud merge: newer copies win slot by slot */
+const mine = E.slotsData();
+const cloud = { savedAt: Date.now() + 5000, slots: mine.slots.map((g, i) => i === 1 ? Object.assign(JSON.parse(JSON.stringify(g)), { round: 55, savedAt: Date.now() + 5000 }) : i === 3 ? null : g) };
+E.Store.adopt(null, null, cloud);
+const merged = E.slotsData();
+ok(merged.slots[1].round === 55 && !merged.slots[3] && merged.slots[0].mapId === mine.slots[0].mapId, 'the cloud’s newer slot and its deletion are taken, the rest kept');
+console.log(fails ? fails + ' FAILED' : 'all passed');
+process.exit(fails ? 1 : 0);

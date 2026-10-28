@@ -1,0 +1,115 @@
+<title>Kitchen Siege</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Shrikhand&display=swap">
+<style>
+/*__CSS__*/
+</style>
+<div id="app">
+  <section id="scr-menu" class="screen">
+    <canvas id="menu-bg" aria-hidden="true"></canvas>
+    <div class="menu-veil"></div>
+    <div class="fridge">
+      <div id="chefbar-slot"></div>
+      <div class="logo" role="img" aria-label="Kitchen Siege"><span class="l1">Kitchen</span><span class="l2">Siege</span></div>
+      <p class="tagline">Pests are raiding the pantry. Your appliances have other plans.</p>
+      <div class="menu-buttons">
+        <div class="row cont-row"><button class="btn btn-primary" id="btn-continue" style="flex-direction:column;gap:2px" hidden>Continue<span class="continue-info" id="continue-info"></span></button><button class="btn btn-small" id="btn-saves" title="Six save slots">Saves</button></div>
+        <button class="btn btn-primary" id="btn-play">New game</button>
+        <div class="row"><button class="btn btn-gold" id="btn-daily">Daily<span class="mdot" id="daily-dot" hidden></span></button><button class="btn btn-gold" id="btn-events">Events<span class="mdot" id="events-dot" hidden></span></button><button class="btn btn-gold" id="btn-bosses">Bosses</button></div>
+        <div class="row"><button class="btn" id="btn-shop">Shop<span class="mdot num" id="shop-dot" hidden></span></button><button class="btn" id="btn-chefs">Chefs<span class="mdot" id="chefs-dot" hidden></span></button></div>
+        <div class="row row4"><button class="btn btn-small" id="btn-mastery">Mastery</button><button class="btn btn-small" id="btn-howto">How to play</button><button class="btn btn-small" id="btn-data">Save data</button><button class="btn btn-small" id="btn-settings">Settings</button></div>
+      </div>
+      <div class="menu-foot"><span class="badge" id="cloud-badge"><i></i><span>Saved in this browser</span></span><span class="clock" id="menu-clock">12:00</span></div>
+    </div>
+  </section>
+
+  <section id="scr-maps" class="screen" hidden>
+    <header class="topbar"><button class="btn btn-small" data-back="menu">Back</button><h2>Pick a kitchen</h2></header>
+    <div class="map-grid" id="map-grid"></div>
+  </section>
+
+  <section id="scr-game" class="screen" hidden>
+    <div class="game">
+      <div class="stage-col" id="stage-col">
+        <div class="stage" id="stage">
+          <canvas id="cv" aria-label="Kitchen playfield"></canvas>
+          <div class="hud">
+            <span class="chip lives" id="hud-lives" title="Lives"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#ff5a4e" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.5c2.1 0 3.6 1.2 4.4 2.6.8-1.4 2.3-2.6 4.4-2.6 3.7 0 5.7 3.9 4.2 7.3C19.5 16.4 12 21 12 21z"/></svg><span class="num" id="hud-lives-n">150</span></span>
+            <span class="chip cash" id="hud-cash" title="Cash"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#ffcf4d"/><circle cx="12" cy="12" r="7.2" fill="none" stroke="#c79a1c" stroke-width="1.6"/><path d="M12.9 7.6v1.1c1.2.2 2 .9 2.2 1.9l-1.6.4c-.1-.6-.6-.9-1.4-.9-.8 0-1.3.3-1.3.8s.4.7 1.6 1c1.8.4 2.8 1 2.8 2.4 0 1.2-.9 2-2.3 2.2v1.1h-1.5v-1.1c-1.4-.2-2.3-1-2.5-2.2l1.7-.4c.1.7.7 1.1 1.6 1.1.9 0 1.4-.3 1.4-.9 0-.5-.4-.8-1.6-1-1.7-.4-2.7-1-2.7-2.3 0-1.1.8-1.9 2.1-2.1V7.6h1.5z" fill="#7a5410"/></svg><span class="num" id="hud-cash-n">650</span></span>
+            <span class="chip" id="hud-round" title="Round"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v18" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M6 4h12l-3 4 3 4H6z" fill="#7ee07a"/></svg><span class="num" id="hud-round-n">1</span><small id="hud-round-of">/ 60</small></span>
+            <span class="chip esc" id="hud-esc" title="Pests get tougher every wave"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l7-7 7 7" fill="none" stroke="#ff9a52" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 20l7-7 7 7" fill="none" stroke="#ff9a52" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/></svg><span class="num" id="hud-esc-n">+0%</span></span>
+          </div>
+          <div class="saved-dot" id="saved-dot">Saved</div>
+          <div class="boss-bars" id="boss-bars" aria-live="polite"></div>
+          <div class="toasts" id="toasts" aria-live="polite"></div>
+          <div class="tut" id="tut" hidden><span class="tut-n" id="tut-n">1</span><div class="tut-body"><b id="tut-h"></b><span id="tut-t"></span></div><button class="btn btn-small" id="tut-skip">Skip</button></div>
+          <div class="abilities" id="abilities"></div>
+          <button class="pw-btn" id="pw-btn" aria-label="Powers" aria-expanded="false" title="Powers and insta appliances" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.6 2.5L5 13.6h5.6L9.4 21.5 19 9.9h-5.7z" fill="currentColor" stroke="#1d2b33" stroke-width="1.4" stroke-linejoin="round"/></svg><span>Powers</span><i class="pw-n num" id="pw-n" hidden></i></button>
+          <div class="place-hint" id="place-hint" hidden>Tap again to place</div>
+        </div>
+        <div class="ab-tip" id="ab-tip" role="tooltip" hidden></div>
+        <div class="pw-tray" id="pw-tray" role="dialog" aria-label="Powers" hidden></div>
+        <p class="rotate-tip">Turn your phone sideways for a bigger kitchen.</p>
+      </div>
+      <aside class="side">
+        <div class="panel controls">
+          <button class="btn btn-primary go" id="btn-go"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></svg><span class="go-txt"><span id="go-label">Start</span><span class="go-sub" id="go-sub">Round 1</span></span></button>
+          <button class="btn speed" id="btn-speed" title="Game speed (Space while a round runs)">1×</button>
+          <button class="btn" id="btn-pause" aria-label="Pause" title="Pause (Esc)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg></button>
+          <button class="btn btn-small" id="btn-sandbox" title="Sandbox tools" hidden>Sandbox tools</button>
+          <div class="auto-row"><label for="auto-start"><span class="switch"><input type="checkbox" id="auto-start"><i></i></span>Auto-start rounds</label><span id="mode-label"></span></div>
+          <div class="preview" id="preview" aria-live="polite"></div>
+        </div>
+        <div class="panel shop-wrap" id="shop-wrap">
+          <div class="shop-head"><h3>Appliances</h3><span id="shop-keys">Each card shows its key</span></div>
+          <div class="fbar shop-fbar" id="shop-factions" role="group" aria-label="Show appliances from"></div>
+          <div class="hero-slot" id="hero-slot" hidden></div>
+          <div class="clip" id="clip" hidden></div>
+          <div class="shop" id="shop"></div>
+          <div class="info" id="shop-info"></div>
+        </div>
+        <div class="panel tpanel" id="tpanel" hidden></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="scr-shop" class="screen" hidden>
+    <header class="topbar"><button class="btn btn-small" data-back="menu">Back</button><h2>Pantry Shop</h2><span class="spacer"></span><span class="shop-dough" id="shop-dough"></span></header>
+    <div class="ps-wrap" id="shop-body"></div>
+  </section>
+
+  <section id="scr-chefs" class="screen" hidden>
+    <header class="topbar"><button class="btn btn-small" data-back="menu">Back</button><h2>Head chefs</h2><span class="spacer"></span><span class="shop-dough" id="chefs-dough"></span></header>
+    <div class="chefs-wrap" id="chefs-body"></div>
+  </section>
+
+  <section id="scr-mastery" class="screen" hidden>
+    <header class="topbar"><button class="btn btn-small" data-back="menu">Back</button><h2>Mastery</h2><span class="spacer"></span><span class="stars-pill" id="stars-pill">0 stars</span></header>
+    <div class="mastery-wrap">
+      <div class="tabs" role="tablist" id="mastery-tabs">
+        <button role="tab" data-tab="towers" aria-selected="true">Tower mastery</button>
+        <button role="tab" data-tab="perks" aria-selected="false">Chef perks</button>
+        <button role="tab" data-tab="skins" aria-selected="false">Skins</button>
+        <button role="tab" data-tab="medals" aria-selected="false">Medals and stats</button>
+        <button role="tab" data-tab="pests" aria-selected="false">Pest guide</button>
+        <button role="tab" data-tab="ach" aria-selected="false">Achievements</button>
+      </div>
+      <div id="mastery-body"></div>
+    </div>
+  </section>
+
+  <div class="modal-wrap" id="modal" hidden><div class="modal" id="modal-body" role="dialog" aria-modal="true"></div></div>
+  <div class="admin" id="admin" hidden></div>
+  <div class="admin sbx" id="sandbox" hidden></div>
+  <div class="keypad-wrap" id="keypad" hidden>
+    <div class="keypad" role="dialog" aria-label="Clock">
+      <div class="kp-label">Set clock</div>
+      <div class="kp-display" id="kp-display">--:--</div>
+      <div class="kp-grid" id="kp-grid"></div>
+    </div>
+  </div>
+</div>
+<script>
+/*__JS__*/
+</script>

@@ -1,0 +1,4 @@
+dist/
+test/.combined.js
+__pycache__/
+*.pyc
