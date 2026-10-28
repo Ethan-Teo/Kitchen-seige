@@ -1474,6 +1474,37 @@ ul.pools li.full b{color:#2f6d2a}
 .slot-card .slot-acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .slot-blank{background:repeating-linear-gradient(45deg,rgba(0,0,0,.06) 0 6px,transparent 6px 12px);border-radius:8px}
 
+/* ---------- the Kitchen Editor ---------- */
+.level.Custom{background:#e6dcff;color:#5a3fb0}
+.map-wrap{position:relative;display:flex}
+.map-wrap>.map-card{flex:1}
+.map-edit{position:absolute;top:10px;right:10px;z-index:2}
+.map-new{border:3px dashed var(--chrome);background:transparent;min-height:140px;display:flex;align-items:center;justify-content:center}
+.map-new-in{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.map-new-in b{font-family:var(--font-ui);font-size:20px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.map-new-in span{color:var(--ink-2);font-size:14px}
+.ked-modal{max-width:min(980px,calc(100vw - 24px))}
+.ked-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.ked-top select{max-width:240px}
+.ked-stage{display:flex;justify-content:center;margin-bottom:8px}
+.ked-canvas{border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);touch-action:none;cursor:crosshair;max-width:100%;height:auto}
+.ked-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.ked-hint{color:var(--ink-3);font-size:13px;flex-basis:100%}
+.ked-pal{display:flex;flex-wrap:wrap;gap:6px}
+.ked-prop{font-family:var(--font-ui);font-weight:600;font-size:13px;padding:5px 9px;border-radius:8px;border:2px solid var(--chrome);background:var(--enamel)}
+.ked-prop[aria-pressed="true"]{border-color:var(--mint);background:#eefaf7}
+.ked-size{display:flex;gap:6px;align-items:center;font-size:13px}
+.ked-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.ked-meta label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600}
+.ked-meta label.wide{grid-column:1/-1}
+.ked-meta input,.ked-meta select{font:inherit;font-weight:400;padding:6px 8px;border-radius:8px;border:1px solid var(--chrome)}
+.ked-problems{margin:4px 0 8px;padding-left:18px;font-size:14px;color:var(--cherry-deep)}
+.ked-problems li.ok{color:#2f6d2a;list-style:none;margin-left:-18px}
+.ked-acts{display:flex;flex-wrap:wrap;gap:8px}
+.ked-code{width:100%;margin-top:8px;font-family:monospace;font-size:12px}
+.ked-status{display:block;margin-top:8px;font-size:14px;color:var(--ink-2);min-height:1.3em}
+.ked-top .seg button,.ked-opts .seg button{padding:6px 14px}
+
 </style>
 <style>[hidden]{display:none!important}body{margin:0}</style>
 </head>
@@ -3428,7 +3459,7 @@ function combineProfiles(a, b){
   for (const k in bs) if (k !== 'best') o.stats[k] = mx(o.stats[k], bs[k]);
   o.stats.best = Object.assign({}, obj(o.stats.best)); for (const k in obj(bs.best)) o.stats.best[k] = mx(o.stats.best[k], bs.best[k]);
   o.seen = union(obj(o.seen), b.seen); o.ach = union(obj(o.ach), b.ach); o.custom = union(obj(o.custom), b.custom);
-  o.objects = union(obj(o.objects), b.objects); o.bodies = union(obj(o.bodies), b.bodies);
+  o.objects = union(obj(o.objects), b.objects); o.bodies = union(obj(o.bodies), b.bodies); o.kitchens = union(obj(o.kitchens), b.kitchens);
   const ah = obj(o.heroes), bh = obj(b.heroes);
   o.heroes = Object.assign({}, ah, { owned: union(Object.assign({}, obj(ah.owned)), bh.owned), seen: union(Object.assign({}, obj(ah.seen)), bh.seen), tip: mx(ah.tip, bh.tip) });
   const ad = obj(o.daily), bd = obj(b.daily);
@@ -3461,7 +3492,7 @@ function repairFromGame(p, g){
     S.games = Math.max(num(S.games), 1);
   }
   S.cooked = Math.max(num(S.cooked), Math.floor(num(g.stats && g.stats.committedKills)));
-  if (g.won && !g.ch && MAPS[g.mapId] && DIFFS[g.diff]){
+  if (g.won && !g.ch && MAPS[g.mapId] && !/^cm_/.test(g.mapId) && DIFFS[g.diff]){
     const m = p.medals[g.mapId] = Object.assign({}, p.medals[g.mapId] || {});
     m[g.diff] = 1; if (g.mm) m.mastery = 1;
     S.wins = Math.max(num(S.wins), 1);
@@ -3670,6 +3701,7 @@ function slotForNew(){
   return free >= 0 ? free : S.active;
 }
 function slotLabel(g){
+  if (g && g.cm && typeof adoptKitchen === 'function') adoptKitchen(g.mapId, g.cm);
   if (!g || !MAPS[g.mapId]) return 'Empty';
   return (g.ev && g.ev.n ? g.ev.n + ' · ' : g.ch ? (g.ch.tm ? 'Tasting Menu · ' : 'Daily · ') : '') + MAPS[g.mapId].name + ' · ' + (DIFFS[g.diff] ? DIFFS[g.diff].name : g.diff) + (g.mode && MODES[g.mode] && g.mode !== 'standard' ? ' · ' + MODES[g.mode].name : '') + (g.mm ? ' · Mastery' : '') + ' · Round ' + g.round;
 }
@@ -3991,7 +4023,7 @@ function makeTower(type, x, y){
 function serializeGame(){
   return { v:1, savedAt: Date.now(), mapId:G.mapId, diff:G.diff, mm:G.mm, mode: G.mode !== 'standard' ? G.mode : undefined, ev: evSave(), freeplay:G.freeplay, won:G.won, round:G.round,
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
-    ch: G.ch || undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
+    ch: G.ch || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
     towers: G.towers.map(t => ({ type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
@@ -4004,6 +4036,7 @@ function serializeGame(){
       ab: Object.fromEntries(Object.entries(t.ab).map(([k, v]) => [k, Math.round(v * 10) / 10])) })) };
 }
 function loadGame(data){
+  if (data && data.cm && typeof adoptKitchen === 'function') adoptKitchen(data.mapId, data.cm);   // a kitchen of the player's own, carried in the save
   setupGame(data.mapId, data.diff, data.mm, data.ch, data.mode);
   evLoad(data.ev);
   Object.assign(G, { round:data.round, cash:data.cash, lives:data.lives, freeplay:!!data.freeplay, won:!!data.won, usedSecond:!!data.usedSecond });
@@ -5605,7 +5638,7 @@ function commitXP(){
 function victory(){
   G.won = true;
   let fresh = false, freshMM = false;
-  if (!G.ch && !G.ev && !G.adminUsed){
+  if (!G.ch && !G.ev && !G.adminUsed && !isCustomMap(G.mapId)){
     const m = Profile.medals[G.mapId] = Profile.medals[G.mapId] || {}, key = medalKey(G.diff, G.mode);
     fresh = !m[key];
     m[key] = 1;
@@ -11570,6 +11603,7 @@ function designTintAt(d, up, par){
 }
 function syncCustomTowers(){
   if (typeof syncBodies === 'function') syncBodies();
+  if (typeof registerKitchens === 'function') registerKitchens();
   const defs = (Profile && Profile.custom) || {};
   for (const id of Object.keys(TOWERS)) if (TOWERS[id].custom && !defs[id]) delete TOWERS[id];
   for (const id of Object.keys(ABILITIES)) if (ABILITIES[id].custom) delete ABILITIES[id];
@@ -12741,6 +12775,133 @@ function lookChoices(){
 function lookKeyOf(choice){ return typeof choice === 'string' && choice.startsWith('b:') ? bodyLook(choice.slice(2)) : choice; }
 function lookChoiceOk(choice){ return typeof choice === 'string' && (choice.startsWith('b:') ? !!bodyById(choice.slice(2)) : BASE_TOWER_ORDER.includes(choice)); }
 function lookChoiceName(choice){ return choice.startsWith('b:') ? (bodyById(choice.slice(2)) || {}).name || 'a body' : (TOWERS[choice] || {}).name || choice; }
+
+'use strict';
+/* =====================================================================
+   Kitchen Siege — kitchens of your own (the Kitchen Editor's data)
+   A kitchen is plain data, the same shape as the built-in ones in MAPS:
+   a floor (one of the four themes), one to three trails (lists of points
+   that start and end beyond the kitchen's edges), water (sinks, spills,
+   puddles, meltwater) and props (boards, jars, stools... solid ones block
+   building). Kitchens live on the profile (Profile.kitchens) and join MAPS
+   as 'cm_<id>' with level 'Custom'. They stay out of MAP_ORDER, so they
+   never count towards medals, stars or achievements, and a game played on
+   one carries a copy of it in its save, so the save still loads after the
+   kitchen is deleted. Share codes start KSM1:.
+   ===================================================================== */
+const KITCHEN_MAX = 24, KITCHEN_PREFIX = 'KSM1:', KM_TRAILS = 3, KM_POINTS = 40, KM_WATER_MAX = 4, KM_DECO_MAX = 30, KM_MIN_LEN = 900;
+const KM_THEMES = { block:'Butcher block (wood)', diner:'Diner (checkerboard)', pantry:'Pantry (kraft paper)', freezer:'Freezer (steel)' };
+const KM_WATER = { sink:'Sink', soda:'Soda spill', puddle:'Puddle', melt:'Meltwater' };
+const KM_DECO_NAMES = { board:'Cutting board', lemons:'Lemons', pin:'Rolling pin', garlic:'Garlic', salt:'Salt shaker', herbs:'Herbs', flour:'Flour dust', stool:'Stool', booth:'Booth', jukebox:'Jukebox', jar:'Jar', can:'Can', box:'Box', sack:'Sack', crate:'Crate', peas:'Frozen peas', pillar:'Pillar', frost:'Frost' };
+/* each prop's size and whether it blocks building, taken from the built-in kitchens */
+const KM_DECO = (() => {
+  const out = {};
+  for (const id of MAP_ORDER) for (const d of MAPS[id].deco) if (KM_DECO_NAMES[d.k] && !out[d.k]) out[d.k] = d.r ? { r: d.r, solid: !!d.solid } : { w: d.w, h: d.h, solid: !!d.solid };
+  return out;
+})();
+const KM_NUM = (v, lo, hi, def) => { v = Math.round(Number(v)); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
+function defaultKitchen(){
+  return { v:1, name:'My Kitchen', theme:'block', blurb:'', paths:[[[-40, 340], [300, 340], [300, 150], [800, 150], [800, 520], [1140, 520]]], water:[], deco:[], created:0 };
+}
+/* a trail's ends go just past the nearest edge of the kitchen, so pests walk in and out of view */
+function snapEnds(pts){
+  const out = pts.map(p => p.slice());
+  const push = (p, q) => {
+    if (p[0] < 0 || p[0] > W || p[1] < 0 || p[1] > H) return;
+    /* the edge it points towards: away from its neighbour along the longer axis, else the nearest edge */
+    const d = [p[0], W - p[0], p[1], H - p[1]], i = d.indexOf(Math.min(...d));
+    if (i === 0) p[0] = -40; else if (i === 1) p[0] = W + 40; else if (i === 2) p[1] = -40; else p[1] = H + 40;
+  };
+  if (out.length >= 2){ push(out[0], out[1]); push(out[out.length - 1], out[out.length - 2]); }
+  return out;
+}
+function cleanKitchen(src){
+  src = src && typeof src === 'object' ? src : {};
+  const k = defaultKitchen();
+  k.name = cleanText(src.name, 24, 'My Kitchen');
+  k.theme = KM_THEMES[src.theme] ? src.theme : 'block';
+  k.blurb = cleanText(src.blurb, 120, '');
+  const paths = (Array.isArray(src.paths) ? src.paths : []).slice(0, KM_TRAILS)
+    .map(P => (Array.isArray(P) ? P : []).slice(0, KM_POINTS).filter(p => Array.isArray(p) && p.length >= 2).map(p => [KM_NUM(p[0], -80, W + 80, 0), KM_NUM(p[1], -80, H + 80, 0)]))
+    .filter(P => P.length >= 2).map(snapEnds);
+  k.paths = paths.length ? paths : defaultKitchen().paths;
+  k.water = (Array.isArray(src.water) ? src.water : []).slice(0, KM_WATER_MAX).map(w => {
+    if (!w || !KM_WATER[w.style]) return null;
+    if (w.style === 'sink') return { style:'sink', x: KM_NUM(w.x, 0, W - 40, 500), y: KM_NUM(w.y, 0, H - 40, 300), w: KM_NUM(w.w, 50, 500, 124), h: KM_NUM(w.h, 50, 500, 200), r: 16, rim: 10 };
+    return { style: w.style, x: KM_NUM(w.x, 30, W - 30, 500), y: KM_NUM(w.y, 30, H - 30, 300), rx: KM_NUM(w.rx, 30, 260, 90), ry: KM_NUM(w.ry, 30, 260, 70) };
+  }).filter(Boolean);
+  k.deco = (Array.isArray(src.deco) ? src.deco : []).slice(0, KM_DECO_MAX).map(d => {
+    const D = d && KM_DECO[d.k];
+    if (!D) return null;
+    const o = { k: d.k, x: KM_NUM(d.x, -20, W + 20, 100), y: KM_NUM(d.y, -20, H + 20, 100) };
+    if (D.r) o.r = KM_NUM(d.r, 8, 120, D.r); else { o.w = KM_NUM(d.w, 16, 400, D.w); o.h = KM_NUM(d.h, 16, 400, D.h); }
+    if (D.solid) o.solid = true;
+    return o;
+  }).filter(Boolean);
+  k.created = Number(src.created) || 0;
+  return k;
+}
+/* how long a trail is inside the kitchen */
+function trailLen(P){ let n = 0; for (let i = 1; i < P.length; i++) n += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return n; }
+/* what stops a kitchen being played, or makes it odd (an empty list means it is fine) */
+function kitchenProblems(k){
+  const out = [];
+  k.paths.forEach((P, i) => {
+    const n = k.paths.length > 1 ? 'Trail ' + (i + 1) : 'The trail';
+    if (trailLen(P) < KM_MIN_LEN) out.push(n + ' is too short: make it at least ' + KM_MIN_LEN + ' long (it is ' + Math.round(trailLen(P)) + ').');
+  });
+  for (const d of k.deco) if (d.solid) for (const P of k.paths){
+    const B = buildPath(P);
+    if (distToPath(B, d.r ? d.x : d.x + d.w / 2, d.r ? d.y : d.y + d.h / 2) < (d.r || Math.min(d.w, d.h) / 2) * 0.6){ out.push('A ' + (KM_DECO_NAMES[d.k] || d.k).toLowerCase() + ' stands on a trail.'); break; }
+  }
+  return out;
+}
+
+/* ---------------- the library ---------------- */
+function kitchenStore(){ if (!Profile.kitchens || typeof Profile.kitchens !== 'object' || Array.isArray(Profile.kitchens)) Profile.kitchens = {}; return Profile.kitchens; }
+function kitchenList(){ const S = kitchenStore(); return Object.keys(S).sort((a, b) => (S[a].created || 0) - (S[b].created || 0)); }
+function kitchenById(id){ const S = kitchenStore(); return id && S[id] ? S[id] : null; }
+const kitchenMapId = id => 'cm_' + id;
+function isCustomMap(mapId){ return !!(MAPS[mapId] && MAPS[mapId].custom); }
+function saveKitchen(k, id){
+  const S = kitchenStore();
+  if (!id && Object.keys(S).length >= KITCHEN_MAX) return null;
+  if (!id){ let n = 1; while (S['km' + n]) n++; id = 'km' + n; }
+  const c = cleanKitchen(k);
+  c.created = (S[id] && S[id].created) || Date.now();
+  S[id] = c;
+  saveProfile();
+  registerKitchens();
+  return id;
+}
+function deleteKitchen(id){
+  const S = kitchenStore();
+  if (!S[id]) return false;
+  delete S[id];
+  saveProfile();
+  registerKitchens();
+  return true;
+}
+/* the kitchens on the profile join MAPS (and leave it when deleted, unless a game in progress stands on one) */
+function registerKitchens(){
+  const S = kitchenStore();
+  for (const mid of Object.keys(MAPS)) if (MAPS[mid].custom && !MAPS[mid].adopted && !S[mid.slice(3)] && !(typeof G !== 'undefined' && G.active && G.mapId === mid)) delete MAPS[mid];
+  for (const id in S){ S[id] = cleanKitchen(S[id]); MAPS[kitchenMapId(id)] = Object.assign({ level:'Custom', custom:true }, S[id], { blurb: S[id].blurb || 'A kitchen of your own.' }); }
+}
+/* a saved game's own copy of the kitchen it was played on, for when the kitchen itself is gone */
+function adoptKitchen(mapId, data){
+  if (MAPS[mapId] || !/^cm_[a-z0-9_]{1,24}$/.test(String(mapId))) return;
+  MAPS[mapId] = Object.assign({ level:'Custom', custom:true, adopted:true }, cleanKitchen(data));
+}
+function kitchenCopy(mapId){ const M = MAPS[mapId]; return M && M.custom ? cleanKitchen(M) : null; }
+function kitchenCode(k){ const c = cleanKitchen(k); delete c.created; return KITCHEN_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(c)))); }
+function kitchenFromCode(code){
+  code = String(code || '').trim().replace(/\s+/g, '');
+  if (!code.startsWith(KITCHEN_PREFIX)) throw new Error('A kitchen code starts with ' + KITCHEN_PREFIX);
+  let o;
+  try { o = JSON.parse(decodeURIComponent(escape(atob(code.slice(KITCHEN_PREFIX.length))))); } catch (e) { throw new Error('That code is damaged or incomplete.'); }
+  return cleanKitchen(o);
+}
 
 'use strict';
 /* =====================================================================
@@ -26599,6 +26760,272 @@ function drawBodyEditor(B, form, U){
 
 'use strict';
 /* =====================================================================
+   Kitchen Siege — the Kitchen Editor (UI)
+   A wide modal with the kitchen drawn as it will play, and three tools:
+     Trails  click to add a point (it goes where it lengthens the trail
+             least), drag points to move them, right-click to remove one;
+             up to three trails; the ends run off the kitchen's edge by
+             themselves
+     Water   drag to pour a sink, spill, puddle or meltwater; drag one to
+             move it; right-click to remove it
+     Props   click to place the chosen prop, drag to move, right-click to
+             remove; solid props block building
+   Undo and redo (Ctrl+Z, Ctrl+Y), a 10 px snap, a name, a floor, a note,
+   live checks, Save, Play, share codes and starting from a built-in
+   kitchen. The map grid gets a "Your kitchens" section with these.
+   ===================================================================== */
+const KED_ID = '_kedit';
+const KED_TRAIL_COL = ['#ff6b4a', '#2a9d8f', '#8b5cf6'];
+function openKitchenEditor(id){
+  UI.ked = { id: id || null, k: JSON.parse(JSON.stringify(id && kitchenById(id) ? kitchenById(id) : defaultKitchen())), tool:'trail', trail:0, sel:null, snap:true, water:'sink', prop:'board', undo:[], redo:[], dirty:false };
+  drawKitchenEditor();
+}
+function kedPreview(){ return cleanKitchen(UI.ked.k); }
+function drawKitchenEditor(){
+  const E = UI.ked, k = E.k;
+  const cw = Math.min(900, Math.max(320, (window.innerWidth || 1000) - 120)), ch = Math.round(cw * H / W);
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cv = h('canvas', { class:'ked-canvas', width: String(Math.round(cw * dpr)), height: String(Math.round(ch * dpr)), 'aria-label':'Kitchen' });
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  const g = cv.getContext('2d');
+  const S = cw / W;
+  let bg = null, bgDue = 0, bgTimer = null, drag = null, hoverPt = null;
+  const status = h('span', { class:'ked-status', 'aria-live':'polite' });
+  const problems = h('ul', { class:'ked-problems' });
+  /* ---- the picture: the kitchen as it will play, then the editing marks on top ---- */
+  function renderBg(){
+    MAPS[KED_ID] = Object.assign({ level:'Custom', custom:true }, kedPreview());
+    try { bg = MapArt.render(KED_ID, S * dpr); } catch (e) { bg = null; status.textContent = 'Could not draw it: ' + e.message; }
+    draw();
+  }
+  function scheduleBg(now){ clearTimeout(bgTimer); if (now) renderBg(); else bgTimer = setTimeout(renderBg, 140); }
+  const toPx = (x, y) => [x * S, y * S];
+  function draw(){
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, cw, ch);
+    if (bg) g.drawImage(bg, 0, 0, cw, ch); else { g.fillStyle = '#d8b386'; g.fillRect(0, 0, cw, ch); }
+    const P = kedPreview();
+    /* trails: the snapped trail as it will play (dashed where it leaves the kitchen), and the points */
+    k.paths.forEach((pts, i) => {
+      const on = i === E.trail && E.tool === 'trail', col = KED_TRAIL_COL[i];
+      const snapped = P.paths[i] || pts;
+      g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
+      g.strokeStyle = col; g.globalAlpha = on ? 0.95 : 0.5; g.lineWidth = on ? 3 : 2; g.setLineDash(on ? [] : [6, 6]);
+      g.beginPath(); snapped.forEach(([x, y], j) => { const [px, py] = toPx(x, y); if (j) g.lineTo(px, py); else g.moveTo(px, py); }); g.stroke();
+      g.restore();
+      if (E.tool !== 'trail') return;
+      pts.forEach(([x, y], j) => {
+        const px = clamp(x * S, 6, cw - 6), py = clamp(y * S, 6, ch - 6);
+        g.beginPath(); g.arc(px, py, on ? 6.5 : 4.5, 0, TAU);
+        g.fillStyle = hoverPt && hoverPt.i === i && hoverPt.j === j ? '#ffffff' : col; g.fill();
+        g.lineWidth = 1.5; g.strokeStyle = '#1d2b33'; g.stroke();
+        if (on && (j === 0 || j === pts.length - 1)){ g.fillStyle = '#1d2b33'; g.font = '700 10px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(j === 0 ? 'IN' : 'OUT', px, py - 13); }
+      });
+    });
+    /* the selected pool or prop */
+    if (E.sel && (E.sel.kind === 'water' || E.sel.kind === 'deco')){
+      const o = E.sel.kind === 'water' ? k.water[E.sel.i] : k.deco[E.sel.i];
+      if (o){
+        g.save(); g.setLineDash([5, 4]); g.lineWidth = 2; g.strokeStyle = '#ffffff';
+        if (o.w != null && o.r == null || o.style === 'sink'){ g.strokeRect(o.x * S - 3, o.y * S - 3, o.w * S + 6, o.h * S + 6); }
+        else if (o.rx){ g.beginPath(); g.ellipse(o.x * S, o.y * S, o.rx * S + 3, o.ry * S + 3, 0, 0, TAU); g.stroke(); }
+        else { g.beginPath(); g.arc(o.x * S, o.y * S, (o.r || 20) * S + 3, 0, TAU); g.stroke(); }
+        g.restore();
+      }
+    }
+    if (drag && drag.k === 'pour'){ g.save(); g.setLineDash([4, 4]); g.strokeStyle = '#1f6fa8'; g.lineWidth = 2; const x0 = Math.min(drag.x0, drag.x1) * S, y0 = Math.min(drag.y0, drag.y1) * S, w = Math.abs(drag.x1 - drag.x0) * S, hh = Math.abs(drag.y1 - drag.y0) * S; if (E.water === 'sink') g.strokeRect(x0, y0, w, hh); else { g.beginPath(); g.ellipse(x0 + w / 2, y0 + hh / 2, Math.max(1, w / 2), Math.max(1, hh / 2), 0, 0, TAU); g.stroke(); } g.restore(); }
+  }
+  /* ---- editing ---- */
+  const snap = v => E.snap ? Math.round(v / 10) * 10 : Math.round(v);
+  const at = ev => { const r = cv.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * W, (ev.clientY - r.top) / r.height * H]; };
+  function remember(){ E.undo.push(JSON.stringify(k)); if (E.undo.length > 60) E.undo.shift(); E.redo = []; E.dirty = true; }
+  function changed(now){ refreshChecks(); scheduleBg(now); }
+  function restore(json){ const o = JSON.parse(json); for (const key of Object.keys(k)) delete k[key]; Object.assign(k, o); E.sel = null; E.trail = Math.min(E.trail, k.paths.length - 1); changed(true); drawOptions(); }
+  function undo(){ if (!E.undo.length) return; E.redo.push(JSON.stringify(k)); restore(E.undo.pop()); status.textContent = 'Undone.'; }
+  function redo(){ if (!E.redo.length) return; E.undo.push(JSON.stringify(k)); restore(E.redo.pop()); status.textContent = 'Redone.'; }
+  function pointAt(x, y){
+    let best = null, bd = 14 / S;
+    k.paths.forEach((pts, i) => pts.forEach(([px, py], j) => { const d = Math.hypot(clamp(px, 6 / S, W - 6 / S) - x, clamp(py, 6 / S, H - 6 / S) - y); if (d < bd || (d === bd && i === E.trail)){ bd = d; best = { i, j }; } }));
+    return best;
+  }
+  function waterAt(x, y){ for (let i = k.water.length - 1; i >= 0; i--){ const w = k.water[i]; if (w.style === 'sink' ? (x >= w.x && x <= w.x + w.w && y >= w.y && y <= w.y + w.h) : (((x - w.x) / w.rx) ** 2 + ((y - w.y) / w.ry) ** 2 <= 1)) return i; } return -1; }
+  function decoAt(x, y){ for (let i = k.deco.length - 1; i >= 0; i--){ const d = k.deco[i]; if (d.r ? Math.hypot(d.x - x, d.y - y) <= d.r + 4 : (x >= d.x - 4 && x <= d.x + d.w + 4 && y >= d.y - 4 && y <= d.y + d.h + 4)) return i; } return -1; }
+  /* a new point goes into the segment it lengthens least */
+  function insertPoint(pts, x, y){
+    let best = pts.length, cost = Infinity;
+    for (let i = 1; i < pts.length; i++){ const a = pts[i - 1], b = pts[i]; const c = Math.hypot(a[0] - x, a[1] - y) + Math.hypot(b[0] - x, b[1] - y) - Math.hypot(a[0] - b[0], a[1] - b[1]); if (c < cost){ cost = c; best = i; } }
+    pts.splice(best, 0, [x, y]);
+    return best;
+  }
+  cv.addEventListener('contextmenu', ev => ev.preventDefault());
+  cv.addEventListener('pointerdown', ev => {
+    const [x, y] = at(ev), right = ev.button === 2;
+    cv.setPointerCapture(ev.pointerId);
+    if (E.tool === 'trail'){
+      const p = pointAt(x, y);
+      if (p && right){ if (k.paths[p.i].length > 2){ remember(); k.paths[p.i].splice(p.j, 1); E.trail = p.i; status.textContent = 'Point removed.'; changed(); draw(); } else status.textContent = 'A trail needs at least two points.'; return; }
+      if (p){ remember(); E.trail = p.i; drag = { k:'pt', i: p.i, j: p.j }; drawOptions(); return; }
+      if (right) return;
+      const pts = k.paths[E.trail];
+      if (pts.length >= KM_POINTS){ status.textContent = 'That trail has as many points as it can take.'; return; }
+      remember();
+      const j = insertPoint(pts, snap(x), snap(y));
+      drag = { k:'pt', i: E.trail, j };
+      changed(); draw();
+    } else if (E.tool === 'water'){
+      const i = waterAt(x, y);
+      if (i >= 0 && right){ remember(); k.water.splice(i, 1); E.sel = null; changed(); return; }
+      if (i >= 0){ remember(); E.sel = { kind:'water', i }; drag = { k:'move', o: k.water[i], ox: k.water[i].x, oy: k.water[i].y, x0: x, y0: y }; draw(); return; }
+      if (right) return;
+      if (k.water.length >= KM_WATER_MAX){ status.textContent = 'A kitchen can hold ' + KM_WATER_MAX + ' pools of water.'; return; }
+      drag = { k:'pour', x0: snap(x), y0: snap(y), x1: snap(x), y1: snap(y) };
+    } else {
+      const i = decoAt(x, y);
+      if (i >= 0 && right){ remember(); k.deco.splice(i, 1); E.sel = null; changed(); drawOptions(); return; }
+      if (i >= 0){ remember(); E.sel = { kind:'deco', i }; drag = { k:'move', o: k.deco[i], ox: k.deco[i].x, oy: k.deco[i].y, x0: x, y0: y }; drawOptions(); draw(); return; }
+      if (right) return;
+      if (k.deco.length >= KM_DECO_MAX){ status.textContent = 'A kitchen can hold ' + KM_DECO_MAX + ' props.'; return; }
+      remember();
+      const D = KM_DECO[E.prop], d = { k: E.prop };
+      if (D.r){ d.x = snap(x); d.y = snap(y); d.r = D.r; } else { d.x = snap(x - D.w / 2); d.y = snap(y - D.h / 2); d.w = D.w; d.h = D.h; }
+      if (D.solid) d.solid = true;
+      k.deco.push(d); E.sel = { kind:'deco', i: k.deco.length - 1 };
+      drag = { k:'move', o: d, ox: d.x, oy: d.y, x0: x, y0: y };
+      changed(); drawOptions();
+    }
+  });
+  cv.addEventListener('pointermove', ev => {
+    const [x, y] = at(ev);
+    if (!drag){ if (E.tool === 'trail'){ const p = pointAt(x, y); const key = p ? p.i + ':' + p.j : ''; if (key !== (hoverPt ? hoverPt.i + ':' + hoverPt.j : '')){ hoverPt = p; draw(); } cv.style.cursor = p ? 'grab' : 'crosshair'; } return; }
+    if (drag.k === 'pt'){ k.paths[drag.i][drag.j] = [snap(clamp(x, -60, W + 60)), snap(clamp(y, -60, H + 60))]; scheduleBg(); draw(); }
+    else if (drag.k === 'move'){ drag.o.x = snap(drag.ox + x - drag.x0); drag.o.y = snap(drag.oy + y - drag.y0); scheduleBg(); draw(); }
+    else if (drag.k === 'pour'){ drag.x1 = snap(x); drag.y1 = snap(y); draw(); }
+  });
+  const end = () => {
+    if (!drag) return;
+    if (drag.k === 'pour'){
+      const x0 = Math.min(drag.x0, drag.x1), y0 = Math.min(drag.y0, drag.y1), w = Math.abs(drag.x1 - drag.x0), hh = Math.abs(drag.y1 - drag.y0);
+      if (w >= 40 && hh >= 40){
+        remember();
+        k.water.push(E.water === 'sink' ? { style:'sink', x: x0, y: y0, w, h: hh, r: 16, rim: 10 } : { style: E.water, x: x0 + w / 2, y: y0 + hh / 2, rx: w / 2, ry: hh / 2 });
+        E.sel = { kind:'water', i: k.water.length - 1 };
+        status.textContent = KM_WATER[E.water] + ' poured. Boats and the Gravy Boat can go on it.';
+      } else status.textContent = 'Drag a bigger shape to pour water.';
+    }
+    drag = null; changed(true); refreshChecks();
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  /* ---- the tool bar and its options ---- */
+  const toolSeg = h('div', { class:'seg', role:'group', 'aria-label':'Tool' });
+  const options = h('div', { class:'ked-opts' });
+  function drawTools(){
+    toolSeg.innerHTML = '';
+    for (const [id, name] of [['trail', 'Trails'], ['water', 'Water'], ['deco', 'Props']]) toolSeg.append(h('button', { 'aria-pressed': String(E.tool === id), onclick: () => { E.tool = id; E.sel = null; drawTools(); drawOptions(); draw(); } }, name));
+  }
+  const btn = (label, fn, cls, title) => h('button', { class:'btn btn-small' + (cls ? ' ' + cls : ''), title: title || '', onclick: fn }, label);
+  function drawOptions(){
+    options.innerHTML = '';
+    if (E.tool === 'trail'){
+      const seg = h('div', { class:'seg', role:'group', 'aria-label':'Trail' }, k.paths.map((p, i) => h('button', { 'aria-pressed': String(E.trail === i), style: { borderColor: KED_TRAIL_COL[i] }, onclick: () => { E.trail = i; drawOptions(); draw(); } }, 'Trail ' + (i + 1))));
+      options.append(seg,
+        k.paths.length < KM_TRAILS ? btn('+ New trail', () => { remember(); const y = 120 + k.paths.length * 180; k.paths.push([[-40, y], [W / 2, y], [W + 40, y]]); E.trail = k.paths.length - 1; changed(true); drawOptions(); }) : null,
+        btn('Reverse', () => { remember(); k.paths[E.trail].reverse(); changed(true); status.textContent = 'Trail ' + (E.trail + 1) + ' now runs the other way.'; }, '', 'Swap its entrance and exit'),
+        k.paths.length > 1 ? btn('Delete trail', () => { remember(); k.paths.splice(E.trail, 1); E.trail = 0; changed(true); drawOptions(); }, 'sell') : null,
+        h('small', { class:'ked-hint', text:'Click to add a point, drag a point to move it, right-click a point to remove it. The IN and OUT ends run off the edge by themselves.' }));
+    } else if (E.tool === 'water'){
+      const sel = h('select', { 'aria-label':'Water' }, Object.entries(KM_WATER).map(([v, t]) => h('option', { value: v, text: t })));
+      sel.value = E.water; sel.addEventListener('change', () => { E.water = sel.value; });
+      options.append(sel, h('small', { class:'ked-hint', text:'Drag on the kitchen to pour water. Drag a pool to move it, right-click to remove it. Up to ' + KM_WATER_MAX + '.' }));
+    } else {
+      const pal = h('div', { class:'ked-pal' }, Object.keys(KM_DECO).map(id => h('button', { class:'ked-prop', 'aria-pressed': String(E.prop === id), title: KM_DECO[id].solid ? 'Blocks building' : 'Flat on the floor', onclick: () => { E.prop = id; drawOptions(); } }, KM_DECO_NAMES[id] + (KM_DECO[id].solid ? '' : ' ·'))));
+      options.append(pal);
+      const d = E.sel && E.sel.kind === 'deco' ? k.deco[E.sel.i] : null;
+      if (d){
+        const D = KM_DECO[d.k], base = D.r || D.w, cur = d.r || d.w;
+        const sz = h('input', { type:'range', min:'50', max:'200', step:'5', 'aria-label':'Size' }); sz.value = String(Math.round(cur / base * 100));
+        sz.addEventListener('pointerdown', () => remember());
+        sz.addEventListener('input', () => { const m = +sz.value / 100; if (D.r) d.r = Math.round(D.r * m); else { d.w = Math.round(D.w * m); d.h = Math.round(D.h * m); } scheduleBg(); draw(); });
+        options.append(h('label', { class:'ked-size' }, h('span', { text: KM_DECO_NAMES[d.k] + ' size' }), sz), btn('Remove', () => { remember(); k.deco.splice(E.sel.i, 1); E.sel = null; changed(true); drawOptions(); }, 'sell'));
+      }
+      options.append(h('small', { class:'ked-hint', text:'Click to place the chosen prop, drag to move it, right-click to remove it. Props marked · lie flat; the rest block building.' }));
+    }
+  }
+  /* ---- the kitchen's details, checks and actions ---- */
+  const nameIn = h('input', { type:'text', maxlength:'24', 'aria-label':'Kitchen name', placeholder:'Kitchen name' }); nameIn.value = k.name;
+  nameIn.addEventListener('input', () => { k.name = nameIn.value; E.dirty = true; });
+  const themeSel = h('select', { 'aria-label':'Floor' }, Object.entries(KM_THEMES).map(([v, t]) => h('option', { value: v, text: t }))); themeSel.value = k.theme;
+  themeSel.addEventListener('change', () => { remember(); k.theme = themeSel.value; changed(true); });
+  const blurbIn = h('input', { type:'text', maxlength:'120', 'aria-label':'Description', placeholder:'A line about it (optional)' }); blurbIn.value = k.blurb || '';
+  blurbIn.addEventListener('input', () => { k.blurb = blurbIn.value; E.dirty = true; });
+  const startSel = h('select', { 'aria-label':'Start from a kitchen' }, h('option', { value:'', text:'Start from a kitchen…' }), MAP_ORDER.map(id => h('option', { value: id, text: MAPS[id].name })));
+  startSel.addEventListener('change', () => { const M = MAPS[startSel.value]; if (!M) return; remember(); const c = cleanKitchen(JSON.parse(JSON.stringify(M))); Object.assign(k, { theme: c.theme, paths: c.paths, water: c.water, deco: c.deco }); themeSel.value = k.theme; E.trail = 0; E.sel = null; startSel.value = ''; status.textContent = 'Copied the layout of ' + M.name + '. Make it yours.'; changed(true); drawOptions(); });
+  const snapTick = h('label', { class:'bchk' }, (() => { const c = h('input', { type:'checkbox' }); c.checked = E.snap; c.addEventListener('change', () => { E.snap = c.checked; }); return c; })(), h('span', { text:'Snap to 10' }));
+  function refreshChecks(){
+    const pr = kitchenProblems(kedPreview());
+    problems.innerHTML = '';
+    if (!pr.length) problems.append(h('li', { class:'ok', text:'Ready to play.' }));
+    else for (const p of pr) problems.append(h('li', { text: p }));
+    return pr;
+  }
+  function save(){
+    k.name = nameIn.value; k.blurb = blurbIn.value;
+    const id = saveKitchen(k, E.id);
+    if (!id){ status.textContent = 'You already have ' + KITCHEN_MAX + ' kitchens. Delete one first.'; Sfx.play('error'); return null; }
+    E.id = id; E.dirty = false;
+    delete thumbs[kitchenMapId(id)];
+    status.textContent = 'Saved ' + kitchenById(id).name + '.';
+    Sfx.play('upgrade');
+    return id;
+  }
+  const impTa = h('textarea', { class:'ked-code', rows:'3', placeholder:'Paste a kitchen code (' + KITCHEN_PREFIX + '…)', hidden: true });
+  const actions = h('div', { class:'ked-acts' },
+    btn('Save', () => { save(); }, 'btn-primary'),
+    btn('Play it', () => { const pr = refreshChecks(); if (pr.length){ status.textContent = 'Fix this first: ' + pr[0]; Sfx.play('error'); return; } const id = save(); if (!id) return; closeModal(); pickDifficulty(kitchenMapId(id)); }, 'btn-gold'),
+    btn('Share code', () => { impTa.hidden = false; impTa.readOnly = true; impTa.value = kitchenCode(k); copyText(impTa.value, impTa, ok => { status.textContent = ok ? 'Code copied. Anyone can paste it into their Kitchen Editor.' : 'Copy the code from the box.'; }); }),
+    btn('Import code', () => { if (impTa.hidden || impTa.readOnly){ impTa.hidden = false; impTa.readOnly = false; impTa.value = ''; impTa.focus(); status.textContent = 'Paste a kitchen code, then press Import code again.'; return; } try { const c = kitchenFromCode(impTa.value); remember(); Object.assign(k, c); nameIn.value = k.name; blurbIn.value = k.blurb; themeSel.value = k.theme; E.id = null; impTa.hidden = true; status.textContent = 'Imported ' + k.name + '. Save it to keep it.'; changed(true); drawOptions(); } catch (e) { status.textContent = e.message; Sfx.play('error'); } }),
+    btn('↶', undo, 'bico', 'Undo (Ctrl+Z)'), btn('↷', redo, 'bico', 'Redo (Ctrl+Y)'),
+    E.id ? btn(UI.kedDel ? 'Confirm delete' : 'Delete', () => { if (!UI.kedDel){ UI.kedDel = true; drawKitchenEditor(); setTimeout(() => { UI.kedDel = false; }, 4000); return; } UI.kedDel = false; deleteKitchen(E.id); delete thumbs[kitchenMapId(E.id)]; closeModal(); toast('Kitchen deleted.', ''); if (UI.screen === 'maps') buildMaps(); }, 'sell') : null,
+    btn('Close', () => { closeModal(); delete MAPS[KED_ID]; if (UI.screen === 'maps') buildMaps(); }));
+  const keyH = ev => {
+    if (!UI.ked || $('#modal').hidden) { document.removeEventListener('keydown', keyH, true); return; }
+    if (ev.target.matches && ev.target.matches('input, textarea, select')) return;
+    const kk = ev.key.toLowerCase();
+    if ((ev.ctrlKey || ev.metaKey) && kk === 'z'){ ev.preventDefault(); ev.stopPropagation(); if (ev.shiftKey) redo(); else undo(); }
+    else if ((ev.ctrlKey || ev.metaKey) && kk === 'y'){ ev.preventDefault(); ev.stopPropagation(); redo(); }
+    else if ((kk === 'delete' || kk === 'backspace') && E.sel){ ev.preventDefault(); ev.stopPropagation(); remember(); if (E.sel.kind === 'water') k.water.splice(E.sel.i, 1); else k.deco.splice(E.sel.i, 1); E.sel = null; changed(true); drawOptions(); }
+  };
+  document.addEventListener('keydown', keyH, true);
+  drawTools(); drawOptions(); refreshChecks();
+  modal({ title:'Kitchen editor', lead:'Lay out trails, water and props, then play it. Kitchens of your own earn Dough and mastery but no medals, and share as codes.', wide:true, cls:'ked-modal', noFocus:true,
+    content:[
+      h('div', { class:'ked-top' }, toolSeg, snapTick, startSel),
+      h('div', { class:'ked-stage' }, cv),
+      options,
+      h('div', { class:'ked-meta' }, h('label', {}, h('span', { text:'Name' }), nameIn), h('label', {}, h('span', { text:'Floor' }), themeSel), h('label', { class:'wide' }, h('span', { text:'Description' }), blurbIn)),
+      problems, actions, impTa],
+    foot: status,
+    onClose: () => { delete MAPS[KED_ID]; document.removeEventListener('keydown', keyH, true); } });
+  scheduleBg(true);
+}
+/* the map grid's own section: your kitchens, and a card to build one */
+function kitchenCards(grid){
+  const ids = kitchenList();
+  grid.append(h('div', { class:'tier-head Custom' }, h('span', { class:'level Custom', text:'Your kitchens' }), h('span', { class:'tier-n', text: ids.length + (ids.length === 1 ? ' kitchen' : ' kitchens') + ' · no medals' })));
+  for (const id of ids){
+    const mid = kitchenMapId(id), M = MAPS[mid];
+    if (!M) continue;
+    grid.append(h('div', { class:'map-wrap' },
+      h('button', { class:'map-card', onclick: () => pickDifficulty(mid) }, iconCanvas(thumbOf(mid)),
+        h('div', { class:'map-meta' }, h('div', { class:'t' }, h('h3', { text: M.name }), h('span', { class:'level Custom', text:'Custom' })), h('p', { text: M.blurb }),
+          h('div', { class:'medals' }, h('span', { class:'best', text: Profile.stats.best[mid] ? 'Best round ' + Profile.stats.best[mid] : 'Not played yet' })))),
+      h('button', { class:'btn btn-small map-edit', onclick: () => openKitchenEditor(id) }, 'Edit')));
+  }
+  grid.append(h('button', { class:'map-card map-new', onclick: () => { if (ids.length >= KITCHEN_MAX){ toast('You already have ' + KITCHEN_MAX + ' kitchens. Delete one first.', 'warn'); return; } openKitchenEditor(null); } },
+    h('div', { class:'map-new-in' }, h('b', { text:'+ Build a kitchen' }), h('span', { text:'Lay out your own trails, water and props.' }))));
+}
+
+'use strict';
+/* =====================================================================
    Kitchen Siege — the Sandbox panel
    A floating, draggable panel (same look as the service menu) that only
    exists in a Sandbox game. Opened from the Sandbox button under the
@@ -28190,6 +28617,7 @@ function attractTick(dt){
 function refreshMenu(){
   const g = readStoredGame();
   const btn = $('#btn-continue');
+  if (g && g.cm) adoptKitchen(g.mapId, g.cm);
   if (g && g.mapId && MAPS[g.mapId]){
     btn.hidden = false;
     $('#continue-info').textContent = 'Slot ' + (activeSlot() + 1) + ' · ' + slotLabel(g);
@@ -28264,6 +28692,7 @@ function buildMaps(){
         h('p', { text: M.blurb }), medalRow(id, true)));
     grid.append(card);
   }
+  kitchenCards(grid);
 }
 function pickDifficulty(mapId){
   Sfx.unlock();
@@ -28307,7 +28736,7 @@ function pickDifficulty(mapId){
   const warn = h('p', { class:'note', id:'slot-note', text: slotStartNote(def) });
   slotSel.addEventListener('change', () => { UI.slotPick = +slotSel.value; warn.textContent = slotStartNote(UI.slotPick); });
   const slotRow = h('div', { class:'slot-row' }, h('label', { for:'slot-pick', text:'Save slot' }), slotSel);
-  modal({ title: MAPS[mapId].name, lead: MAPS[mapId].blurb, content:[diffs, h('p', { class:'lead modes-h', text:'House style' }), modes, mmRow, sbRow, slotRow, warn],
+  modal({ title: MAPS[mapId].name, lead: MAPS[mapId].blurb + (isCustomMap(mapId) ? ' A kitchen of your own: it earns Dough and mastery, but no medals.' : ''), content:[diffs, h('p', { class:'lead modes-h', text:'House style' }), modes, mmRow, sbRow, slotRow, warn],
     actions:[{ label:'Cancel' }, { label:'Start cooking', kind:'primary', onClick: () => { pickSlot(UI.slotPick); startNewGame(mapId, UI.diffPick, UI.mmPick && !UI.sbPick, null, UI.sbPick ? 'sandbox' : UI.modePick); } }] });
 }
 

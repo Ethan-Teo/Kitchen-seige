@@ -1463,3 +1463,34 @@ ul.pools li.full b{color:#2f6d2a}
 .slot-card .slot-id small{font-size:12px;opacity:.8}
 .slot-card .slot-acts{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .slot-blank{background:repeating-linear-gradient(45deg,rgba(0,0,0,.06) 0 6px,transparent 6px 12px);border-radius:8px}
+
+/* ---------- the Kitchen Editor ---------- */
+.level.Custom{background:#e6dcff;color:#5a3fb0}
+.map-wrap{position:relative;display:flex}
+.map-wrap>.map-card{flex:1}
+.map-edit{position:absolute;top:10px;right:10px;z-index:2}
+.map-new{border:3px dashed var(--chrome);background:transparent;min-height:140px;display:flex;align-items:center;justify-content:center}
+.map-new-in{display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center}
+.map-new-in b{font-family:var(--font-ui);font-size:20px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.map-new-in span{color:var(--ink-2);font-size:14px}
+.ked-modal{max-width:min(980px,calc(100vw - 24px))}
+.ked-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.ked-top select{max-width:240px}
+.ked-stage{display:flex;justify-content:center;margin-bottom:8px}
+.ked-canvas{border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.25);touch-action:none;cursor:crosshair;max-width:100%;height:auto}
+.ked-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.ked-hint{color:var(--ink-3);font-size:13px;flex-basis:100%}
+.ked-pal{display:flex;flex-wrap:wrap;gap:6px}
+.ked-prop{font-family:var(--font-ui);font-weight:600;font-size:13px;padding:5px 9px;border-radius:8px;border:2px solid var(--chrome);background:var(--enamel)}
+.ked-prop[aria-pressed="true"]{border-color:var(--mint);background:#eefaf7}
+.ked-size{display:flex;gap:6px;align-items:center;font-size:13px}
+.ked-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.ked-meta label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600}
+.ked-meta label.wide{grid-column:1/-1}
+.ked-meta input,.ked-meta select{font:inherit;font-weight:400;padding:6px 8px;border-radius:8px;border:1px solid var(--chrome)}
+.ked-problems{margin:4px 0 8px;padding-left:18px;font-size:14px;color:var(--cherry-deep)}
+.ked-problems li.ok{color:#2f6d2a;list-style:none;margin-left:-18px}
+.ked-acts{display:flex;flex-wrap:wrap;gap:8px}
+.ked-code{width:100%;margin-top:8px;font-family:monospace;font-size:12px}
+.ked-status{display:block;margin-top:8px;font-size:14px;color:var(--ink-2);min-height:1.3em}
+.ked-top .seg button,.ked-opts .seg button{padding:6px 14px}

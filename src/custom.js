@@ -1208,6 +1208,7 @@ function designTintAt(d, up, par){
 }
 function syncCustomTowers(){
   if (typeof syncBodies === 'function') syncBodies();
+  if (typeof registerKitchens === 'function') registerKitchens();
   const defs = (Profile && Profile.custom) || {};
   for (const id of Object.keys(TOWERS)) if (TOWERS[id].custom && !defs[id]) delete TOWERS[id];
   for (const id of Object.keys(ABILITIES)) if (ABILITIES[id].custom) delete ABILITIES[id];

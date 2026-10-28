@@ -76,7 +76,7 @@ function combineProfiles(a, b){
   for (const k in bs) if (k !== 'best') o.stats[k] = mx(o.stats[k], bs[k]);
   o.stats.best = Object.assign({}, obj(o.stats.best)); for (const k in obj(bs.best)) o.stats.best[k] = mx(o.stats.best[k], bs.best[k]);
   o.seen = union(obj(o.seen), b.seen); o.ach = union(obj(o.ach), b.ach); o.custom = union(obj(o.custom), b.custom);
-  o.objects = union(obj(o.objects), b.objects); o.bodies = union(obj(o.bodies), b.bodies);
+  o.objects = union(obj(o.objects), b.objects); o.bodies = union(obj(o.bodies), b.bodies); o.kitchens = union(obj(o.kitchens), b.kitchens);
   const ah = obj(o.heroes), bh = obj(b.heroes);
   o.heroes = Object.assign({}, ah, { owned: union(Object.assign({}, obj(ah.owned)), bh.owned), seen: union(Object.assign({}, obj(ah.seen)), bh.seen), tip: mx(ah.tip, bh.tip) });
   const ad = obj(o.daily), bd = obj(b.daily);
@@ -109,7 +109,7 @@ function repairFromGame(p, g){
     S.games = Math.max(num(S.games), 1);
   }
   S.cooked = Math.max(num(S.cooked), Math.floor(num(g.stats && g.stats.committedKills)));
-  if (g.won && !g.ch && MAPS[g.mapId] && DIFFS[g.diff]){
+  if (g.won && !g.ch && MAPS[g.mapId] && !/^cm_/.test(g.mapId) && DIFFS[g.diff]){
     const m = p.medals[g.mapId] = Object.assign({}, p.medals[g.mapId] || {});
     m[g.diff] = 1; if (g.mm) m.mastery = 1;
     S.wins = Math.max(num(S.wins), 1);
@@ -318,6 +318,7 @@ function slotForNew(){
   return free >= 0 ? free : S.active;
 }
 function slotLabel(g){
+  if (g && g.cm && typeof adoptKitchen === 'function') adoptKitchen(g.mapId, g.cm);
   if (!g || !MAPS[g.mapId]) return 'Empty';
   return (g.ev && g.ev.n ? g.ev.n + ' · ' : g.ch ? (g.ch.tm ? 'Tasting Menu · ' : 'Daily · ') : '') + MAPS[g.mapId].name + ' · ' + (DIFFS[g.diff] ? DIFFS[g.diff].name : g.diff) + (g.mode && MODES[g.mode] && g.mode !== 'standard' ? ' · ' + MODES[g.mode].name : '') + (g.mm ? ' · Mastery' : '') + ' · Round ' + g.round;
 }
@@ -639,7 +640,7 @@ function makeTower(type, x, y){
 function serializeGame(){
   return { v:1, savedAt: Date.now(), mapId:G.mapId, diff:G.diff, mm:G.mm, mode: G.mode !== 'standard' ? G.mode : undefined, ev: evSave(), freeplay:G.freeplay, won:G.won, round:G.round,
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
-    ch: G.ch || undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
+    ch: G.ch || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
     towers: G.towers.map(t => ({ type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
@@ -652,6 +653,7 @@ function serializeGame(){
       ab: Object.fromEntries(Object.entries(t.ab).map(([k, v]) => [k, Math.round(v * 10) / 10])) })) };
 }
 function loadGame(data){
+  if (data && data.cm && typeof adoptKitchen === 'function') adoptKitchen(data.mapId, data.cm);   // a kitchen of the player's own, carried in the save
   setupGame(data.mapId, data.diff, data.mm, data.ch, data.mode);
   evLoad(data.ev);
   Object.assign(G, { round:data.round, cash:data.cash, lives:data.lives, freeplay:!!data.freeplay, won:!!data.won, usedSecond:!!data.usedSecond });
@@ -2253,7 +2255,7 @@ function commitXP(){
 function victory(){
   G.won = true;
   let fresh = false, freshMM = false;
-  if (!G.ch && !G.ev && !G.adminUsed){
+  if (!G.ch && !G.ev && !G.adminUsed && !isCustomMap(G.mapId)){
     const m = Profile.medals[G.mapId] = Profile.medals[G.mapId] || {}, key = medalKey(G.diff, G.mode);
     fresh = !m[key];
     m[key] = 1;

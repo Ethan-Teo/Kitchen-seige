@@ -191,6 +191,7 @@ function attractTick(dt){
 function refreshMenu(){
   const g = readStoredGame();
   const btn = $('#btn-continue');
+  if (g && g.cm) adoptKitchen(g.mapId, g.cm);
   if (g && g.mapId && MAPS[g.mapId]){
     btn.hidden = false;
     $('#continue-info').textContent = 'Slot ' + (activeSlot() + 1) + ' · ' + slotLabel(g);
@@ -265,6 +266,7 @@ function buildMaps(){
         h('p', { text: M.blurb }), medalRow(id, true)));
     grid.append(card);
   }
+  kitchenCards(grid);
 }
 function pickDifficulty(mapId){
   Sfx.unlock();
@@ -308,7 +310,7 @@ function pickDifficulty(mapId){
   const warn = h('p', { class:'note', id:'slot-note', text: slotStartNote(def) });
   slotSel.addEventListener('change', () => { UI.slotPick = +slotSel.value; warn.textContent = slotStartNote(UI.slotPick); });
   const slotRow = h('div', { class:'slot-row' }, h('label', { for:'slot-pick', text:'Save slot' }), slotSel);
-  modal({ title: MAPS[mapId].name, lead: MAPS[mapId].blurb, content:[diffs, h('p', { class:'lead modes-h', text:'House style' }), modes, mmRow, sbRow, slotRow, warn],
+  modal({ title: MAPS[mapId].name, lead: MAPS[mapId].blurb + (isCustomMap(mapId) ? ' A kitchen of your own: it earns Dough and mastery, but no medals.' : ''), content:[diffs, h('p', { class:'lead modes-h', text:'House style' }), modes, mmRow, sbRow, slotRow, warn],
     actions:[{ label:'Cancel' }, { label:'Start cooking', kind:'primary', onClick: () => { pickSlot(UI.slotPick); startNewGame(mapId, UI.diffPick, UI.mmPick && !UI.sbPick, null, UI.sbPick ? 'sandbox' : UI.modePick); } }] });
 }
 
