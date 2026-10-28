@@ -1550,3 +1550,16 @@ body.txt-xl #shop-info,body.txt-xl .tpanel p,body.txt-xl .tpanel small{font-size
 .gal-out{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 @media (max-width:640px){.gal-card{grid-template-columns:84px 1fr}.gal-mini,.gal-glyph{width:84px}.gal-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
+/* co-op */
+.menu-buttons .row.play-row{grid-template-columns:2fr 1fr}
+.coop-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.coop-opt{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:14px;border:2px solid var(--enamel-3);background:var(--enamel);font:inherit;color:inherit;cursor:pointer}
+.coop-opt:hover,.coop-opt:focus-visible{border-color:var(--butter-deep);background:#fff8e2}
+.coop-opt b{font-family:var(--font-ui);font-size:18px;text-transform:uppercase;letter-spacing:.04em}.coop-opt span{font-size:13.5px;color:var(--ink-2)}
+.coop-code{font-family:var(--font-ui);font-weight:700;letter-spacing:.3em;text-align:center}.coop-code.big{font-size:56px;padding:10px;border-radius:14px;background:var(--enamel-2)}
+.coop-code-in{text-transform:uppercase;letter-spacing:.3em;font-weight:700}
+.coop-steps{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.coop-badge{margin-top:6px;padding:4px 10px;border-radius:999px;background:#efe3fb;color:#5b2d86;font:600 12.5px var(--font-body);text-align:center}
+.coop-badge.off{background:var(--enamel-3);color:var(--ink-3)}
+.toggle-inline{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:14px}
+@media (max-width:640px){.coop-pick{grid-template-columns:1fr}}

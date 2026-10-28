@@ -268,7 +268,7 @@ function saveProfile(){
   Store.push('profile', { savedAt: Profile.savedAt, profile: Profile });
 }
 function storeGame(data){
-  if (!data) return;
+  if (!data || (Coop.on && Coop.role === 'guest')) return;
   data.savedAt = Date.now();
   Store.write(LS_GAME, data);
   Store.push('game', { savedAt: data.savedAt, game: data });
@@ -646,7 +646,7 @@ function serializeGame(){
     towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
       spot: t.spot ? [Math.round(t.spot.x), Math.round(t.spot.y)] : null, fm: t.flyMode || undefined, nz: t.nozzle || undefined, lk: t.lock ? [Math.round(t.lock.x), Math.round(t.lock.y)] : undefined,
-      hl: t.hero ? t.level : undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
+      hl: t.hero ? t.level : undefined, ow: t.own || undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
       sy: t.sys ? paraSave(t) : undefined, pit: t.pit ? Math.round(t.pit) : undefined,
       pw: t.paragon && t.pw ? PARA_POOLS.map(k => Math.round(t.pw[k] || 0)) : undefined, pws: t.paragon && t.pwSeen ? [Math.round(t.pwSeen.dmg), Math.round(t.pwSeen.inc)] : undefined,
       tb: saveTb(t), ub: t.ub || undefined, fr: t.forestR ? Math.round(t.forestR) : undefined,
@@ -675,6 +675,7 @@ function loadGame(data){
     if (Number.isInteger(d.id) && d.id > 0 && !G.towers.some(o => o.id === d.id)) t.id = d.id;
     t.up = d.up.slice(); t.paragon = !!d.par; t.degree = d.par || 0; t.tg = d.tg || 'first';
     if (d.nz === 'mist' || d.nz === 'stream') t.nozzle = d.nz;
+    if (d.ow === 1) t.own = 1;
     t.dmg = d.dmg || 0; t.kills = d.kills || 0; t.invested = d.inv || 0; t.bank = d.bank || 0; t.cashGen = d.cashGen || 0;
     if (d.lf) t.lifts = clamp(Math.floor(+d.lf || 0), 0, 1e9);
     t.ab = Object.assign({}, d.ab || {});
@@ -766,6 +767,7 @@ function canPlace(type, x, y){
   return true;
 }
 function placeTower(type, x, y){
+  if (Coop.on && Coop.role === 'guest'){ coopCmd('place', type, Math.round(x), Math.round(y)); return null; }
   if (!canBuild(type) || !canPlace(type, x, y)) return null;
   if (TOWERS[type].hero && heroBlock(type)) return null;
   const c = towerCost(type, x, y);
@@ -784,6 +786,7 @@ function placeTower(type, x, y){
   return t;
 }
 function upgradeState(t, p){
+  if (Coop.on && (t.own || 0) !== Coop.actor) return { ok:false, why: (Coop.names[t.own || 0] || 'Your partner') + '’s appliance', closed:true };
   if (t.paragon) return { ok:false, why:'Paragon' };
   if (TOWERS[t.type].hero) return { ok:false, why:'Head chefs level up instead of taking upgrades', closed:true };
   const up = t.up, tier = up[p];
@@ -798,6 +801,7 @@ function upgradeState(t, p){
   return { ok:true, cost: upgradeCost(t, p) };
 }
 function upgradeTower(t, p){
+  if (Coop.on && Coop.role === 'guest'){ if ((t.own || 0) !== 1) return false; coopCmd('up', t.id, p); return true; }
   const st = upgradeState(t, p);
   if (!st.ok || !canAfford(st.cost)) return false;
   spend(st.cost);
@@ -816,6 +820,8 @@ function upgradeTower(t, p){
 function canSell(){ return !(G.mod && G.mod.noSell); }
 function sellTower(t){
   if (!canSell()) return 0;
+  if (Coop.on && !coopCanTouch(t)) return 0;
+  if (Coop.on && Coop.role === 'guest'){ coopCmd('sell', t.id); return ownSellValue(t); }
   let rode = 0;
   if (t.type === 'susan') for (const r of ridersOf(t)) rode += sellTower(r);
   const v = ownSellValue(t);
@@ -1810,6 +1816,7 @@ function abilityList(){
 }
 function useAbility(id){
   if (!G.active || G.over) return false;
+  if (Coop.on && Coop.role === 'guest') return coopCmd('ab', id);
   if (G.mod && G.mod.noAbilities) return false;
   let best = null;
   for (const t of G.towers){
@@ -2162,6 +2169,7 @@ function roundGroupsFor(n){
   return evRoundGroups(n, modeGroups(n, groups));
 }
 function startRound(){
+  if (Coop.on && Coop.role === 'guest'){ if (G.roundActive || G.over) return false; return coopCmd('start'); }
   if (!G.active || G.roundActive || G.over || G.won && !G.freeplay) return false;
   if (typeof buildLogTick === 'function') buildLogTick(G.round);
   G.lastSnap = serializeGame();

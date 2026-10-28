@@ -1560,6 +1560,19 @@ body.txt-xl #shop-info,body.txt-xl .tpanel p,body.txt-xl .tpanel small{font-size
 .gal-out{margin-top:10px;display:flex;flex-direction:column;gap:6px}
 a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
 @media (max-width:640px){.gal-card{grid-template-columns:84px 1fr}.gal-mini,.gal-glyph{width:84px}.gal-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
+/* co-op */
+.menu-buttons .row.play-row{grid-template-columns:2fr 1fr}
+.coop-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.coop-opt{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:14px;border:2px solid var(--enamel-3);background:var(--enamel);font:inherit;color:inherit;cursor:pointer}
+.coop-opt:hover,.coop-opt:focus-visible{border-color:var(--butter-deep);background:#fff8e2}
+.coop-opt b{font-family:var(--font-ui);font-size:18px;text-transform:uppercase;letter-spacing:.04em}.coop-opt span{font-size:13.5px;color:var(--ink-2)}
+.coop-code{font-family:var(--font-ui);font-weight:700;letter-spacing:.3em;text-align:center}.coop-code.big{font-size:56px;padding:10px;border-radius:14px;background:var(--enamel-2)}
+.coop-code-in{text-transform:uppercase;letter-spacing:.3em;font-weight:700}
+.coop-steps{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.coop-badge{margin-top:6px;padding:4px 10px;border-radius:999px;background:#efe3fb;color:#5b2d86;font:600 12.5px var(--font-body);text-align:center}
+.coop-badge.off{background:var(--enamel-3);color:var(--ink-3)}
+.toggle-inline{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:14px}
+@media (max-width:640px){.coop-pick{grid-template-columns:1fr}}
 
 </style>
 <style>[hidden]{display:none!important}body{margin:0}</style>
@@ -1575,7 +1588,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
       <p class="tagline">Pests are raiding the pantry. Your appliances have other plans.</p>
       <div class="menu-buttons">
         <div class="row cont-row"><button class="btn btn-primary" id="btn-continue" style="flex-direction:column;gap:2px" hidden>Continue<span class="continue-info" id="continue-info"></span></button><button class="btn btn-small" id="btn-saves" title="Six save slots">Saves</button></div>
-        <button class="btn btn-primary" id="btn-play">New game</button>
+        <div class="row play-row"><button class="btn btn-primary" id="btn-play">New game</button><button class="btn btn-primary" id="btn-coop">Co-op</button></div>
         <div class="row"><button class="btn btn-gold" id="btn-daily">Daily<span class="mdot" id="daily-dot" hidden></span></button><button class="btn btn-gold" id="btn-events">Events<span class="mdot" id="events-dot" hidden></span></button><button class="btn btn-gold" id="btn-bosses">Bosses</button></div>
         <div class="row"><button class="btn" id="btn-shop">Shop<span class="mdot num" id="shop-dot" hidden></span></button><button class="btn" id="btn-chefs">Chefs<span class="mdot" id="chefs-dot" hidden></span></button><button class="btn" id="btn-gallery">Gallery</button></div>
         <div class="row row4"><button class="btn btn-small" id="btn-mastery">Mastery</button><button class="btn btn-small" id="btn-howto">How to play</button><button class="btn btn-small" id="btn-data">Save data</button><button class="btn btn-small" id="btn-settings">Settings</button></div>
@@ -1619,6 +1632,7 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
           <button class="btn" id="btn-pause" aria-label="Pause" title="Pause (Esc)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg></button>
           <button class="btn btn-small" id="btn-sandbox" title="Sandbox tools" hidden>Sandbox tools</button>
           <div class="auto-row"><label for="auto-start"><span class="switch"><input type="checkbox" id="auto-start"><i></i></span>Auto-start rounds</label><span id="mode-label"></span></div>
+          <div class="coop-badge" id="coop-badge" hidden></div>
           <div class="preview" id="preview" aria-live="polite"></div>
         </div>
         <div class="panel shop-wrap" id="shop-wrap">
@@ -3707,7 +3721,7 @@ function saveProfile(){
   Store.push('profile', { savedAt: Profile.savedAt, profile: Profile });
 }
 function storeGame(data){
-  if (!data) return;
+  if (!data || (Coop.on && Coop.role === 'guest')) return;
   data.savedAt = Date.now();
   Store.write(LS_GAME, data);
   Store.push('game', { savedAt: data.savedAt, game: data });
@@ -4085,7 +4099,7 @@ function serializeGame(){
     towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
       spot: t.spot ? [Math.round(t.spot.x), Math.round(t.spot.y)] : null, fm: t.flyMode || undefined, nz: t.nozzle || undefined, lk: t.lock ? [Math.round(t.lock.x), Math.round(t.lock.y)] : undefined,
-      hl: t.hero ? t.level : undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
+      hl: t.hero ? t.level : undefined, ow: t.own || undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
       sy: t.sys ? paraSave(t) : undefined, pit: t.pit ? Math.round(t.pit) : undefined,
       pw: t.paragon && t.pw ? PARA_POOLS.map(k => Math.round(t.pw[k] || 0)) : undefined, pws: t.paragon && t.pwSeen ? [Math.round(t.pwSeen.dmg), Math.round(t.pwSeen.inc)] : undefined,
       tb: saveTb(t), ub: t.ub || undefined, fr: t.forestR ? Math.round(t.forestR) : undefined,
@@ -4114,6 +4128,7 @@ function loadGame(data){
     if (Number.isInteger(d.id) && d.id > 0 && !G.towers.some(o => o.id === d.id)) t.id = d.id;
     t.up = d.up.slice(); t.paragon = !!d.par; t.degree = d.par || 0; t.tg = d.tg || 'first';
     if (d.nz === 'mist' || d.nz === 'stream') t.nozzle = d.nz;
+    if (d.ow === 1) t.own = 1;
     t.dmg = d.dmg || 0; t.kills = d.kills || 0; t.invested = d.inv || 0; t.bank = d.bank || 0; t.cashGen = d.cashGen || 0;
     if (d.lf) t.lifts = clamp(Math.floor(+d.lf || 0), 0, 1e9);
     t.ab = Object.assign({}, d.ab || {});
@@ -4205,6 +4220,7 @@ function canPlace(type, x, y){
   return true;
 }
 function placeTower(type, x, y){
+  if (Coop.on && Coop.role === 'guest'){ coopCmd('place', type, Math.round(x), Math.round(y)); return null; }
   if (!canBuild(type) || !canPlace(type, x, y)) return null;
   if (TOWERS[type].hero && heroBlock(type)) return null;
   const c = towerCost(type, x, y);
@@ -4223,6 +4239,7 @@ function placeTower(type, x, y){
   return t;
 }
 function upgradeState(t, p){
+  if (Coop.on && (t.own || 0) !== Coop.actor) return { ok:false, why: (Coop.names[t.own || 0] || 'Your partner') + '’s appliance', closed:true };
   if (t.paragon) return { ok:false, why:'Paragon' };
   if (TOWERS[t.type].hero) return { ok:false, why:'Head chefs level up instead of taking upgrades', closed:true };
   const up = t.up, tier = up[p];
@@ -4237,6 +4254,7 @@ function upgradeState(t, p){
   return { ok:true, cost: upgradeCost(t, p) };
 }
 function upgradeTower(t, p){
+  if (Coop.on && Coop.role === 'guest'){ if ((t.own || 0) !== 1) return false; coopCmd('up', t.id, p); return true; }
   const st = upgradeState(t, p);
   if (!st.ok || !canAfford(st.cost)) return false;
   spend(st.cost);
@@ -4255,6 +4273,8 @@ function upgradeTower(t, p){
 function canSell(){ return !(G.mod && G.mod.noSell); }
 function sellTower(t){
   if (!canSell()) return 0;
+  if (Coop.on && !coopCanTouch(t)) return 0;
+  if (Coop.on && Coop.role === 'guest'){ coopCmd('sell', t.id); return ownSellValue(t); }
   let rode = 0;
   if (t.type === 'susan') for (const r of ridersOf(t)) rode += sellTower(r);
   const v = ownSellValue(t);
@@ -5249,6 +5269,7 @@ function abilityList(){
 }
 function useAbility(id){
   if (!G.active || G.over) return false;
+  if (Coop.on && Coop.role === 'guest') return coopCmd('ab', id);
   if (G.mod && G.mod.noAbilities) return false;
   let best = null;
   for (const t of G.towers){
@@ -5601,6 +5622,7 @@ function roundGroupsFor(n){
   return evRoundGroups(n, modeGroups(n, groups));
 }
 function startRound(){
+  if (Coop.on && Coop.role === 'guest'){ if (G.roundActive || G.over) return false; return coopCmd('start'); }
   if (!G.active || G.roundActive || G.over || G.won && !G.freeplay) return false;
   if (typeof buildLogTick === 'function') buildLogTick(G.round);
   G.lastSnap = serializeGame();
@@ -13380,6 +13402,7 @@ function buyPower(id, n){
 /* why powers and insta appliances can't be used right now, or null */
 function powerBlock(){
   if (!G.active || G.over || G.attract) return 'Start a game first';
+  if (Coop.on && Coop.role === 'guest') return 'In co-op, powers and insta appliances are the host’s';
   if (G.ch) return 'Powers stay in the pantry during daily challenges';
   if (G.diff === 'michelin') return 'Michelin is a pure test: no powers';
   if (modeNoPowers()) return G.M.name + ' is played without powers';
@@ -15485,6 +15508,235 @@ async function galleryRemove(id){
   return true;
 }
 function galleryAll(){ return mergeGallery(GALLERY_SEED, Gallery.featured || [], Gallery.shared); }
+
+'use strict';
+/* =====================================================================
+   Kitchen Siege — co-op (the game side)
+   Two players defend one kitchen. The host's game is the real one: it
+   runs the pests, the appliances and the rounds. The guest's screen is a
+   puppet of it, drawn from frames the host sends about 15 times a second,
+   and everything the guest does (build, upgrade, sell, target, abilities,
+   start a round, change speed) goes to the host as a command.
+   Each player has their own cash and owns the appliances they place: only
+   the owner can upgrade or sell one. Cash the kitchen earns is split down
+   the middle; lives are shared.
+   The transport (WebRTC on the web, a Claude room inside Claude) lives in
+   ui_coop.js; this file only makes and reads the messages.
+     host -> guest  { k:'e', ... }   a frame: round, lives, cash, pests, shots
+                    { k:'t', ... }   the appliances (when they change, and every
+                                     couple of seconds), in parts if large
+     guest -> host  { k:'c', q:[[seq, cmd, ...args], ...] }  commands not yet acked
+   ===================================================================== */
+const Coop = { on:false, role:null, me:0, actor:0, wallet:[0, 0], seq:0, ack:0, out:[], tv:0, tvSent:-1, tParts:null, last:null, names:['Host', 'Guest'], peerSeen:0, frames:0, cap:1500 };
+const COOP_ENEMY_CAP_ROOM = 260;
+let coopTypes = null;
+const COOP_TYPES = () => coopTypes || (coopTypes = Object.keys(ENEMIES).sort());
+function coopOn(){ return !!Coop.on; }
+function coopGuest(){ return Coop.on && Coop.role === 'guest'; }
+function coopHost(){ return Coop.on && Coop.role === 'host'; }
+function coopReset(){
+  Object.assign(Coop, { on:false, role:null, me:0, actor:0, wallet:[0, 0], seq:0, ack:0, out:[], tv:0, tvSent:-1, tParts:null, last:null, peerSeen:0, frames:0, cap:1500, guestHas:null });
+}
+/* the host starts co-op on the game in hand: its cash is split into two purses */
+function coopHostStart(cap){
+  Coop.on = true; Coop.role = 'host'; Coop.me = 0; Coop.actor = 0; Coop.cap = cap || 1500;
+  const half = Math.floor(G.cash / 2);
+  Coop.wallet = [G.cash - half, half];
+  G.cash = Coop.wallet[0];
+  Coop.tv++;
+}
+/* whose purse G.cash holds right now: the host's, except while a guest command runs */
+function coopIncome(before){
+  if (!coopHost()) return;
+  const d = G.cash - before;
+  if (d > 0){ const half = d / 2; G.cash -= half; Coop.wallet[1] += half; }
+}
+function coopCanTouch(t){ return !Coop.on || (t.own || 0) === Coop.actor; }
+function coopTowersChanged(){ if (coopHost()) Coop.tv++; }
+
+/* ---------------- the guest's commands, run on the host ---------------- */
+function coopRun(cmd){
+  const [op, ...a] = cmd;
+  /* the shared controls */
+  if (op === 'start') return startRound();
+  if (op === 'speed'){ const sp = +a[0]; if ([1, 2, 3].includes(sp)) G.speed = sp; return true; }
+  if (op === 'ab') return useAbility(String(a[0]));
+  /* building: the guest's own purse, the guest's own appliances */
+  const keep = G.cash;
+  G.cash = Coop.wallet[1]; Coop.actor = 1;
+  let ok = false;
+  try {
+    const byId = id => G.towers.find(t => t.id === id);
+    if (op === 'place'){ const t = placeTower(String(a[0]), +a[1], +a[2]); if (t){ t.own = 1; ok = true; } }
+    else if (op === 'up'){ const t = byId(+a[0]); if (t && coopCanTouch(t)) ok = upgradeTower(t, clamp(Math.floor(+a[1]), 0, 2)); }
+    else if (op === 'sell'){ const t = byId(+a[0]); if (t && coopCanTouch(t)){ sellTower(t); ok = true; } }
+    else if (op === 'set'){
+      const t = byId(+a[0]), o = a[1] || {};
+      if (t && coopCanTouch(t)){
+        if (typeof o.tg === 'string' && targetModesOf(t).includes(o.tg)) t.tg = o.tg;
+        if (Array.isArray(o.spot) && t.s && t.s.spot) t.spot = { x: clamp(+o.spot[0] || 0, 0, W), y: clamp(+o.spot[1] || 0, 0, H) };
+        if (Array.isArray(o.lock)) setLock(t, { x: clamp(+o.lock[0] || 0, 0, W), y: clamp(+o.lock[1] || 0, 0, H) });
+        if (typeof o.fm === 'string' && t.flyMode && flyModeOk(t, o.fm)) t.flyMode = o.fm;
+        ok = true;
+      }
+    }
+  } finally {
+    Coop.wallet[1] = G.cash; G.cash = keep; Coop.actor = 0;
+  }
+  if (ok) coopTowersChanged();
+  return ok;
+}
+function targetModesOf(t){ return trapTower(t.type) ? ['strong', 'first', 'last', 'close'] : ['first', 'last', 'close', 'strong']; }
+/* a command packet from the guest: run the new ones, in order */
+function coopHostReceive(msg){
+  if (!coopHost() || !msg || msg.k !== 'c' || !Array.isArray(msg.q)) return 0;
+  Coop.peerSeen = Date.now();
+  if (typeof msg.name === 'string') Coop.names[1] = cleanText(msg.name, 20, 'Guest');
+  let n = 0;
+  for (const item of msg.q.slice(0, 40)){
+    if (!Array.isArray(item) || !(item[0] > Coop.ack)) continue;
+    Coop.ack = item[0];
+    if (G.active && !G.over) coopRun(item.slice(1));
+    n++;
+  }
+  return n;
+}
+
+/* ---------------- frames, host side ---------------- */
+const B36 = n => { n = Math.max(0, Math.min(1295, Math.round(n))); return (n < 36 ? '0' : '') + n.toString(36); };
+const B36x3 = n => { n = ((Math.round(n) % 46656) + 46656) % 46656; return ('00' + n.toString(36)).slice(-3); };
+const E_FLAGS = e => (e.camo ? 1 : 0) | (e.gold ? 2 : 0) | (e.boss ? 4 : 0) | (e.freezeT > 0 ? 8 : 0) | (e.stunT > 0 ? 16 : 0);
+function coopEnemyList(cap){
+  const live = G.enemies.filter(e => !e.dead && e.x > -60 && e.x < W + 60 && e.y > -60 && e.y < H + 60);
+  if (live.length <= cap) return live;
+  /* the ones that matter most: bosses and vehicles, then the ones furthest along */
+  return live.sort((a, b) => (b.boss - a.boss) || (b.big - a.big) || (b.d - a.d)).slice(0, cap);
+}
+function coopFrame(cap){
+  const es = coopEnemyList(cap || Coop.cap);
+  let e = '';
+  for (const x of es){
+    const ti = COOP_TYPES().indexOf(x.type);
+    e += B36x3(x.id) + B36(ti < 0 ? 0 : ti) + B36(x.x + 60) + B36(x.y + 60) + Math.floor((((x.rot % TAU) + TAU) % TAU) / TAU * 36).toString(36) + Math.min(35, Math.ceil(clamp(x.hp / x.maxHp, 0, 1) * 35)).toString(36) + E_FLAGS(x).toString(36);
+  }
+  let p = '';
+  const shots = G.projs.length > 80 ? G.projs.slice(-80) : G.projs;
+  for (const s of shots) p += B36(s.x + 60) + B36(s.y + 60);
+  return { k:'e', r: G.round, ra: G.roundActive ? 1 : 0, l: Math.max(0, Math.round(G.lives)), c: [Math.floor(G.cash), Math.floor(Coop.wallet[1])], sp: G.speed, ov: G.over ? 1 : 0, w: G.won ? 1 : 0, win: G.win, tv: Coop.tv, ack: Coop.ack, e, p, n: Coop.names[0], fp: G.freeplay ? 1 : 0 };
+}
+/* the appliances, split into parts that each fit the room's message size */
+function coopTowerParts(maxLen){
+  const list = G.towers.map(t => [t.id, t.type, Math.round(t.x), Math.round(t.y), t.up.join(''), t.own || 0, t.paragon ? (t.degree || 1) : 0, t.tg, t.hero ? t.level : 0, Math.round(t.dmg || 0), t.kills || 0,
+    Object.fromEntries(Object.entries(t.ab || {}).filter(([, v]) => v > 0).map(([k, v]) => [k, Math.round(v * 10) / 10])), t.nozzle || '', t.flyMode || '']);
+  const parts = [];
+  let cur = [], len = 0;
+  for (const row of list){
+    const s = JSON.stringify(row).length + 1;
+    if (cur.length && len + s > (maxLen || 1e9)){ parts.push(cur); cur = []; len = 0; }
+    cur.push(row); len += s;
+  }
+  parts.push(cur);
+  return parts.map((rows, i) => ({ k:'t', tv: Coop.tv, i, n: parts.length, t: rows, map: G.mapId, diff: G.diff, km: isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, mode: G.mode !== 'standard' ? G.mode : undefined }));
+}
+
+/* ---------------- frames, guest side ---------------- */
+function coopGuestStart(){ coopReset(); Coop.on = true; Coop.role = 'guest'; Coop.me = 1; Coop.actor = 1; }
+/* queue a command for the host (it is resent until the host acknowledges it) */
+function coopCmd(...cmd){
+  if (!coopGuest()) return false;
+  Coop.out.push([++Coop.seq, ...cmd]);
+  if (Coop.out.length > 40) Coop.out.splice(0, Coop.out.length - 40);
+  return true;
+}
+function coopPacket(){ return { k:'c', q: Coop.out.slice(-20), name: Coop.names[1] }; }
+/* a puppet pest from a frame record */
+function coopPuppet(rec, old){
+  const def = ENEMIES[rec.type];
+  const e = old && old.type === rec.type ? old : { id: rec.id, type: rec.type, def, path: 0, d: 0, seg: 0, ang: 0, r: def.r, big: !!def.big, boss: !!def.boss, tier: def.tier, slowMult: 1, anim: Math.random() * 10, hitT: -10, flashT: 0, dead: false, lvl: 1, x: rec.x, y: rec.y, rot: rec.rot };
+  e.tx = rec.x; e.ty = rec.y; e.trot = rec.rot;
+  e.hp = rec.hp; e.maxHp = 1;
+  e.camo = !!(rec.f & 1); e.gold = !!(rec.f & 2); e.boss = e.boss || !!(rec.f & 4);
+  e.freezeT = rec.f & 8 ? 1 : 0; e.stunT = rec.f & 16 ? 1 : 0;
+  return e;
+}
+function coopReadEnemies(s){
+  const out = [];
+  for (let i = 0; i + 12 <= s.length; i += 12){
+    const id = parseInt(s.substr(i, 3), 36), ti = parseInt(s.substr(i + 3, 2), 36);
+    const type = COOP_TYPES()[ti];
+    if (!type || !ENEMIES[type]) continue;
+    out.push({ id, type, x: parseInt(s.substr(i + 5, 2), 36) - 60, y: parseInt(s.substr(i + 7, 2), 36) - 60, rot: parseInt(s[i + 9], 36) / 36 * TAU, hp: parseInt(s[i + 10], 36) / 35, f: parseInt(s[i + 11], 36) });
+  }
+  return out;
+}
+/* a frame arrives: the puppet game takes its numbers and its pests */
+function coopApplyFrame(f){
+  if (!coopGuest() || !f || f.k !== 'e' || !G.active) return;
+  Coop.peerSeen = Date.now(); Coop.frames++;
+  if (typeof f.n === 'string') Coop.names[0] = cleanText(f.n, 20, 'Host');
+  G.round = f.r | 0; G.roundActive = !!f.ra; G.lives = f.l | 0; G.win = f.win || G.win; G.freeplay = !!f.fp;
+  Coop.wallet = [f.c[0] || 0, f.c[1] || 0]; G.cash = Coop.wallet[1];
+  if (!Coop.speedSent || Coop.speedSent === f.sp){ G.speed = f.sp || 1; Coop.speedSent = 0; Coop.speedHost = f.sp; }
+  if (f.ack) Coop.out = Coop.out.filter(c => c[0] > f.ack);
+  const was = new Map(G.enemies.map(e => [e.id, e]));
+  G.enemies = coopReadEnemies(f.e || '').map(r => coopPuppet(r, was.get(r.id)));
+  G.bosses = G.enemies.filter(e => e.boss);
+  const p = f.p || '';
+  Coop.shots = [];
+  for (let i = 0; i + 4 <= p.length; i += 4) Coop.shots.push([parseInt(p.substr(i, 2), 36) - 60, parseInt(p.substr(i + 2, 2), 36) - 60]);
+  Coop.wantTv = f.tv;
+  const wasOver = G.over, wasWon = G.won;
+  G.over = !!f.ov; G.won = !!f.w;
+  if (G.over && !wasOver) Hooks.coopEnd && Hooks.coopEnd(false);
+  else if (G.won && !wasWon) Hooks.coopEnd && Hooks.coopEnd(true);
+}
+/* the appliances arrive (perhaps in parts): rebuild the puppet's towers */
+function coopApplyTowers(m){
+  if (!coopGuest() || !m || m.k !== 't' || !Array.isArray(m.t)) return false;
+  if (!Coop.tParts || Coop.tParts.tv !== m.tv) Coop.tParts = { tv: m.tv, n: m.n, got: {} };
+  Coop.tParts.got[m.i] = m.t;
+  if (Object.keys(Coop.tParts.got).length < Coop.tParts.n) return false;
+  const rows = [].concat(...Object.keys(Coop.tParts.got).sort((a, b) => a - b).map(k => Coop.tParts.got[k]));
+  const old = new Map(G.towers.map(t => [t.id, t]));
+  const next = [];
+  for (const r of rows){
+    const [id, type, x, y, up, own, par, tg, lvl, dmg, kills, ab, nz, fm] = r;
+    if (!TOWERS[type]) continue;
+    let t = old.get(id);
+    if (!t || t.type !== type){ t = makeTower(type, x, y); t.id = id; }
+    t.x = x; t.y = y; t.up = String(up).split('').map(Number).slice(0, 3); t.own = own; t.paragon = !!par; t.degree = par || 0;
+    if (!(Coop.tgSent && Coop.tgSent[id])) t.tg = tg;
+    if (t.hero) t.level = lvl || 1;
+    t.dmg = dmg || 0; t.kills = kills || 0; t.ab = Object.assign({}, ab || {});
+    if (nz) t.nozzle = nz;
+    if (fm) t.flyMode = fm;
+    t._tg = t.tg;
+    next.push(t);
+  }
+  G.towers = next;
+  G.adminUsed = false;
+  refreshTowers();
+  Coop.tv = m.tv;
+  Coop.tgSent = {};
+  return true;
+}
+/* between frames: pests glide to where they were last seen, appliances turn to face them, cooldowns tick */
+function coopGuestTick(dt){
+  if (!coopGuest()) return;
+  G.time += dt;
+  const k = Math.min(1, dt * 12);
+  for (const e of G.enemies){ e.x += (e.tx - e.x) * k; e.y += (e.ty - e.y) * k; e.rot = e.trot; e.anim += dt; }
+  for (const t of G.towers){
+    for (const a in t.ab) if (t.ab[a] > 0) t.ab[a] = Math.max(0, t.ab[a] - dt);
+    const r = (t.s && t.s.range) || 120;
+    let best = null, bd = r * r;
+    for (const e of G.enemies){ const d = (e.x - t.x) ** 2 + (e.y - t.y) ** 2; if (d < bd){ bd = d; best = e; } }
+    if (best) t.aim = Math.atan2(best.y - t.y, best.x - t.x);
+    /* the guest's own settings, sent when changed */
+    if ((t.own || 0) === 1 && t._tg !== undefined && t.tg !== t._tg){ coopCmd('set', t.id, { tg: t.tg }); t._tg = t.tg; (Coop.tgSent = Coop.tgSent || {})[t.id] = 1; }
+  }
+  if (Coop.speedHost && G.speed !== Coop.speedHost && Coop.speedSent !== G.speed){ coopCmd('speed', G.speed); Coop.speedSent = G.speed; }
+}
 
 'use strict';
 /* =====================================================================
@@ -28968,6 +29220,289 @@ function showShare(back){
 
 'use strict';
 /* =====================================================================
+   Kitchen Siege — co-op: the lobby, the two ways to connect, and the
+   network loop.
+   Inside Claude, the two players meet in a named room (a four-letter
+   code); each one's latest message rides in their room presence. On the
+   web (GitHub Pages, or the file opened locally), they connect directly
+   with WebRTC: the host gives an invite code, the guest answers with a
+   reply code, and the game runs over the data channel.
+   ===================================================================== */
+const COOP_STUN = [{ urls:'stun:stun.l.google.com:19302' }, { urls:'stun:stun1.l.google.com:19302' }];
+const Net = { kind:null, send:null, close:null, onMsg:null, lastFrame:0, lastTowers:0, tPart:0, tParts:null, sig:'', room:null, pc:null, dc:null, peer:null, unsub:null, alive:false };
+
+/* ---------------- codes for the WebRTC handshake ---------------- */
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const b = atob(s); const u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+async function squeeze(text, prefix){
+  const bytes = new TextEncoder().encode(text);
+  if (typeof CompressionStream === 'function'){
+    try { const buf = await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer(); return prefix + 'z' + b64u(buf); } catch (e) {}
+  }
+  return prefix + 'p' + b64u(bytes);
+}
+async function unsqueeze(code, prefix){
+  code = String(code || '').trim().replace(/\s+/g, '');
+  if (!code.startsWith(prefix)) throw new Error('That code should start with ' + prefix);
+  const mode = code[prefix.length], body = unb64u(code.slice(prefix.length + 1));
+  if (mode === 'z'){
+    if (typeof DecompressionStream !== 'function') throw new Error('This browser can’t read that code.');
+    return await new Response(new Blob([body]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  }
+  return new TextDecoder().decode(body);
+}
+function iceDone(pc, ms){
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') return res();
+    const t = setTimeout(res, ms || 4000);
+    pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete'){ clearTimeout(t); res(); } });
+  });
+}
+function rtcWire(dc){
+  Net.dc = dc;
+  dc.onopen = () => { Net.alive = true; coopConnected(); };
+  dc.onclose = () => { Net.alive = false; coopLost(); };
+  dc.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (Net.onMsg) Net.onMsg(m); };
+  Net.send = m => { if (dc.readyState === 'open') try { dc.send(JSON.stringify(m)); } catch (e) {} };
+  Net.close = () => { try { dc.close(); } catch (e) {} try { Net.pc.close(); } catch (e) {} };
+}
+async function rtcHostOffer(){
+  const pc = new RTCPeerConnection({ iceServers: COOP_STUN });
+  Net.pc = pc; Net.kind = 'rtc';
+  rtcWire(pc.createDataChannel('ks', { ordered: true }));
+  await pc.setLocalDescription(await pc.createOffer());
+  await iceDone(pc);
+  return squeeze(JSON.stringify({ t: pc.localDescription.type, s: pc.localDescription.sdp }), 'KSP1:');
+}
+async function rtcHostAccept(reply){
+  const d = JSON.parse(await unsqueeze(reply, 'KSR1:'));
+  await Net.pc.setRemoteDescription({ type: d.t, sdp: d.s });
+}
+async function rtcGuestAnswer(invite){
+  const d = JSON.parse(await unsqueeze(invite, 'KSP1:'));
+  const pc = new RTCPeerConnection({ iceServers: COOP_STUN });
+  Net.pc = pc; Net.kind = 'rtc';
+  pc.ondatachannel = ev => rtcWire(ev.channel);
+  await pc.setRemoteDescription({ type: d.t, sdp: d.s });
+  await pc.setLocalDescription(await pc.createAnswer());
+  await iceDone(pc);
+  return squeeze(JSON.stringify({ t: pc.localDescription.type, s: pc.localDescription.sdp }), 'KSR1:');
+}
+
+/* ---------------- a Claude room ---------------- */
+async function roomApi(){
+  const c = typeof window !== 'undefined' ? window.claude : null;
+  if (!c || typeof c.use !== 'function') return null;
+  try { return await c.use('room'); } catch (e) { return null; }
+}
+function roomCode(){ const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; let s = ''; for (let i = 0; i < 4; i++) s += A[Math.floor(Math.random() * A.length)]; return s; }
+async function roomOpen(code, role){
+  const api = await roomApi();
+  if (!api) throw new Error('Rooms aren’t available here.');
+  const r = await api.join('ks-coop-' + code.toLowerCase());
+  Net.room = r; Net.kind = 'room';
+  const mine = role === 'host' ? 'host' : 'guest', theirs = role === 'host' ? 'guest' : 'host';
+  let lastSeen = null;
+  Net.unsub = r.onPeers(ch => {
+    const p = ch.peers.find(x => !x.isMe && x.presence && x.presence.ks === theirs);
+    if (!p){ if (Net.alive){ Net.alive = false; coopLost(); } return; }
+    if (!Net.alive){ Net.alive = true; Net.peer = p.peer; coopConnected(); }
+    const m = p.presence.m;
+    if (m && m !== lastSeen){ lastSeen = m; if (Net.onMsg) Net.onMsg(m); }
+  });
+  Net.send = m => { r.presence({ ks: mine, m }).catch(() => {}); };
+  Net.close = () => { try { Net.unsub && Net.unsub(); } catch (e) {} r.leave().catch(() => {}); };
+  r.presence({ ks: mine, m: null }).catch(() => {});
+  return r;
+}
+
+/* ---------------- the network loop ---------------- */
+function coopNetTick(){
+  if (!Coop.on || !Net.send || !Net.alive) return;
+  const now = performance.now();
+  if (coopHost()){
+    /* the appliances: when they change, and every couple of seconds */
+    const sig = G.towers.map(t => t.id + ':' + t.up.join('') + ':' + (t.own || 0) + ':' + t.tg + ':' + (t.paragon ? t.degree : 0) + ':' + (t.level || 0)).join('|');
+    if (sig !== Net.sig){ Net.sig = sig; Coop.tv++; Net.tParts = null; }
+    const room = Net.kind === 'room';
+    if (!Net.tParts || Net.tParts[0].tv !== Coop.tv){ Net.tParts = coopTowerParts(room ? 3000 : 0); Net.tPart = 0; Net.towersDue = now; }
+    const towersTurn = now >= Net.towersDue;
+    if (now - Net.lastFrame < (room ? 70 : 60)) return;
+    Net.lastFrame = now;
+    if (towersTurn){
+      Net.send(Net.tParts[Net.tPart]);
+      Net.tPart++;
+      if (Net.tPart >= Net.tParts.length){ Net.tPart = 0; Net.towersDue = now + (Net.resend > 0 ? 250 : 2000); Net.resend = Math.max(0, (Net.resend || 0) - 1); }
+      return;
+    }
+    if (Net.lastTv !== Coop.tv){ Net.lastTv = Coop.tv; Net.resend = 2; }
+    Net.send(coopFrame(room ? COOP_ENEMY_CAP_ROOM : 1500));
+  } else if (coopGuest()){
+    if (now - Net.lastFrame < 120 && !Coop.dirty) return;
+    Net.lastFrame = now;
+    Net.send(coopPacket());
+  }
+}
+function coopNetMsg(m){
+  if (!m || typeof m !== 'object') return;
+  if (coopHost() && m.k === 'c') coopHostReceive(m);
+  else if (coopGuest()){
+    if (m.k === 't'){
+      if (!UI.coopStarted) coopGuestBegin(m);
+      if (coopApplyTowers(m) && UI.screen === 'game'){ buildShop(); buildAbilities(); updatePanel(true); }
+    } else if (m.k === 'e' && UI.coopStarted) coopApplyFrame(m);
+  }
+}
+Net.onMsg = coopNetMsg;
+/* the guest's first look at the host's appliances also says which kitchen: set the puppet game up on it */
+function coopGuestBegin(m){
+  if (m.km) adoptKitchen(m.map, m.km);
+  if (!MAPS[m.map]) return;
+  closeModal();
+  setupGame(m.map, DIFFS[m.diff] ? m.diff : 'medium', false, null, m.mode && MODES[m.mode] ? m.mode : 'standard');
+  G.ptraps = [];
+  UI.coopStarted = true;
+  enterGame();
+  toast('Connected to ' + Coop.names[0] + '’s kitchen. Your cash is yours; the lives are shared.', 'gold');
+}
+function coopConnected(){
+  Sfx.play('rank');
+  if (Net.role === 'host'){
+    if (!G.active){ return; }
+    coopHostStart(Net.kind === 'room' ? COOP_ENEMY_CAP_ROOM : 1500);
+    closeModal();
+    G.paused = false;
+    if (UI.screen !== 'game') enterGame();
+    toast('Your partner joined! Cash from now on is split between you; each of you builds with your own.', 'gold');
+    updateCoopBadge();
+  } else toast('Connected. Waiting for the kitchen…', 'info');
+}
+function coopLost(){
+  if (!Coop.on) return;
+  toast(coopHost() ? 'Your partner left. Their appliances keep cooking.' : 'Lost the connection to the host.', 'warn');
+  updateCoopBadge();
+}
+function coopLeave(){
+  const wasGuest = coopGuest(), wasHost = coopHost();
+  if (wasHost){ G.cash = Math.floor(G.cash + Coop.wallet[1]); }
+  try { Net.close && Net.close(); } catch (e) {}
+  Object.assign(Net, { kind:null, role:null, send:null, close:null, room:null, pc:null, dc:null, alive:false, tParts:null, sig:'' });
+  coopReset();
+  UI.coopStarted = false;
+  updateCoopBadge();
+  if (wasGuest){ G.active = false; G.enemies = []; G.towers = []; }
+}
+function updateCoopBadge(){
+  const b = $('#coop-badge');
+  if (!b) return;
+  b.hidden = !Coop.on;
+  if (!Coop.on) return;
+  const other = Coop.role === 'host' ? Coop.names[1] : Coop.names[0];
+  b.textContent = (Net.alive ? '● ' : '○ ') + 'Co-op with ' + other + ' · their cash ' + money(Math.floor(Coop.wallet[Coop.role === 'host' ? 1 : 0]));
+  b.classList.toggle('off', !Net.alive);
+}
+
+/* ---------------- the lobby ---------------- */
+async function showCoop(){
+  Sfx.unlock();
+  const room = await roomApi();
+  modal({ title:'Co-op', lead:'Defend one kitchen together. Each of you has your own cash and builds your own appliances; the kitchen’s earnings are split and the lives are shared.' + (room ? ' You’re inside Claude, so you meet with a four-letter room code.' : ' You connect directly: the host sends an invite code, the guest sends back a reply code.'),
+    content:[h('div', { class:'coop-pick' },
+      h('button', { class:'coop-opt', id:'coop-host', onclick: () => coopHostSetup(!!room) }, h('b', { text:'Host a game' }), h('span', { text:'Pick the kitchen. Your game is the real one; you can also bring the game you have saved.' })),
+      h('button', { class:'coop-opt', id:'coop-join', onclick: () => coopJoinSetup(!!room) }, h('b', { text:'Join a game' }), h('span', { text: room ? 'Enter your friend’s room code.' : 'Paste your friend’s invite code.' })))],
+    actions:[{ label:'Back' }] });
+}
+function coopHostSetup(useRoom){
+  const maps = MAP_ORDER.concat(kitchenList().map(kitchenMapId)).filter(m => MAPS[m]);
+  const sel = h('select', { 'aria-label':'Kitchen' }, maps.map(m => h('option', { value: m }, MAPS[m].name + ' · ' + MAPS[m].level)));
+  const diff = h('select', { 'aria-label':'Difficulty' }, ['easy', 'medium', 'hard', 'michelin'].map(d => h('option', { value: d }, DIFFS[d].name)));
+  diff.value = 'medium';
+  const saved = readStoredGame();
+  const cont = h('label', { class:'toggle-inline' }, h('input', { type:'checkbox', id:'coop-cont', disabled: !saved }), ' Bring my saved game' + (saved ? ' (' + slotLabel(saved) + ')' : ' (none)'));
+  modal({ title:'Host a game', lead:'Choose where to cook. The game starts when your partner connects; you can build while you wait.', cls:'coop',
+    content:[h('div', { class:'gal-form' }, h('label', { text:'Kitchen' }), sel, h('label', { text:'Difficulty' }), diff), cont],
+    actions:[{ label:'Back', onClick: showCoop }, { label:'Open the kitchen', kind:'primary', onClick: async () => {
+      const useSave = $('#coop-cont') && $('#coop-cont').checked && saved;
+      if (useSave){ loadGame(saved); } else { pickSlot(slotForNew()); newGame(sel.value, diff.value, false); }
+      enterGame();
+      G.paused = true;
+      Net.role = 'host';
+      if (useRoom){
+        const code = roomCode();
+        try { await roomOpen(code, 'host'); } catch (e) { toast(e.message, 'warn'); G.paused = false; return; }
+        coopWaitModal('Room code: ' + code, 'Tell your partner to choose Co-op → Join and enter this code.', h('div', { class:'coop-code big', text: code }));
+      } else {
+        let invite = '';
+        try { invite = await rtcHostOffer(); } catch (e) { toast('Couldn’t start a connection here: ' + (e.message || e), 'warn'); G.paused = false; return; }
+        const ta = h('textarea', { class:'gal-paste', rows: 3, readonly: true }); ta.value = invite;
+        const reply = h('textarea', { class:'gal-paste', rows: 3, placeholder:'Paste the reply code (KSR1:…)', 'aria-label':'Reply code' });
+        coopWaitModal('Invite your partner', 'Send this invite code to your partner (it works once). They paste it into Co-op → Join and send you back a reply code.',
+          h('div', { class:'coop-steps' }, h('b', { text:'1. Your invite code' }), ta, h('button', { class:'btn btn-small', onclick: () => { copyText(invite); toast('Invite copied.', 'info'); } }, 'Copy invite'),
+            h('b', { text:'2. Their reply code' }), reply, h('button', { class:'btn btn-small btn-primary', id:'coop-accept', onclick: async () => {
+              try { await rtcHostAccept(reply.value); toast('Connecting…', 'info'); } catch (e) { toast(e.message || 'That reply code didn’t work.', 'warn'); }
+            } }, 'Connect')));
+      }
+    } }] });
+}
+function coopWaitModal(title, lead, body){
+  modal({ title, lead, cls:'coop', content:[body, h('p', { class:'dly-note', text:'Waiting for your partner…' })],
+    actions:[{ label:'Cancel', onClick: () => { coopLeave(); G.paused = false; } }, { label:'Play alone for now', onClick: () => { G.paused = false; } }], dismissable:false });
+}
+function coopJoinSetup(useRoom){
+  const name = h('input', { type:'text', maxlength:'20', placeholder:'Your name', 'aria-label':'Your name', value: Profile.settings.galBy || '' });
+  if (useRoom){
+    const code = h('input', { type:'text', maxlength:'4', placeholder:'ABCD', 'aria-label':'Room code', class:'coop-code-in' });
+    modal({ title:'Join a game', lead:'Enter the room code your partner sees.', cls:'coop', content:[h('div', { class:'gal-form' }, h('label', { text:'Name' }), name, h('label', { text:'Code' }), code)],
+      actions:[{ label:'Back', onClick: showCoop }, { label:'Join', kind:'primary', keep:true, onClick: async () => {
+        const c = code.value.trim().toUpperCase();
+        if (!/^[A-Z]{4}$/.test(c)){ toast('A room code is four letters.', 'warn'); return; }
+        if (G.active && !G.attract) exitToMenu();
+        coopGuestStart(); Net.role = 'guest'; Coop.names[1] = cleanText(name.value, 20, 'Guest'); Profile.settings.galBy = name.value.trim(); saveProfile();
+        try { await roomOpen(c, 'guest'); } catch (e) { coopLeave(); toast(e.message, 'warn'); return; }
+        modal({ title:'Joining ' + c, lead:'Waiting for the host…', actions:[{ label:'Cancel', onClick: coopLeave }], dismissable:false });
+      } }] });
+    return;
+  }
+  const inv = h('textarea', { class:'gal-paste', rows: 3, placeholder:'Paste the invite code (KSP1:…)', 'aria-label':'Invite code' });
+  const out = h('div', { class:'coop-steps' });
+  modal({ title:'Join a game', lead:'Paste your partner’s invite code, then send them the reply code it gives you.', cls:'coop', content:[h('div', { class:'gal-form' }, h('label', { text:'Name' }), name), inv, out],
+    actions:[{ label:'Back', onClick: () => { coopLeave(); showCoop(); } }, { label:'Make my reply code', kind:'primary', keep:true, onClick: async () => {
+      if (G.active && !G.attract){ saveGameNow && saveGameNow(); G.active = false; }
+      coopGuestStart(); Net.role = 'guest'; Coop.names[1] = cleanText(name.value, 20, 'Guest'); Profile.settings.galBy = name.value.trim(); saveProfile();
+      let reply;
+      try { reply = await rtcGuestAnswer(inv.value); } catch (e) { coopLeave(); toast(e.message || 'That invite code didn’t work.', 'warn'); return; }
+      const ta = h('textarea', { class:'gal-paste', rows: 3, readonly: true }); ta.value = reply;
+      out.innerHTML = '';
+      out.append(h('b', { text:'Your reply code: send it to the host' }), ta, h('button', { class:'btn btn-small', onclick: () => { copyText(reply); toast('Reply copied.', 'info'); } }, 'Copy reply'), h('p', { class:'dly-note', text:'The game opens as soon as the host connects.' }));
+      copyText(reply);
+    } }], dismissable:false });
+}
+function coopEndModal(won){
+  if (!coopGuest()) return;
+  modal({ title: won ? 'Kitchen saved!' : 'The pantry fell', lead: won ? 'You and ' + Coop.names[0] + ' cleared ' + MAPS[G.mapId].name + '.' : 'The pests broke through on round ' + G.round + '.', content:[statBlock([['Round', fmt(G.round)], ['Your appliances', fmt(G.towers.filter(t => t.own === 1).length)]])],
+    actions:[{ label:'Keep watching', onClick: () => {} }, { label:'Leave', kind:'primary', onClick: () => { coopLeave(); exitToMenu(); } }], dismissable:false });
+}
+Hooks.coopEnd = won => setTimeout(() => coopEndModal(won), 300);
+/* draw the shots the host's frame carried (the guest draws no real projectiles) */
+function coopDrawShots(ctx){
+  if (!coopGuest() || !Coop.shots) return;
+  ctx.save(); ctx.fillStyle = 'rgba(255,240,200,0.95)'; ctx.strokeStyle = 'rgba(60,40,20,0.55)'; ctx.lineWidth = 1;
+  for (const [x, y] of Coop.shots){ ctx.beginPath(); ctx.arc(x, y, 3.2, 0, TAU); ctx.fill(); ctx.stroke(); }
+  ctx.restore();
+}
+/* whose appliance: a ring under each of your partner's */
+function coopDrawOwners(ctx){
+  if (!Coop.on) return;
+  ctx.save(); ctx.lineWidth = 2.5; ctx.setLineDash([5, 4]);
+  for (const t of G.towers){
+    if ((t.own || 0) === Coop.me) continue;
+    ctx.strokeStyle = 'rgba(155,79,209,0.75)'; ctx.beginPath(); ctx.arc(t.x, t.y, t.size + 6, 0, TAU); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+'use strict';
+/* =====================================================================
    Kitchen Siege — head chefs in the interface: the hire card above the
    kitchen's shop, the chef's panel (level, XP, the 20-level track and
    abilities), the Chefs screen on the menu, and the notes that pop up
@@ -29655,6 +30190,7 @@ function enterGame(){
   closeSandbox(); sandboxButton();
 }
 function exitToMenu(){
+  if (Coop.on || Net.send) coopLeave();
   if (tutOn()){ tutStep = -1; $('#tut').hidden = true; tutMark(''); }
   if (G.active && !G.over && !G.attract) saveGameNow();
   closeModal();
@@ -29764,6 +30300,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
      straight after it, back to front on its board) */
   const props = bg && bg.props, order = G.towers.length > 1 ? G.towers.slice().sort((a, b) => drawY(a) - drawY(b)) : G.towers;
   let pi = 0;
+  coopDrawOwners(ctx);
   for (const tw of order){
     if (props) while (pi < props.length && props[pi].sy <= drawY(tw)){ const p = props[pi++]; ctx.drawImage(p.img, p.x, p.y, p.w, p.h); }
     Art.drawTower(ctx, tw, t, { selected: tw === sel || tw === opt.hover, noShadow: true });
@@ -29806,6 +30343,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
   if (UI.powerPick && !opt.menu) drawTrapGhost(ctx, t);
   for (const L of G.lobs) Art.drawLob(ctx, L);
   for (const p of G.projs) Art.drawProj(ctx, p);
+  coopDrawShots(ctx);
   if (G.leaps && G.leaps.length) for (const L of G.leaps) Art.drawLeap(ctx, L, t);
   /* aircraft and their escorts fly above everything on the ground */
   for (const tw of G.towers){
@@ -30031,6 +30569,13 @@ function tryPlace(x, y, keep){
   const c = clip ? pc.cost : towerCost(type, x, y);
   if (clip && !pc.ok){ Sfx.play('error'); toast('Can’t paste that copy: ' + pc.why.toLowerCase() + '.', 'warn'); return false; }
   if (!canAfford(c)){ Sfx.play('error'); toast('Need ' + money(c - G.cash) + ' more for ' + (clip ? 'a copy of ' + clipName(clip) : 'a ' + TOWERS[type].name) + '.', 'warn'); return false; }
+  if (coopGuest()){
+    if (clip){ Sfx.play('error'); toast('In co-op, copies can only be pasted by the host.', 'warn'); return false; }
+    coopCmd('place', type, Math.round(x), Math.round(y)); Coop.dirty = true;
+    Hooks.sfx('place');
+    if (!keep || TOWERS[type].hero) cancelPlacing();
+    return true;
+  }
   const t = placeTower(type, x, y);
   if (!t) return false;
   if (clip){
@@ -30191,7 +30736,7 @@ function updateSkipBtn(){
   if (G.over) UI.skipQueued = 0;
   for (const b of UI.skipBtns){
     const n = +b.dataset.n, q = UI.skipQueued === n;
-    b.disabled = !G.active || G.over || (G.won && !G.freeplay) || !!UI.skipping;
+    b.disabled = !G.active || G.over || (G.won && !G.freeplay) || !!UI.skipping || Coop.on;
     b.classList.toggle('queued', q);
     b.textContent = q ? 'Skip ' + n + ' queued ✕' : 'Skip ' + n + ' ▸▸';
     b.title = q ? 'The skip forecast opens when this wave is cleared. Click to cancel.' : 'Play the next ' + n + ' waves instantly and see the result first';
@@ -30200,6 +30745,7 @@ function updateSkipBtn(){
 /* during a wave the skip is queued and opens as soon as the wave is cleared */
 function skipPressed(n){
   if (!G.active || G.over || (G.won && !G.freeplay) || UI.skipping) return;
+  if (Coop.on){ toast('Wave skips are off in co-op.', 'info'); return; }
   if (G.roundActive){
     UI.skipQueued = UI.skipQueued === n ? 0 : n;
     toast(UI.skipQueued ? 'Skip ' + n + ' will open as soon as wave ' + G.round + ' is cleared.' : 'Skip cancelled.', 'info');
@@ -30642,6 +31188,7 @@ function susanBox(t){
 function sellButton(t, note){
   if (!canSell()) return h('button', { class:'btn btn-small sell', id:'sell-btn', disabled:true, title:'No refunds in today’s challenge' }, 'No refunds');
   return h('button', { class:'btn btn-small sell' + (UI.sellArmed > 0 ? ' armed' : ''), id:'sell-btn', title: note || null, onclick: () => {
+    if (Coop.on && !coopCanTouch(t)){ Sfx.play('error'); toast('That’s ' + Coop.names[t.own || 0] + '’s appliance: only they can sell it.', 'warn'); return; }
     if (UI.sellArmed > 0){ const v = sellTower(t); UI.sellArmed = 0; toast('Sold for ' + money(v) + '.', ''); select(null); }
     else { UI.sellArmed = 2.5; updatePanel(true); }
   } }, UI.sellArmed > 0 ? 'Confirm: sell for ' + money(sellValue(t)) : 'Sell for ' + money(sellValue(t)));
@@ -31851,7 +32398,7 @@ function copyText(text, box, done){
     ok = !!(document.execCommand && document.execCommand('copy'));
     t.remove();
   } catch (e) { ok = false; }
-  const finish = good => { selectCode(box); done(good); };
+  const finish = good => { if (box) selectCode(box); if (typeof done === 'function') done(good); };
   if (ok){ finish(true); return; }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => finish(true), () => finish(false));
@@ -32491,6 +33038,7 @@ function onKey(ev){
   if (k === 'tab' && UI.sel){ ev.preventDefault(); cycleTarget(); return; }
   if (UI.sel && (k === ',' || k === '.' || k === '/')){ ev.preventDefault(); buyUpgrade({ ',':0, '.':1, '/':2 }[k]); return; }
   if (UI.sel && (k === 'delete' || k === 'backspace') && !canSell()){ ev.preventDefault(); Sfx.play('error'); toast('No refunds in today’s challenge.', 'warn'); return; }
+  if (UI.sel && (k === 'delete' || k === 'backspace') && Coop.on && !coopCanTouch(UI.sel)){ ev.preventDefault(); Sfx.play('error'); return; }
   if (UI.sel && (k === 'delete' || k === 'backspace')){ ev.preventDefault(); const v = sellTower(UI.sel); toast('Sold for ' + money(v) + '.', ''); select(null); return; }
   if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && k === 'c' && UI.sel && !(window.getSelection && String(window.getSelection()))){ ev.preventDefault(); copyTower(); return; }
   if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && k === 'v'){ ev.preventDefault(); startPaste(); return; }
@@ -32580,11 +33128,15 @@ function frame(now){
       if (n >= 4) acc = 0;
       renderMenu();
     } else if (UI.screen === 'game' && G.active){
-      if (!G.paused && !G.over && !UI.modalOpen && !UI.skipping){
+      if (coopGuest()){ coopGuestTick(dt); acc = 0; }
+      else if (!G.paused && !G.over && !UI.modalOpen && !UI.skipping){
         acc += dt * G.speed; let n = 0; const max = 14;
+        const cash0 = G.cash;
         while (acc >= DT && n < max){ step(DT); acc -= DT; n++; }
         if (n >= max) acc = 0;
+        if (Coop.on) coopIncome(cash0);
       } else acc = 0;
+      if (Coop.on || Net.send) coopNetTick();
       if (UI.sellArmed > 0){ UI.sellArmed -= dt; if (UI.sellArmed <= 0){ UI.sellArmed = 0; updatePanel(true); } }
       if (UI.skipping){ requestAnimationFrame(frame); return; }  // the forecast owns the game state; don't spend time drawing it
       autoTick(dt);
@@ -32594,7 +33146,7 @@ function frame(now){
       updateHud();
       updateAbilities();
       slowT += dt;
-      if (slowT > 0.2){ slowT = 0; updateShop(); updatePanel(); updateClip(); if (UI.placing && UI.ghost) setGhost(UI.ghost.px != null ? UI.ghost.px : UI.ghost.x, UI.ghost.py != null ? UI.ghost.py : UI.ghost.y); }
+      if (slowT > 0.2){ slowT = 0; if (Coop.on) updateCoopBadge(); updateShop(); updatePanel(); updateClip(); if (UI.placing && UI.ghost) setGhost(UI.ghost.px != null ? UI.ghost.px : UI.ghost.x, UI.ghost.py != null ? UI.ghost.py : UI.ghost.y); }
     }
   } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
@@ -32612,6 +33164,7 @@ function bindStatic(){
   $('#btn-events').addEventListener('click', showEvents);
   $('#btn-bosses').addEventListener('click', showBosses);
   $('#btn-gallery').addEventListener('click', () => showGallery());
+  $('#btn-coop').addEventListener('click', () => showCoop());
   $('#tut-skip').addEventListener('click', () => { Sfx.play('click'); tutEnd(); });
   $('#btn-shop').addEventListener('click', () => { Sfx.unlock(); show('shop'); });
   $('#btn-chefs').addEventListener('click', () => { Sfx.unlock(); show('chefs'); });

@@ -408,6 +408,7 @@ function buyPower(id, n){
 /* why powers and insta appliances can't be used right now, or null */
 function powerBlock(){
   if (!G.active || G.over || G.attract) return 'Start a game first';
+  if (Coop.on && Coop.role === 'guest') return 'In co-op, powers and insta appliances are the host’s';
   if (G.ch) return 'Powers stay in the pantry during daily challenges';
   if (G.diff === 'michelin') return 'Michelin is a pure test: no powers';
   if (modeNoPowers()) return G.M.name + ' is played without powers';

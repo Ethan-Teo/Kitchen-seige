@@ -15,7 +15,7 @@
       <p class="tagline">Pests are raiding the pantry. Your appliances have other plans.</p>
       <div class="menu-buttons">
         <div class="row cont-row"><button class="btn btn-primary" id="btn-continue" style="flex-direction:column;gap:2px" hidden>Continue<span class="continue-info" id="continue-info"></span></button><button class="btn btn-small" id="btn-saves" title="Six save slots">Saves</button></div>
-        <button class="btn btn-primary" id="btn-play">New game</button>
+        <div class="row play-row"><button class="btn btn-primary" id="btn-play">New game</button><button class="btn btn-primary" id="btn-coop">Co-op</button></div>
         <div class="row"><button class="btn btn-gold" id="btn-daily">Daily<span class="mdot" id="daily-dot" hidden></span></button><button class="btn btn-gold" id="btn-events">Events<span class="mdot" id="events-dot" hidden></span></button><button class="btn btn-gold" id="btn-bosses">Bosses</button></div>
         <div class="row"><button class="btn" id="btn-shop">Shop<span class="mdot num" id="shop-dot" hidden></span></button><button class="btn" id="btn-chefs">Chefs<span class="mdot" id="chefs-dot" hidden></span></button><button class="btn" id="btn-gallery">Gallery</button></div>
         <div class="row row4"><button class="btn btn-small" id="btn-mastery">Mastery</button><button class="btn btn-small" id="btn-howto">How to play</button><button class="btn btn-small" id="btn-data">Save data</button><button class="btn btn-small" id="btn-settings">Settings</button></div>
@@ -59,6 +59,7 @@
           <button class="btn" id="btn-pause" aria-label="Pause" title="Pause (Esc)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg></button>
           <button class="btn btn-small" id="btn-sandbox" title="Sandbox tools" hidden>Sandbox tools</button>
           <div class="auto-row"><label for="auto-start"><span class="switch"><input type="checkbox" id="auto-start"><i></i></span>Auto-start rounds</label><span id="mode-label"></span></div>
+          <div class="coop-badge" id="coop-badge" hidden></div>
           <div class="preview" id="preview" aria-live="polite"></div>
         </div>
         <div class="panel shop-wrap" id="shop-wrap">

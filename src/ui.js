@@ -350,6 +350,7 @@ function enterGame(){
   closeSandbox(); sandboxButton();
 }
 function exitToMenu(){
+  if (Coop.on || Net.send) coopLeave();
   if (tutOn()){ tutStep = -1; $('#tut').hidden = true; tutMark(''); }
   if (G.active && !G.over && !G.attract) saveGameNow();
   closeModal();
@@ -459,6 +460,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
      straight after it, back to front on its board) */
   const props = bg && bg.props, order = G.towers.length > 1 ? G.towers.slice().sort((a, b) => drawY(a) - drawY(b)) : G.towers;
   let pi = 0;
+  coopDrawOwners(ctx);
   for (const tw of order){
     if (props) while (pi < props.length && props[pi].sy <= drawY(tw)){ const p = props[pi++]; ctx.drawImage(p.img, p.x, p.y, p.w, p.h); }
     Art.drawTower(ctx, tw, t, { selected: tw === sel || tw === opt.hover, noShadow: true });
@@ -501,6 +503,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
   if (UI.powerPick && !opt.menu) drawTrapGhost(ctx, t);
   for (const L of G.lobs) Art.drawLob(ctx, L);
   for (const p of G.projs) Art.drawProj(ctx, p);
+  coopDrawShots(ctx);
   if (G.leaps && G.leaps.length) for (const L of G.leaps) Art.drawLeap(ctx, L, t);
   /* aircraft and their escorts fly above everything on the ground */
   for (const tw of G.towers){
@@ -726,6 +729,13 @@ function tryPlace(x, y, keep){
   const c = clip ? pc.cost : towerCost(type, x, y);
   if (clip && !pc.ok){ Sfx.play('error'); toast('Can’t paste that copy: ' + pc.why.toLowerCase() + '.', 'warn'); return false; }
   if (!canAfford(c)){ Sfx.play('error'); toast('Need ' + money(c - G.cash) + ' more for ' + (clip ? 'a copy of ' + clipName(clip) : 'a ' + TOWERS[type].name) + '.', 'warn'); return false; }
+  if (coopGuest()){
+    if (clip){ Sfx.play('error'); toast('In co-op, copies can only be pasted by the host.', 'warn'); return false; }
+    coopCmd('place', type, Math.round(x), Math.round(y)); Coop.dirty = true;
+    Hooks.sfx('place');
+    if (!keep || TOWERS[type].hero) cancelPlacing();
+    return true;
+  }
   const t = placeTower(type, x, y);
   if (!t) return false;
   if (clip){
@@ -886,7 +896,7 @@ function updateSkipBtn(){
   if (G.over) UI.skipQueued = 0;
   for (const b of UI.skipBtns){
     const n = +b.dataset.n, q = UI.skipQueued === n;
-    b.disabled = !G.active || G.over || (G.won && !G.freeplay) || !!UI.skipping;
+    b.disabled = !G.active || G.over || (G.won && !G.freeplay) || !!UI.skipping || Coop.on;
     b.classList.toggle('queued', q);
     b.textContent = q ? 'Skip ' + n + ' queued ✕' : 'Skip ' + n + ' ▸▸';
     b.title = q ? 'The skip forecast opens when this wave is cleared. Click to cancel.' : 'Play the next ' + n + ' waves instantly and see the result first';
@@ -895,6 +905,7 @@ function updateSkipBtn(){
 /* during a wave the skip is queued and opens as soon as the wave is cleared */
 function skipPressed(n){
   if (!G.active || G.over || (G.won && !G.freeplay) || UI.skipping) return;
+  if (Coop.on){ toast('Wave skips are off in co-op.', 'info'); return; }
   if (G.roundActive){
     UI.skipQueued = UI.skipQueued === n ? 0 : n;
     toast(UI.skipQueued ? 'Skip ' + n + ' will open as soon as wave ' + G.round + ' is cleared.' : 'Skip cancelled.', 'info');
@@ -1337,6 +1348,7 @@ function susanBox(t){
 function sellButton(t, note){
   if (!canSell()) return h('button', { class:'btn btn-small sell', id:'sell-btn', disabled:true, title:'No refunds in today’s challenge' }, 'No refunds');
   return h('button', { class:'btn btn-small sell' + (UI.sellArmed > 0 ? ' armed' : ''), id:'sell-btn', title: note || null, onclick: () => {
+    if (Coop.on && !coopCanTouch(t)){ Sfx.play('error'); toast('That’s ' + Coop.names[t.own || 0] + '’s appliance: only they can sell it.', 'warn'); return; }
     if (UI.sellArmed > 0){ const v = sellTower(t); UI.sellArmed = 0; toast('Sold for ' + money(v) + '.', ''); select(null); }
     else { UI.sellArmed = 2.5; updatePanel(true); }
   } }, UI.sellArmed > 0 ? 'Confirm: sell for ' + money(sellValue(t)) : 'Sell for ' + money(sellValue(t)));
@@ -2546,7 +2558,7 @@ function copyText(text, box, done){
     ok = !!(document.execCommand && document.execCommand('copy'));
     t.remove();
   } catch (e) { ok = false; }
-  const finish = good => { selectCode(box); done(good); };
+  const finish = good => { if (box) selectCode(box); if (typeof done === 'function') done(good); };
   if (ok){ finish(true); return; }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => finish(true), () => finish(false));
@@ -3186,6 +3198,7 @@ function onKey(ev){
   if (k === 'tab' && UI.sel){ ev.preventDefault(); cycleTarget(); return; }
   if (UI.sel && (k === ',' || k === '.' || k === '/')){ ev.preventDefault(); buyUpgrade({ ',':0, '.':1, '/':2 }[k]); return; }
   if (UI.sel && (k === 'delete' || k === 'backspace') && !canSell()){ ev.preventDefault(); Sfx.play('error'); toast('No refunds in today’s challenge.', 'warn'); return; }
+  if (UI.sel && (k === 'delete' || k === 'backspace') && Coop.on && !coopCanTouch(UI.sel)){ ev.preventDefault(); Sfx.play('error'); return; }
   if (UI.sel && (k === 'delete' || k === 'backspace')){ ev.preventDefault(); const v = sellTower(UI.sel); toast('Sold for ' + money(v) + '.', ''); select(null); return; }
   if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && k === 'c' && UI.sel && !(window.getSelection && String(window.getSelection()))){ ev.preventDefault(); copyTower(); return; }
   if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && k === 'v'){ ev.preventDefault(); startPaste(); return; }
@@ -3275,11 +3288,15 @@ function frame(now){
       if (n >= 4) acc = 0;
       renderMenu();
     } else if (UI.screen === 'game' && G.active){
-      if (!G.paused && !G.over && !UI.modalOpen && !UI.skipping){
+      if (coopGuest()){ coopGuestTick(dt); acc = 0; }
+      else if (!G.paused && !G.over && !UI.modalOpen && !UI.skipping){
         acc += dt * G.speed; let n = 0; const max = 14;
+        const cash0 = G.cash;
         while (acc >= DT && n < max){ step(DT); acc -= DT; n++; }
         if (n >= max) acc = 0;
+        if (Coop.on) coopIncome(cash0);
       } else acc = 0;
+      if (Coop.on || Net.send) coopNetTick();
       if (UI.sellArmed > 0){ UI.sellArmed -= dt; if (UI.sellArmed <= 0){ UI.sellArmed = 0; updatePanel(true); } }
       if (UI.skipping){ requestAnimationFrame(frame); return; }  // the forecast owns the game state; don't spend time drawing it
       autoTick(dt);
@@ -3289,7 +3306,7 @@ function frame(now){
       updateHud();
       updateAbilities();
       slowT += dt;
-      if (slowT > 0.2){ slowT = 0; updateShop(); updatePanel(); updateClip(); if (UI.placing && UI.ghost) setGhost(UI.ghost.px != null ? UI.ghost.px : UI.ghost.x, UI.ghost.py != null ? UI.ghost.py : UI.ghost.y); }
+      if (slowT > 0.2){ slowT = 0; if (Coop.on) updateCoopBadge(); updateShop(); updatePanel(); updateClip(); if (UI.placing && UI.ghost) setGhost(UI.ghost.px != null ? UI.ghost.px : UI.ghost.x, UI.ghost.py != null ? UI.ghost.py : UI.ghost.y); }
     }
   } catch (err) { console.error(err); }
   requestAnimationFrame(frame);
@@ -3307,6 +3324,7 @@ function bindStatic(){
   $('#btn-events').addEventListener('click', showEvents);
   $('#btn-bosses').addEventListener('click', showBosses);
   $('#btn-gallery').addEventListener('click', () => showGallery());
+  $('#btn-coop').addEventListener('click', () => showCoop());
   $('#tut-skip').addEventListener('click', () => { Sfx.play('click'); tutEnd(); });
   $('#btn-shop').addEventListener('click', () => { Sfx.unlock(); show('shop'); });
   $('#btn-chefs').addEventListener('click', () => { Sfx.unlock(); show('chefs'); });
