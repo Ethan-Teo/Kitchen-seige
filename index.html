@@ -106,7 +106,7 @@ p{margin:0}
 .tagline{text-align:center;color:var(--ink-2);font-size:15px;max-width:32ch;margin-inline:auto}
 .menu-buttons{display:flex;flex-direction:column;gap:12px}
 .menu-buttons .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.menu-buttons .row:has(#btn-bosses){grid-template-columns:repeat(3,minmax(0,1fr))}
+.menu-buttons .row:has(#btn-bosses),.menu-buttons .row:has(#btn-gallery){grid-template-columns:repeat(3,minmax(0,1fr))}
 .menu-buttons .row3{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .menu-buttons .row3 .btn{padding-inline:6px;letter-spacing:.03em}
 .menu-buttons .row4{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
@@ -1544,6 +1544,22 @@ body.txt-l .modal,body.txt-l .fridge,body.txt-l .toasts,body.txt-l .topbar{zoom:
 body.txt-xl .modal,body.txt-xl .fridge,body.txt-xl .toasts,body.txt-xl .topbar{zoom:1.25}
 body.txt-l #shop-info,body.txt-l .tpanel p,body.txt-l .tpanel small{font-size:115%}
 body.txt-xl #shop-info,body.txt-xl .tpanel p,body.txt-xl .tpanel small{font-size:130%}
+/* the gallery */
+.gal-kinds{flex-wrap:wrap;margin-bottom:6px}
+.gal-list{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding-right:2px}
+.gal-card{display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center;padding:8px;border-radius:14px;background:var(--enamel-2);border:1px solid var(--enamel-3)}
+.gal-mini{width:120px;height:auto;border-radius:8px;display:block}
+.gal-glyph{width:120px;height:74px;border-radius:8px;display:grid;place-items:center;font-size:34px;background:var(--enamel-3)}
+.gal-glyph.k-tower{background:#fde3c8}.gal-glyph.k-body{background:#dbe8fb}.gal-glyph.k-object{background:#e6dcf5}.gal-glyph.k-collection{background:#fff0c2}
+.gal-txt{display:flex;flex-direction:column;gap:2px;min-width:0}.gal-txt b{font-size:16px}.gal-txt span{font-size:13px;color:var(--ink-2)}
+.gal-by{color:var(--ink-3)!important;font-size:12px!important}
+.gal-acts{display:flex;flex-direction:column;gap:4px}
+.gal-pastebox{display:flex;gap:8px;align-items:stretch;margin-top:10px}.gal-paste{flex:1;width:100%;font:12px ui-monospace,monospace;border-radius:10px;border:1px solid var(--enamel-3);padding:6px;resize:vertical;box-sizing:border-box}
+.gal-form{display:grid;grid-template-columns:auto 1fr;gap:8px 10px;align-items:center}
+.gal-form input,.gal-form select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--chrome)}
+.gal-out{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+@media (max-width:640px){.gal-card{grid-template-columns:84px 1fr}.gal-mini,.gal-glyph{width:84px}.gal-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
 
 </style>
 <style>[hidden]{display:none!important}body{margin:0}</style>
@@ -1561,7 +1577,7 @@ body.txt-xl #shop-info,body.txt-xl .tpanel p,body.txt-xl .tpanel small{font-size
         <div class="row cont-row"><button class="btn btn-primary" id="btn-continue" style="flex-direction:column;gap:2px" hidden>Continue<span class="continue-info" id="continue-info"></span></button><button class="btn btn-small" id="btn-saves" title="Six save slots">Saves</button></div>
         <button class="btn btn-primary" id="btn-play">New game</button>
         <div class="row"><button class="btn btn-gold" id="btn-daily">Daily<span class="mdot" id="daily-dot" hidden></span></button><button class="btn btn-gold" id="btn-events">Events<span class="mdot" id="events-dot" hidden></span></button><button class="btn btn-gold" id="btn-bosses">Bosses</button></div>
-        <div class="row"><button class="btn" id="btn-shop">Shop<span class="mdot num" id="shop-dot" hidden></span></button><button class="btn" id="btn-chefs">Chefs<span class="mdot" id="chefs-dot" hidden></span></button></div>
+        <div class="row"><button class="btn" id="btn-shop">Shop<span class="mdot num" id="shop-dot" hidden></span></button><button class="btn" id="btn-chefs">Chefs<span class="mdot" id="chefs-dot" hidden></span></button><button class="btn" id="btn-gallery">Gallery</button></div>
         <div class="row row4"><button class="btn btn-small" id="btn-mastery">Mastery</button><button class="btn btn-small" id="btn-howto">How to play</button><button class="btn btn-small" id="btn-data">Save data</button><button class="btn btn-small" id="btn-settings">Settings</button></div>
       </div>
       <div class="menu-foot"><span class="badge" id="cloud-badge"><i></i><span>Saved in this browser</span></span><span class="clock" id="menu-clock">12:00</span></div>
@@ -15301,6 +15317,177 @@ function toggleFav(type){
 
 'use strict';
 /* =====================================================================
+   Kitchen Siege — the community gallery (its data)
+   An entry is a share code with a name, a maker and a line about it:
+   { id, kind, name, by, blurb, code, at }. Kinds follow the code's prefix:
+   appliance designs (KSA1:), kitchens (KSM1:), bodies (KSB1:), objects
+   (KSO1:) and whole collections (KSC1:).
+   Entries come from three places, merged by id:
+     - the featured shelf built into the game (GALLERY_SEED, from the
+       repo's gallery/gallery.json at build time);
+     - the same file fetched from the site when the game runs on GitHub
+       Pages, so new entries show without a rebuild;
+     - inside Claude, a shared shelf in the artifact's store that anyone
+       with the page can add to.
+   On GitHub, sharing opens a prefilled issue for the maintainers to add.
+   ===================================================================== */
+const GALLERY_REPO = 'Ethan-Teo/Kitchen-seige';
+const GALLERY_CODE_MAX = 60000;
+const GALLERY_SEED = [{"id":"k-zigzag","name":"Zigzag Counter","by":"Kitchen Siege","blurb":"A long zigzag under a row of jars, with a sink in the middle for boats.","code":"KSM1:eyJ2IjoxLCJuYW1lIjoiWmlnemFnIENvdW50ZXIiLCJ0aGVtZSI6ImJsb2NrIiwiYmx1cmIiOiIiLCJwYXRocyI6W1tbLTQwLDEyMF0sWzkwMCwxMjBdLFs5MDAsMzAwXSxbMjAwLDMwMF0sWzIwMCw0ODBdLFs5MDAsNDgwXSxbOTAwLDcyMF1dXSwid2F0ZXIiOlt7InN0eWxlIjoic2luayIsIngiOjQ3MCwieSI6MzMwLCJ3IjoxNTAsImgiOjEyMCwiciI6MTYsInJpbSI6MTB9XSwiZGVjbyI6W3siayI6ImphciIsIngiOjEwNDAsInkiOjgwLCJyIjoyOCwic29saWQiOnRydWV9LHsiayI6ImphciIsIngiOjEwNDAsInkiOjYwMCwiciI6MjgsInNvbGlkIjp0cnVlfSx7ImsiOiJsZW1vbnMiLCJ4Ijo4MCwieSI6NjAwLCJyIjozNCwic29saWQiOnRydWV9LHsiayI6ImJvYXJkIiwieCI6NDAsInkiOjIwMCwidyI6MTUwLCJoIjo4Niwic29saWQiOnRydWV9XX0=","at":1793145600000},{"id":"k-twin","name":"Twin Doors","by":"Kitchen Siege","blurb":"Two trails race in from opposite sides and meet at the pantry. Watch both.","code":"KSM1:eyJ2IjoxLCJuYW1lIjoiVHdpbiBEb29ycyIsInRoZW1lIjoiZGluZXIiLCJibHVyYiI6IiIsInBhdGhzIjpbW1stNDAsMjAwXSxbNTAwLDIwMF0sWzUwMCw1MjBdLFsxMTQwLDUyMF1dLFtbMTE0MCwxNjBdLFs2NDAsMTYwXSxbNjQwLDYwMF0sWy00MCw2MDBdXV0sIndhdGVyIjpbeyJzdHlsZSI6InNvZGEiLCJ4IjoyNTAsInkiOjQwMCwicngiOjExMCwicnkiOjcwfV0sImRlY28iOlt7ImsiOiJqdWtlYm94IiwieCI6OTUwLCJ5IjozMDAsInciOjg0LCJoIjoxMDAsInNvbGlkIjp0cnVlfSx7ImsiOiJzdG9vbCIsIngiOjMwMCwieSI6ODAsInIiOjIyLCJzb2xpZCI6dHJ1ZX1dfQ==","at":1793145600000},{"id":"k-iceloop","name":"Ice Loop","by":"Kitchen Siege","blurb":"A freezer floor with a big loop around a meltwater pool.","code":"KSM1:eyJ2IjoxLCJuYW1lIjoiSWNlIExvb3AiLCJ0aGVtZSI6ImZyZWV6ZXIiLCJibHVyYiI6IiIsInBhdGhzIjpbW1stNDAsMzQwXSxbMjUwLDM0MF0sWzI1MCwxMjBdLFs4NTAsMTIwXSxbODUwLDU2MF0sWzQwMCw1NjBdLFs0MDAsMzQwXSxbNzAwLDM0MF0sWzcwMCw3MjBdXV0sIndhdGVyIjpbeyJzdHlsZSI6Im1lbHQiLCJ4Ijo1NjAsInkiOjQ0MCwicngiOjkwLCJyeSI6NjB9XSwiZGVjbyI6W3siayI6InBlYXMiLCJ4IjoxMDAwLCJ5Ijo2MDAsInciOjE1MCwiaCI6NzAsInNvbGlkIjp0cnVlfSx7ImsiOiJmcm9zdCIsIngiOjEwMCwieSI6MTAwLCJyIjo1MH1dfQ==","at":1793145600000},{"id":"t-laser","name":"Laser Grater","by":"Kitchen Siege","blurb":"A grater that fires a cutting beam. Great on long straights.","code":"KSA1:eyJ2IjoyLCJuYW1lIjoiTGFzZXIgR3JhdGVyIiwibG9vayI6ImJsZW5kZXIiLCJib2R5IjoiIiwic2tpbiI6Im5lb24iLCJ0aW50IjoiIiwiZmFjdGlvbiI6ImN1c3RvbSIsImNvc3QiOjE1MDAsInJhbmdlIjoxNzAsImdsb2JhbCI6ZmFsc2UsImNhbW8iOmZhbHNlLCJmbHkiOiJub25lIiwicGxhY2UiOiJsYW5kIiwiaW5jb21lIjowLCJiU3BlZWQiOjAsImJSYW5nZSI6MCwiYkRtZyI6MCwiYlBpZXJjZSI6MCwiYkNhbW8iOmZhbHNlLCJiRGlzYyI6MCwiYXR0YWNrcyI6W3sibmFtZSI6IiIsInN0eWxlIjoiYmVhbSIsInNwcml0ZSI6IiIsImRtZyI6MywiYXBzIjoyLCJwaWVyY2UiOjYsImNvdW50IjoxLCJzcGxhc2giOjQwLCJ0eXBlIjoiZW5lcmd5IiwiaG9taW5nIjpmYWxzZSwiYmlnIjowLCJlZmZlY3QiOiJub25lIiwiZWZmUG93IjoyLCJyYW5nZVBjdCI6MTAwLCJsb2NrZWQiOmZhbHNlLCJzaGFwZSI6IiIsImNvbG9yIjoiI2ZmN2E1OSIsInBzaXplIjo4LCJnbG93IjpmYWxzZSwidHJhaWwiOmZhbHNlLCJwYXR0ZXJuIjoiYWltIiwic3BlZWRQY3QiOjEwMCwiYm91bmNlIjowLCJjaGFpbk4iOjAsImNoYWluUGN0Ijo1MCwic3BsaXROIjowLCJzcGxpdFBjdCI6NDAsImNyaXRFdmVyeSI6MCwiY3JpdE11bCI6NSwiem9uZSI6Im5vbmUiLCJ6b25lUiI6NDAsInpvbmVEdXIiOjQsImFpbSI6ImF1dG8iLCJpbmFjYyI6MCwibGlmZVBjdCI6MTAwLCJzaXplUGN0IjoxMDAsImFsbFR5cGVzIjpmYWxzZSwiZGVjYW1vIjpmYWxzZSwiaG9sZCI6MS41LCJiaWdzIjpmYWxzZSwibGlmZSI6MTUsIm1pbmUiOmZhbHNlLCJkaXN0IjoyMzAsInB1c2giOjMwLCJvYmoiOiIiLCJtb3Rpb24iOiJzdHJhaWdodCIsImFtcCI6MzUsIm9yYml0UiI6ODAsIndhbGwiOjB9XSwiYWJpbGl0aWVzIjpbeyJuYW1lIjoiQ2FmZmVpbmUgUnVzaCIsImNkIjo1MCwidW5sb2NrIjp7InAiOjIsInQiOjN9LCJhY3Rpb25zIjpbeyJrIjoic3BlZWQiLCJ3aG8iOiJhbGwiLCJmYXN0cCI6MTAwLCJkdXIiOjEwfV19XSwicGF0aHMiOlt7Im5hbWUiOiJEYW1hZ2UiLCJ0aWVycyI6W3sibmFtZSI6IkhhcmQgSGl0dGVyIiwiY29zdCI6OTAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImRtZyIsImEiOi0xLCJ2IjoyfV19LHsibmFtZSI6IkhlYXZ5IEhhbmRzIiwiY29zdCI6MTUwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJkbWciLCJhIjotMSwidiI6Mn1dfSx7Im5hbWUiOiJQb3dlciBTdXJnZSIsImNvc3QiOjMwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiZG1nIiwiYSI6LTEsInYiOjN9XX0seyJuYW1lIjoiRGV2YXN0YXRvciIsImNvc3QiOjEwNTAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImRtZyIsImEiOi0xLCJ2Ijo5fV19LHsibmFtZSI6IkFubmloaWxhdG9yIiwiY29zdCI6OTAwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiZG1nIiwiYSI6LTEsInYiOjMwfV19XX0seyJuYW1lIjoiUGllcmNlIiwidGllcnMiOlt7Im5hbWUiOiJTaGFycCBFZGdlIiwiY29zdCI6OTAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InBpZXJjZSIsImEiOi0xLCJ2IjoyfV19LHsibmFtZSI6IlBhc3MtVGhyb3VnaCIsImNvc3QiOjE1MDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoicGllcmNlIiwiYSI6LTEsInYiOjN9XX0seyJuYW1lIjoiU2tld2VyIiwiY29zdCI6MzAwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJwaWVyY2UiLCJhIjotMSwidiI6Nn1dfSx7Im5hbWUiOiJMYW5jZSIsImNvc3QiOjEwNTAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InBpZXJjZSIsImEiOi0xLCJ2IjoxNX1dfSx7Im5hbWUiOiJFbmRsZXNzIEVkZ2UiLCJjb3N0Ijo5MDAwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJwaWVyY2UiLCJhIjotMSwidiI6NDh9XX1dfSx7Im5hbWUiOiJTcGVlZCIsInRpZXJzIjpbeyJuYW1lIjoiUXVpY2sgSGFuZHMiLCJjb3N0Ijo5MDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoic3BlZWQiLCJhIjotMSwidiI6MTV9XX0seyJuYW1lIjoiUmFwaWQgRmlyZSIsImNvc3QiOjE1MDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoic3BlZWQiLCJhIjotMSwidiI6MjB9XX0seyJuYW1lIjoiVHVyYm8iLCJjb3N0IjozMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InNwZWVkIiwiYSI6LTEsInYiOjMwfV19LHsibmFtZSI6Ikh5cGVyZHJpdmUiLCJjb3N0IjoxMDUwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJzcGVlZCIsImEiOi0xLCJ2Ijo2MH1dfSx7Im5hbWUiOiJMaWdodHNwZWVkIiwiY29zdCI6OTAwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoic3BlZWQiLCJhIjotMSwidiI6MTIwfSx7ImsiOiJhYlBvd2VyIiwiYWIiOjAsInYiOjE1MH0seyJrIjoiYWJDZCIsImFiIjowLCJ2IjozMH1dfV19XSwicGFyYWdvbiI6bnVsbH0=","at":1793145600000},{"id":"t-waffle","name":"Waffle Cannon","by":"Kitchen Siege","blurb":"Lobs waffles that burst into syrup. Slows crowds.","code":"KSA1:eyJ2IjoyLCJuYW1lIjoiV2FmZmxlIENhbm5vbiIsImxvb2siOiJ0b2FzdGVyIiwiYm9keSI6IiIsInNraW4iOiJjb3BwZXIiLCJ0aW50IjoiIiwiZmFjdGlvbiI6ImN1c3RvbSIsImNvc3QiOjkwMCwicmFuZ2UiOjE2NSwiZ2xvYmFsIjpmYWxzZSwiY2FtbyI6ZmFsc2UsImZseSI6Im5vbmUiLCJwbGFjZSI6ImxhbmQiLCJpbmNvbWUiOjAsImJTcGVlZCI6MCwiYlJhbmdlIjowLCJiRG1nIjowLCJiUGllcmNlIjowLCJiQ2FtbyI6ZmFsc2UsImJEaXNjIjowLCJhdHRhY2tzIjpbeyJuYW1lIjoiIiwic3R5bGUiOiJibGFzdCIsInNwcml0ZSI6IndhZmZsZSIsImRtZyI6MiwiYXBzIjowLjgsInBpZXJjZSI6MTQsImNvdW50IjoxLCJzcGxhc2giOjQ2LCJ0eXBlIjoiYmxhc3QiLCJob21pbmciOmZhbHNlLCJiaWciOjAsImVmZmVjdCI6InN0dW4iLCJlZmZQb3ciOjIsInJhbmdlUGN0IjoxMDAsImxvY2tlZCI6ZmFsc2UsInNoYXBlIjoiIiwiY29sb3IiOiIjZmY3YTU5IiwicHNpemUiOjgsImdsb3ciOmZhbHNlLCJ0cmFpbCI6ZmFsc2UsInBhdHRlcm4iOiJhaW0iLCJzcGVlZFBjdCI6MTAwLCJib3VuY2UiOjAsImNoYWluTiI6MCwiY2hhaW5QY3QiOjUwLCJzcGxpdE4iOjAsInNwbGl0UGN0Ijo0MCwiY3JpdEV2ZXJ5IjowLCJjcml0TXVsIjo1LCJ6b25lIjoibm9uZSIsInpvbmVSIjo0MCwiem9uZUR1ciI6NCwiYWltIjoiYXV0byIsImluYWNjIjowLCJsaWZlUGN0IjoxMDAsInNpemVQY3QiOjEwMCwiYWxsVHlwZXMiOmZhbHNlLCJkZWNhbW8iOmZhbHNlLCJob2xkIjoxLjUsImJpZ3MiOmZhbHNlLCJsaWZlIjoxNSwibWluZSI6ZmFsc2UsImRpc3QiOjIzMCwicHVzaCI6MzAsIm9iaiI6IiIsIm1vdGlvbiI6InN0cmFpZ2h0IiwiYW1wIjozNSwib3JiaXRSIjo4MCwid2FsbCI6MH1dLCJhYmlsaXRpZXMiOlt7Im5hbWUiOiJCcmVha2Zhc3QgQmxpdHoiLCJjZCI6NDAsInVubG9jayI6eyJwIjowLCJ0IjozfSwiYWN0aW9ucyI6W3siayI6ImJvbWJzIiwiY291bnQiOjQwLCJkbWciOjMwMCwiciI6ODB9XX1dLCJwYXRocyI6W3sibmFtZSI6IlNwbGFzaCIsInRpZXJzIjpbeyJuYW1lIjoiQmlnZ2VyIEJhbmciLCJjb3N0Ijo1NDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoic3BsYXNoIiwiYSI6MCwidiI6MjB9LHsiayI6InBpZXJjZSIsImEiOjAsInYiOjR9XX0seyJuYW1lIjoiU2hvY2t3YXZlIiwiY29zdCI6OTAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InNwbGFzaCIsImEiOjAsInYiOjE1fSx7ImsiOiJwaWVyY2UiLCJhIjowLCJ2Ijo2fV19LHsibmFtZSI6IkJsYXN0IFpvbmUiLCJjb3N0IjoxODAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InNwbGFzaCIsImEiOjAsInYiOjI1fSx7ImsiOiJwaWVyY2UiLCJhIjowLCJ2IjoxMH0seyJrIjoiZG1nIiwiYSI6MCwidiI6MX1dfSx7Im5hbWUiOiJNZWdhYmxhc3QiLCJjb3N0Ijo2MzAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InNwbGFzaCIsImEiOjAsInYiOjMwfSx7ImsiOiJwaWVyY2UiLCJhIjowLCJ2IjoyNX0seyJrIjoiZG1nIiwiYSI6MCwidiI6NH1dfSx7Im5hbWUiOiJDYXRhY2x5c20iLCJjb3N0Ijo1NDAwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJzcGxhc2giLCJhIjowLCJ2Ijo1MH0seyJrIjoicGllcmNlIiwiYSI6MCwidiI6ODB9LHsiayI6ImRtZyIsImEiOjAsInYiOjEyfSx7ImsiOiJhYlBvd2VyIiwiYWIiOjAsInYiOjE1MH0seyJrIjoiYWJDZCIsImFiIjowLCJ2IjozMH1dfV19LHsibmFtZSI6IlNwZWVkIiwidGllcnMiOlt7Im5hbWUiOiJRdWljayBIYW5kcyIsImNvc3QiOjU0MCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJzcGVlZCIsImEiOi0xLCJ2IjoxNX1dfSx7Im5hbWUiOiJSYXBpZCBGaXJlIiwiY29zdCI6OTAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6InNwZWVkIiwiYSI6LTEsInYiOjIwfV19LHsibmFtZSI6IlR1cmJvIiwiY29zdCI6MTgwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJzcGVlZCIsImEiOi0xLCJ2IjozMH1dfSx7Im5hbWUiOiJIeXBlcmRyaXZlIiwiY29zdCI6NjMwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJzcGVlZCIsImEiOi0xLCJ2Ijo2MH1dfSx7Im5hbWUiOiJMaWdodHNwZWVkIiwiY29zdCI6NTQwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoic3BlZWQiLCJhIjotMSwidiI6MTIwfV19XX0seyJuYW1lIjoiSGVhdnkiLCJ0aWVycyI6W3sibmFtZSI6IkhlYXZ5IER1dHkiLCJjb3N0Ijo1NDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiYmlnIiwiYSI6LTEsInYiOjN9XX0seyJuYW1lIjoiQXJtb3IgUGllcmNlciIsImNvc3QiOjkwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJiaWciLCJhIjotMSwidiI6Nn1dfSx7Im5hbWUiOiJTaGVsbCBDcmFja2VyIiwiY29zdCI6MTgwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJiaWciLCJhIjotMSwidiI6MTJ9LHsiayI6ImVmZmVjdCIsImEiOi0xLCJ2IjoxLCJlIjoic3RyaXAifV19LHsibmFtZSI6IlRhbmsgQnVzdGVyIiwiY29zdCI6NjMwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJiaWciLCJhIjotMSwidiI6NDV9LHsiayI6InZzdHVuIiwiYSI6LTEsInYiOjAuM31dfSx7Im5hbWUiOiJUaXRhbiBTbGF5ZXIiLCJjb3N0Ijo1NDAwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJiaWciLCJhIjotMSwidiI6MTgwfV19XX1dLCJwYXJhZ29uIjpudWxsfQ==","at":1793145600000},{"id":"t-vending","name":"Vending Machine","by":"Kitchen Siege","blurb":"A money maker with a few tricks.","code":"KSA1:eyJ2IjoyLCJuYW1lIjoiVmVuZGluZyBNYWNoaW5lIiwibG9vayI6ImVzcHJlc3NvIiwiYm9keSI6IiIsInNraW4iOiJnb2xkIiwidGludCI6IiIsImZhY3Rpb24iOiJjdXN0b20iLCJjb3N0IjoxMDAwLCJyYW5nZSI6MTIwLCJnbG9iYWwiOmZhbHNlLCJjYW1vIjpmYWxzZSwiZmx5Ijoibm9uZSIsInBsYWNlIjoibGFuZCIsImluY29tZSI6MTgwLCJiU3BlZWQiOjAsImJSYW5nZSI6MCwiYkRtZyI6MCwiYlBpZXJjZSI6MCwiYkNhbW8iOmZhbHNlLCJiRGlzYyI6MCwiYXR0YWNrcyI6W10sImFiaWxpdGllcyI6W3sibmFtZSI6IlN1cHBseSBEcm9wIiwiY2QiOjYwLCJ1bmxvY2siOnsicCI6MCwidCI6M30sImFjdGlvbnMiOlt7ImsiOiJjYXNoIiwiYW10IjoxNTAwfV19XSwicGF0aHMiOlt7Im5hbWUiOiJJbmNvbWUiLCJ0aWVycyI6W3sibmFtZSI6IlRpcCBKYXIiLCJjb3N0Ijo2MDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiaW5jb21lIiwidiI6NzB9XX0seyJuYW1lIjoiU2lkZSBIdXN0bGUiLCJjb3N0IjoxMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImluY29tZSIsInYiOjExMH1dfSx7Im5hbWUiOiJDYXRlcmluZyIsImNvc3QiOjIwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiaW5jb21lIiwidiI6MTgwfV19LHsibmFtZSI6IkZyYW5jaGlzZSIsImNvc3QiOjcwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiaW5jb21lIiwidiI6NDUwfV19LHsibmFtZSI6IkVtcGlyZSIsImNvc3QiOjYwMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImluY29tZSIsInYiOjEwODB9LHsiayI6ImFiUG93ZXIiLCJhYiI6MCwidiI6MTUwfSx7ImsiOiJhYkNkIiwiYWIiOjAsInYiOjMwfV19XX0seyJuYW1lIjoiRGVhbHMiLCJ0aWVycyI6W3sibmFtZSI6IkNvdXBvbnMiLCJjb3N0Ijo2MDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiYkRpc2MiLCJ2Ijo1fV19LHsibmFtZSI6IkJ1bGsgRGVhbHMiLCJjb3N0IjoxMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImJEaXNjIiwidiI6NX1dfSx7Im5hbWUiOiJXaG9sZXNhbGUiLCJjb3N0IjoyMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImJEaXNjIiwidiI6NX1dfSx7Im5hbWUiOiJTdXBwbGllciIsImNvc3QiOjcwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiYkRpc2MiLCJ2IjoxMH1dfSx7Im5hbWUiOiJNb25vcG9seSIsImNvc3QiOjYwMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImJEaXNjIiwidiI6MTV9XX1dfSx7Im5hbWUiOiJIeXBlIiwidGllcnMiOlt7Im5hbWUiOiJQZXAgVGFsayIsImNvc3QiOjYwMCwiZGVzYyI6IiIsIm1vZHMiOlt7ImsiOiJiU3BlZWQiLCJ2Ijo1fV19LHsibmFtZSI6IkVzcHJlc3NvIFNob3QiLCJjb3N0IjoxMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImJTcGVlZCIsInYiOjV9XX0seyJuYW1lIjoiUmFsbHkiLCJjb3N0IjoyMDAwLCJkZXNjIjoiIiwibW9kcyI6W3siayI6ImJTcGVlZCIsInYiOjEwfV19LHsibmFtZSI6Ik92ZXJjbG9jayIsImNvc3QiOjcwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiYlNwZWVkIiwidiI6MTV9XX0seyJuYW1lIjoiRnJlbnp5IiwiY29zdCI6NjAwMDAsImRlc2MiOiIiLCJtb2RzIjpbeyJrIjoiYlNwZWVkIiwidiI6MzB9XX1dfV0sInBhcmFnb24iOm51bGx9","at":1793145600000},{"id":"b-saucer","name":"Flying Saucer","by":"Kitchen Siege","blurb":"A spinning saucer body for any appliance you build.","code":"KSB1:eyJ2IjoxLCJuYW1lIjoiRmx5aW5nIFNhdWNlciIsInNpemUiOjE4LCJ0dXJucyI6ZmFsc2UsImZlZXQiOnRydWUsImJhc2UiOnsiayI6Im5vbmUiLCJ3IjozMCwiZCI6MzAsImgiOjgsInIiOjYsImMiOiIiLCJtYXQiOiJzdGVlbCJ9LCJwYXJ0cyI6W3siayI6ImN5bCIsIngiOjAsInkiOjAsInoiOjQsInciOjEwLCJkIjoxMCwiaCI6NCwiciI6MTgsInIyIjoxNiwibiI6NiwiYyI6IiIsIm1hdCI6InN0ZWVsIiwiZ2xvdyI6MCwic3BpbiI6MCwiYm9iIjowLCJzaG93IjoiYWx3YXlzIiwidGlsdCI6MCwidHVybiI6MCwiYWltIjpmYWxzZSwia2ljayI6MH0seyJrIjoiY3lsIiwieCI6MCwieSI6MCwieiI6MCwidyI6MTAsImQiOjEwLCJoIjo0LCJyIjoxMiwicjIiOjE4LCJuIjo2LCJjIjoiIzdmOGI5MCIsIm1hdCI6InN0ZWVsIiwiZ2xvdyI6MCwic3BpbiI6MCwiYm9iIjowLCJzaG93IjoiYWx3YXlzIiwidGlsdCI6MCwidHVybiI6MCwiYWltIjpmYWxzZSwia2ljayI6MH0seyJrIjoiZG9tZSIsIngiOjAsInkiOjAsInoiOjgsInciOjEwLCJkIjoxMCwiaCI6NiwiciI6OSwicjIiOjQsIm4iOjYsImMiOiIjOWFkN2ZmIiwibWF0IjoiZ2xhc3MiLCJnbG93IjowLCJzcGluIjowLCJib2IiOjAsInNob3ciOiJhbHdheXMiLCJ0aWx0IjowLCJ0dXJuIjowLCJhaW0iOmZhbHNlLCJraWNrIjowfSx7ImsiOiJyaW5nIiwieCI6MCwieSI6MCwieiI6NiwidyI6MTAsImQiOjEwLCJoIjo2LCJyIjoxNywicjIiOjEsIm4iOjYsImMiOiIjN2ZmZmUzIiwibWF0IjoibmVvbiIsImdsb3ciOjAuOCwic3BpbiI6MS41LCJib2IiOjAsInNob3ciOiJhbHdheXMiLCJ0aWx0IjowLCJ0dXJuIjowLCJhaW0iOmZhbHNlLCJraWNrIjowfSx7ImsiOiJsaWdodCIsIngiOjAsInkiOjAsInoiOjAuNSwidyI6MTAsImQiOjEwLCJoIjo2LCJyIjozLCJyMiI6NCwibiI6NiwiYyI6IiM3ZmZmZTMiLCJtYXQiOiJuZW9uIiwiZ2xvdyI6MSwic3BpbiI6MCwiYm9iIjoyLCJzaG93IjoiYWx3YXlzIiwidGlsdCI6MCwidHVybiI6MCwiYWltIjpmYWxzZSwia2ljayI6MH1dLCJjcmVhdGVkIjowfQ==","at":1793145600000}];
+const GALLERY_KINDS = {
+  tower:      { name:'Appliance',  plural:'Appliances',  prefix: SHARE_PREFIX },
+  kitchen:    { name:'Kitchen',    plural:'Kitchens',    prefix: KITCHEN_PREFIX },
+  body:       { name:'Body',       plural:'Bodies',      prefix: BODY_PREFIX },
+  object:     { name:'Object',     plural:'Objects',     prefix: OBJ_PREFIX },
+  collection: { name:'Collection', plural:'Collections', prefix: COLLECTION_PREFIX },
+};
+function codeKind(code){
+  code = String(code || '').trim();
+  for (const k in GALLERY_KINDS) if (code.startsWith(GALLERY_KINDS[k].prefix)) return k;
+  return null;
+}
+/* decode a code to see that it is whole, and what it holds */
+function codePeek(code){
+  code = String(code || '').trim().replace(/\s+/g, '');
+  const kind = codeKind(code);
+  if (!kind) throw new Error('That isn’t a Kitchen Siege code.');
+  if (kind === 'tower'){ const d = designFromCodeRaw(code); return { kind, name: d.name || 'Appliance', data: d }; }
+  if (kind === 'kitchen'){ const k = kitchenFromCode(code); return { kind, name: k.name, data: k }; }
+  if (kind === 'body'){ const b = bodyFromCode(code); return { kind, name: b.name || 'Body', data: b }; }
+  if (kind === 'object'){ const o = objectFromCode(code); return { kind, name: o.name || 'Object', data: o }; }
+  let raw;
+  try { raw = JSON.parse(decodeURIComponent(escape(atob(code.slice(COLLECTION_PREFIX.length))))); } catch (e) { throw new Error('That code is damaged or incomplete.'); }
+  const n = ['designs', 'objs', 'bodies'].reduce((a, k) => a + Object.keys((raw && raw[k]) || {}).length, 0);
+  return { kind, name: n + ' things', data: raw };
+}
+/* a design read from its code without adding its bodies and objects to the library yet */
+function designFromCodeRaw(code){
+  let obj;
+  try { obj = JSON.parse(decodeURIComponent(escape(atob(code.slice(SHARE_PREFIX.length))))); } catch (e) { throw new Error('That code is damaged or incomplete.'); }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('That code has no design in it.');
+  return cleanCustom(obj);
+}
+function cleanEntry(e){
+  if (!e || typeof e !== 'object') return null;
+  const code = String(e.code || '').trim().replace(/\s+/g, '');
+  if (!code || code.length > GALLERY_CODE_MAX) return null;
+  const kind = codeKind(code);
+  if (!kind) return null;
+  let peek;
+  try { peek = codePeek(code); } catch (err) { return null; }
+  const id = String(e.id || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 40) || ('g' + hashStr(code).toString(36));
+  return { id, kind, name: cleanText(e.name, 32, peek.name || GALLERY_KINDS[kind].name), by: cleanText(e.by, 24, 'Anonymous'), blurb: cleanText(e.blurb, 140, ''), code, at: Math.max(0, Math.floor(+e.at || 0)), src: e.src === 'shared' ? 'shared' : 'featured', owner: typeof e.owner === 'string' ? e.owner.slice(0, 80) : undefined };
+}
+/* lists from several places, one entry per id (and per code), newest first */
+function mergeGallery(...lists){
+  const byId = new Map(), codes = new Set();
+  for (const L of lists) for (const raw of (Array.isArray(L) ? L : [])){
+    const e = cleanEntry(raw);
+    if (!e || byId.has(e.id) || codes.has(e.code)) continue;
+    byId.set(e.id, e); codes.add(e.code);
+  }
+  return [...byId.values()].sort((a, b) => (a.src === b.src ? 0 : a.src === 'featured' ? -1 : 1) || b.at - a.at || a.name.localeCompare(b.name));
+}
+/* take an entry into your own library; returns what was added */
+function galleryGet(code){
+  code = String(code || '').trim().replace(/\s+/g, '');
+  const kind = codeKind(code);
+  const fp = (o, drop) => JSON.stringify(Object.assign({}, o, drop));
+  if (kind === 'collection'){ const got = importCollection(code); return { kind, got, added: got.designs + got.objs + got.bodies }; }
+  if (kind === 'tower'){
+    const d = designFromCode(code);
+    const same = Object.keys(Profile.custom || {}).find(k => fp(Profile.custom[k], { created: 0 }) === fp(d, { created: 0 }));
+    if (same) return { kind, id: same, added: 0, have: true };
+    const id = saveCustomTower(d);
+    if (!id) throw new Error('Your tower builder is full. Delete a design to make room.');
+    return { kind, id, added: 1 };
+  }
+  if (kind === 'kitchen'){
+    const k = kitchenFromCode(code);
+    const same = kitchenList().find(id => fp(kitchenById(id), { created: 0 }) === fp(k, { created: 0 }));
+    if (same) return { kind, id: same, added: 0, have: true };
+    const id = saveKitchen(k);
+    if (!id) throw new Error('You have ' + KITCHEN_MAX + ' kitchens already. Delete one to make room.');
+    return { kind, id, added: 1 };
+  }
+  if (kind === 'body'){
+    const b = bodyFromCode(code);
+    const same = bodyList().find(id => fp(bodyById(id), { created: 0, _rev: 0 }) === fp(b, { created: 0, _rev: 0 }));
+    if (same) return { kind, id: same, added: 0, have: true };
+    const id = saveBody(b);
+    if (!id) throw new Error('Your body workshop is full.');
+    return { kind, id, added: 1 };
+  }
+  if (kind === 'object'){
+    const o = objectFromCode(code);
+    const same = objectList().find(id => fp(objectById(id), { created: 0 }) === fp(o, { created: 0 }));
+    if (same) return { kind, id: same, added: 0, have: true };
+    const id = saveObject(o);
+    if (!id) throw new Error('Your object workshop is full.');
+    return { kind, id, added: 1 };
+  }
+  throw new Error('That isn’t a Kitchen Siege code.');
+}
+/* everything of yours that can be shared, as { kind, name, code } */
+function shareables(){
+  const out = [];
+  for (const id of Object.keys(Profile.custom || {})) try { out.push({ kind:'tower', id, name: Profile.custom[id].name, code: designCode(Profile.custom[id]) }); } catch (e) {}
+  for (const id of kitchenList()) out.push({ kind:'kitchen', id, name: kitchenById(id).name, code: kitchenCode(kitchenById(id)) });
+  for (const id of bodyList()) out.push({ kind:'body', id, name: bodyById(id).name, code: bodyCode(bodyById(id)) });
+  for (const id of objectList()) out.push({ kind:'object', id, name: objectById(id).name, code: objectCode(objectById(id)) });
+  return out;
+}
+/* the GitHub issue that asks for an entry to be added to the featured shelf */
+function gallerySubmitUrl(e){
+  const body = 'Please add this to the Kitchen Siege gallery.\n\n' + 'Kind: ' + GALLERY_KINDS[e.kind].name + '\nName: ' + e.name + '\nBy: ' + e.by + '\nAbout: ' + (e.blurb || '') + '\n\nCode:\n```\n' + e.code + '\n```\n';
+  const url = 'https://github.com/' + GALLERY_REPO + '/issues/new?labels=gallery&title=' + encodeURIComponent('Gallery: ' + e.name) + '&body=' + encodeURIComponent(body);
+  return url.length < 7800 ? url : 'https://github.com/' + GALLERY_REPO + '/issues/new?labels=gallery&title=' + encodeURIComponent('Gallery: ' + e.name) + '&body=' + encodeURIComponent(body.replace(e.code, '(paste the code here: it was too long for a link)'));
+}
+
+/* ---------------- loading the shelves ---------------- */
+const Gallery = { featured: null, shared: [], state: 'idle', unsub: null };
+/* the repo's gallery file, when the game is served from the site */
+async function galleryFetch(){
+  if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return [];
+  try {
+    const r = await fetch('gallery/gallery.json', { cache:'no-cache' });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return Array.isArray(j) ? j : Array.isArray(j.entries) ? j.entries : [];
+  } catch (e) { return []; }
+}
+/* the shared shelf in Claude's store */
+function galleryDb(){ return Store.cloud && Store.cloud.db ? Store.cloud.db : null; }
+function galleryWatch(onChange){
+  const db = galleryDb();
+  if (!db || Gallery.unsub) return !!Gallery.unsub;
+  try {
+    Gallery.unsub = db.collection('gallery').orderBy('at', 'desc').limit(200).onSnapshot(snap => {
+      Gallery.shared = snap.docs.map(d => Object.assign({}, d.data(), { id: d.id, src:'shared' }));
+      if (onChange) onChange();
+    }, () => { Gallery.unsub = null; });
+  } catch (e) { Gallery.unsub = null; }
+  return !!Gallery.unsub;
+}
+async function galleryPost(entry){
+  const db = galleryDb();
+  if (!db) throw new Error('The shared shelf is only there when the game runs inside Claude.');
+  const e = cleanEntry(Object.assign({}, entry, { at: Date.now(), src:'shared' }));
+  if (!e) throw new Error('That code is damaged.');
+  const doc = { kind: e.kind, name: e.name, by: e.by, blurb: e.blurb, code: e.code, at: e.at, owner: Store.cloud.uid || '' };
+  const ref = await db.collection('gallery').add(doc);
+  return ref.id;
+}
+async function galleryRemove(id){
+  const db = galleryDb();
+  if (!db) return false;
+  await db.doc('gallery/' + id).delete();
+  return true;
+}
+function galleryAll(){ return mergeGallery(GALLERY_SEED, Gallery.featured || [], Gallery.shared); }
+
+'use strict';
+/* =====================================================================
    Kitchen Siege — drawing helpers and map backgrounds
    ===================================================================== */
 function mkCanvas(w, h){ const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
@@ -28678,6 +28865,109 @@ function favCards(shop, card){
 
 'use strict';
 /* =====================================================================
+   Kitchen Siege — the community gallery: browse, get, share, paste a code
+   ===================================================================== */
+const GAL_GLYPH = { tower:'🔧', kitchen:'🗺️', body:'🤖', object:'🧩', collection:'📦' };
+const KM_FLOOR = { block:'#c8955c', diner:'#e9e4da', pantry:'#d6b98c', freezer:'#c9d6dd' };
+/* a little picture of a kitchen code: its floor, water and trails */
+function kitchenMini(k, w, hgt){
+  const c = document.createElement('canvas'); c.width = w; c.height = hgt; c.className = 'gal-mini';
+  const g = c.getContext('2d'), s = w / W;
+  g.fillStyle = KM_FLOOR[k.theme] || '#ddd'; g.fillRect(0, 0, w, hgt);
+  for (const q of k.water){ g.fillStyle = '#6fb7e0'; g.beginPath(); if (q.style === 'sink') g.rect(q.x * s, q.y * s, q.w * s, q.h * s); else g.ellipse(q.x * s, q.y * s, q.rx * s, q.ry * s, 0, 0, TAU); g.fill(); }
+  for (const d of k.deco){ g.fillStyle = d.solid ? 'rgba(60,40,20,.45)' : 'rgba(60,40,20,.2)'; g.beginPath(); if (d.r) g.arc(d.x * s, d.y * s, d.r * s, 0, TAU); else g.rect(d.x * s, d.y * s, d.w * s, d.h * s); g.fill(); }
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const P of k.paths){
+    for (const [col, lw] of [['#2c5e4f', 9], ['#e8d3a4', 5]]){ g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); P.forEach((p, i) => i ? g.lineTo(p[0] * s, p[1] * s) : g.moveTo(p[0] * s, p[1] * s)); g.stroke(); }
+  }
+  return c;
+}
+function galThumb(e){
+  if (e.kind === 'kitchen'){ try { return kitchenMini(kitchenFromCode(e.code), 176, 109); } catch (err) {} }
+  return h('div', { class:'gal-glyph k-' + e.kind, 'aria-hidden':'true', text: GAL_GLYPH[e.kind] || '★' });
+}
+function showGallery(back){
+  Sfx.unlock();
+  UI.galKind = UI.galKind || 'all';
+  const list = h('div', { class:'gal-list' }), chips = h('div', { class:'seg gal-kinds', role:'group', 'aria-label':'Show' });
+  const note = h('p', { class:'dly-note gal-src' });
+  const render = () => {
+    const all = galleryAll(), kinds = ['all', ...Object.keys(GALLERY_KINDS)];
+    chips.innerHTML = '';
+    for (const k of kinds){
+      const n = k === 'all' ? all.length : all.filter(e => e.kind === k).length;
+      if (k !== 'all' && !n) continue;
+      chips.append(h('button', { 'aria-pressed': String(UI.galKind === k), onclick: () => { UI.galKind = k; render(); } }, (k === 'all' ? 'All' : GALLERY_KINDS[k].plural) + ' ' + n));
+    }
+    const shown = all.filter(e => UI.galKind === 'all' || e.kind === UI.galKind);
+    list.innerHTML = '';
+    if (!shown.length) list.append(h('p', { class:'dly-note', text:'Nothing here yet. Share something of yours!' }));
+    for (const e of shown){
+      const mine = e.src === 'shared' && Store.cloud && e.owner && e.owner === Store.cloud.uid;
+      const get = h('button', { class:'btn btn-small btn-primary gal-get', onclick: () => {
+        try {
+          const r = galleryGet(e.code);
+          Sfx.play('upgrade');
+          toast(r.have ? 'You already have ' + e.name + '.' : e.kind === 'collection' ? 'Added ' + r.added + ' things from ' + e.name + '.' : 'Added ' + e.name + ' to your ' + (e.kind === 'tower' ? 'tower builder' : e.kind === 'kitchen' ? 'kitchens' : e.kind === 'body' ? 'body workshop' : 'objects') + '.', 'gold');
+          get.textContent = 'Got it ✓'; get.disabled = true;
+        } catch (err) { Sfx.play('error'); toast(err.message, 'warn'); }
+      } }, 'Get');
+      list.append(h('div', { class:'gal-card', 'data-id': e.id }, galThumb(e),
+        h('div', { class:'gal-txt' }, h('b', { text: e.name }), h('span', { class:'gal-by', text: GALLERY_KINDS[e.kind].name + ' · by ' + e.by + (e.src === 'shared' ? ' · shared here' : ' · featured') }), e.blurb ? h('span', { text: e.blurb }) : null),
+        h('div', { class:'gal-acts' }, get,
+          h('button', { class:'btn btn-small', onclick: () => { copyText(e.code); toast('Code copied.', 'info'); } }, 'Copy code'),
+          e.kind === 'kitchen' ? h('button', { class:'btn btn-small', onclick: () => { try { const r = galleryGet(e.code); closeModal(); pickDifficulty(kitchenMapId(r.id)); } catch (err) { toast(err.message, 'warn'); } } }, 'Play') : null,
+          mine ? h('button', { class:'btn btn-small', onclick: () => galleryRemove(e.id).then(() => toast('Removed from the shelf.', 'info')).catch(err => toast(err.message || 'Could not remove it.', 'warn')) }, 'Remove') : null)));
+    }
+    note.textContent = galleryDb() ? 'Featured picks, plus a shared shelf everyone with this page can add to.'
+      : Gallery.featured && Gallery.featured.length ? 'Featured picks from the game’s GitHub page. Share yours with a GitHub issue and it can join them.'
+      : 'Featured picks. Share yours with a code, or with a GitHub issue to have it featured.';
+  };
+  const paste = h('textarea', { class:'gal-paste', rows: 2, placeholder:'Paste a code: KSA1: appliance, KSM1: kitchen, KSB1: body, KSO1: object, KSC1: collection', 'aria-label':'Paste a code' });
+  const pasteBtn = h('button', { class:'btn btn-small', onclick: () => {
+    try { const p = codePeek(paste.value); const r = galleryGet(paste.value); paste.value = ''; Sfx.play('upgrade'); toast(r.have ? 'You already have that ' + GALLERY_KINDS[p.kind].name.toLowerCase() + '.' : 'Added ' + p.name + '.', 'gold'); }
+    catch (err) { Sfx.play('error'); toast(err.message, 'warn'); }
+  } }, 'Add from code');
+  modal({ title:'Gallery', lead:'Appliances, kitchens, bodies and objects that players have made. Get one and it joins your own library.', wide:true, cls:'gallery',
+    content:[chips, note, list, h('div', { class:'gal-pastebox' }, paste, pasteBtn)],
+    actions:[{ label:'Back', onClick: back || null }, { label:'Share yours', kind:'primary', keep:true, onClick: () => showShare(() => showGallery(back)) }], onClose: back });
+  render();
+  UI.galRender = () => { if (UI.modalOpen && $('.modal.gallery')) render(); };
+  if (Gallery.featured === null){ Gallery.featured = []; galleryFetch().then(L => { Gallery.featured = L; UI.galRender(); }); }
+  galleryWatch(() => UI.galRender && UI.galRender());
+}
+function showShare(back){
+  const items = shareables();
+  if (!items.length){
+    modal({ title:'Share yours', lead:'You haven’t made anything yet. Build an appliance in the tower builder, a kitchen in the Kitchen Editor, or a body or object in the workshops, then come back.', actions:[{ label:'Back', onClick: back }] });
+    return;
+  }
+  const sel = h('select', { 'aria-label':'What to share' }, items.map((it, i) => h('option', { value: String(i) }, GALLERY_KINDS[it.kind].name + ': ' + it.name)));
+  const by = h('input', { type:'text', maxlength:'24', placeholder:'Your name or nickname', 'aria-label':'By', value: Profile.settings.galBy || '' });
+  const blurb = h('input', { type:'text', maxlength:'140', placeholder:'A line about it (optional)', 'aria-label':'About it' });
+  const out = h('div', { class:'gal-out' });
+  const entry = () => { const it = items[+sel.value]; return { kind: it.kind, name: it.name, by: by.value.trim() || 'Anonymous', blurb: blurb.value.trim(), code: it.code }; };
+  const share = async () => {
+    const e = entry();
+    Profile.settings.galBy = by.value.trim(); saveProfile();
+    out.innerHTML = '';
+    if (galleryDb()){
+      try { await galleryPost(e); Sfx.play('rank'); toast('Shared! It’s on the shelf for everyone here.', 'gold'); back(); return; }
+      catch (err) { out.append(h('p', { class:'dly-note', text:'Couldn’t share it here (' + (err.message || err.code || 'error') + '). You can still use a GitHub issue or the code.' })); }
+    }
+    const ta = h('textarea', { class:'gal-paste', rows: 3, readonly: true }); ta.value = e.code;
+    out.append(h('p', { class:'dly-note', text:'Send the code to a friend, or open a GitHub issue to have it featured in the gallery for everyone.' }), ta,
+      h('div', { class:'acts-row' },
+        h('button', { class:'btn btn-small', onclick: () => { copyText(e.code); toast('Code copied.', 'info'); } }, 'Copy code'),
+        h('a', { class:'btn btn-small btn-gold', href: gallerySubmitUrl(e), target:'_blank', rel:'noopener' }, 'Submit on GitHub')));
+  };
+  modal({ title:'Share yours', lead: galleryDb() ? 'Put one of your creations on the shared shelf.' : 'Get a share code, or submit it to be featured.', cls:'gallery',
+    content:[h('div', { class:'gal-form' }, h('label', { text:'What' }), sel, h('label', { text:'By' }), by, h('label', { text:'About' }), blurb), out],
+    actions:[{ label:'Back', onClick: back }, { label: galleryDb() ? 'Share' : 'Get the code', kind:'primary', keep:true, onClick: share }], onClose: back });
+}
+
+'use strict';
+/* =====================================================================
    Kitchen Siege — head chefs in the interface: the hire card above the
    kitchen's shop, the chef's panel (level, XP, the 20-level track and
    abilities), the Chefs screen on the menu, and the notes that pop up
@@ -32321,6 +32611,7 @@ function bindStatic(){
   $('#btn-daily').addEventListener('click', showDaily);
   $('#btn-events').addEventListener('click', showEvents);
   $('#btn-bosses').addEventListener('click', showBosses);
+  $('#btn-gallery').addEventListener('click', () => showGallery());
   $('#tut-skip').addEventListener('click', () => { Sfx.play('click'); tutEnd(); });
   $('#btn-shop').addEventListener('click', () => { Sfx.unlock(); show('shop'); });
   $('#btn-chefs').addEventListener('click', () => { Sfx.unlock(); show('chefs'); });

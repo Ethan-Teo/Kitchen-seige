@@ -5,9 +5,13 @@ root = pathlib.Path(__file__).parent
 src = root / 'src'
 shell = (src / 'shell.html').read_text()
 css = (src / 'style.css').read_text()
-js = '\n'.join((src / f).read_text() for f in ['data.js', 'engine.js', 'paragon.js', 'more.js', 'more_para.js', 'mixer.js', 'chess.js', 'utensils.js', 'spray.js', 'custom.js', 'objects.js', 'bodies.js', 'kitchens.js', 'meta.js', 'modes.js', 'events.js', 'tasting.js', 'bosses.js', 'heroes.js', 'admin_unit.js', 'sandbox.js', 'pests.js', 'expeditions.js', 'polish.js', 'art_map.js', 'art.js', 'gl3d.js', 'models3d.js', 'props3d.js', 'ui_custom.js', 'ui_objects.js', 'ui_bodies.js', 'ui_kitchens.js', 'ui_sandbox.js', 'ui_music.js', 'ui_tutorial.js', 'ui_meta.js', 'ui_events.js', 'ui_expeditions.js', 'ui_polish.js', 'ui_heroes.js', 'ui.js'])
+js = '\n'.join((src / f).read_text() for f in ['data.js', 'engine.js', 'paragon.js', 'more.js', 'more_para.js', 'mixer.js', 'chess.js', 'utensils.js', 'spray.js', 'custom.js', 'objects.js', 'bodies.js', 'kitchens.js', 'meta.js', 'modes.js', 'events.js', 'tasting.js', 'bosses.js', 'heroes.js', 'admin_unit.js', 'sandbox.js', 'pests.js', 'expeditions.js', 'polish.js', 'gallery.js', 'art_map.js', 'art.js', 'gl3d.js', 'models3d.js', 'props3d.js', 'ui_custom.js', 'ui_objects.js', 'ui_bodies.js', 'ui_kitchens.js', 'ui_sandbox.js', 'ui_music.js', 'ui_tutorial.js', 'ui_meta.js', 'ui_events.js', 'ui_expeditions.js', 'ui_polish.js', 'ui_gallery.js', 'ui_heroes.js', 'ui.js'])
 if '</script' in js.lower():
     sys.exit('script contains a closing script tag')
+import json as _json
+_gal = pathlib.Path(__file__).resolve().parent / 'gallery' / 'gallery.json'
+_seed = _json.loads(_gal.read_text()) if _gal.exists() else []
+js = js.replace('/*GALLERY_SEED*/[]', _json.dumps(_seed.get('entries', _seed) if isinstance(_seed, dict) else _seed, separators=(',', ':')))
 out = shell.replace('/*__CSS__*/', css).replace('/*__JS__*/', js)
 dist = root / 'dist'
 dist.mkdir(exist_ok=True)

@@ -3306,6 +3306,7 @@ function bindStatic(){
   $('#btn-daily').addEventListener('click', showDaily);
   $('#btn-events').addEventListener('click', showEvents);
   $('#btn-bosses').addEventListener('click', showBosses);
+  $('#btn-gallery').addEventListener('click', () => showGallery());
   $('#tut-skip').addEventListener('click', () => { Sfx.play('click'); tutEnd(); });
   $('#btn-shop').addEventListener('click', () => { Sfx.unlock(); show('shop'); });
   $('#btn-chefs').addEventListener('click', () => { Sfx.unlock(); show('chefs'); });
