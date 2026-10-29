@@ -115,6 +115,7 @@ const Sfx = (() => {
     spray:{ m:0.3, f:() => { noise(0.6, 0.14, 700, 0.5, 'lowpass'); tone(90, 0.4, 'sine', 0.05, 0.7); } },
     clack:{ m:0.06, f:() => { tone(R(950, 1150), 0.035, 'triangle', 0.07, 0.7); noise(0.035, 0.1, 2600, 3); } },
     mist:{ m:0.14, f:() => noise(0.12, 0.05, 3200, 0.9, 'highpass') },
+    steam:{ m:0.18, f:() => { noise(0.45, 0.12, 2200, 0.7, 'highpass'); tone(R(520, 580), 0.08, 'sine', 0.04, 1.4); } },
     clop:{ m:0.07, f:() => { tone(R(380, 460), 0.05, 'sine', 0.08, 0.55); noise(0.03, 0.06, 1400, 2); } },
   };
   function play(name){
@@ -1296,6 +1297,18 @@ function buildPanel(t){
     P.append(h('div', { class:'fly-row' }, h('span', { class:'fly-txt', text: fly === 'saucer' ? 'Flight path' : 'Flight' }), seg));
     if (fly === 'copter' && t.flyMode === 'follow') P.append(h('p', { class:'note aim-note', text: 'Flies to wherever you ' + (IS_TOUCH ? 'tap in the kitchen.' : 'point in the kitchen.') + ' When you are not pointing, it patrols near its pad.' }));
   }
+  /* a rice cooker: how far it has cooked, the pots it keeps warm, and opening the lid early */
+  if (t.s.atk.main && t.s.atk.main.kind === 'cook'){
+    const c = riceCharge(t), a = t.s.atk.main;
+    const meter = h('div', { class:'rice-meter', id:'rice-meter' }, h('i', { style:{ width: Math.round(c * 100) + '%' } }));
+    const label = h('span', { class:'fly-txt', id:'rice-label', text: c >= 1 ? 'Ready: waiting for pests' : 'Cooking ' + Math.round(c * 100) + '%' });
+    const kept = a.store ? h('span', { class:'rice-kept', id:'rice-kept', text: 'Kept warm: ' + (t.riceStore || 0) + ' of ' + a.store }) : null;
+    const btn = h('button', { class:'btn btn-small', id:'rice-lid', title:'Let the steam out now. The less it has cooked, the weaker the burst (it needs at least a quarter).', onclick: () => {
+      if (coopGuest()){ toast('In co-op, only the host can open the lid early.', 'info'); return; }
+      if (riceOpenLid(t)) Sfx.play('click'); else { Sfx.play('error'); toast(riceCharge(t) < 0.25 ? 'The rice has barely started cooking.' : 'No pests in range to steam.', 'warn'); }
+    } }, 'Open the lid');
+    P.append(h('div', { class:'fly-row rice-row' }, label, meter, h('div', { class:'rice-acts' }, btn, kept)));
+  }
   /* a spray bottle's nozzle: twist it between a wide mist and a long jet */
   if (t.s.sprayStream && !t.paragon){
     const cur = nozzleOf(t);
@@ -1461,6 +1474,14 @@ function mergeBox(t, ms){
   return box;
 }
 function refreshPanel(t){
+  const rm = $('#rice-meter');
+  if (rm){
+    const c = riceCharge(t), a = t.s.atk.main;
+    rm.firstChild.style.width = Math.round(c * 100) + '%'; rm.classList.toggle('ready', c >= 1);
+    const l = $('#rice-label'); if (l) l.textContent = c >= 1 ? 'Ready: waiting for pests' : 'Cooking ' + Math.round(c * 100) + '%';
+    const k = $('#rice-kept'); if (k && a) k.textContent = 'Kept warm: ' + (t.riceStore || 0) + ' of ' + a.store;
+    const b = $('#rice-lid'); if (b) b.disabled = c < 0.25;
+  }
   const stats = $('#tp-stats');
   if (stats){
     const parts = [];
@@ -1801,6 +1822,10 @@ function abilityDetails(ab, s){
     case 'gravyflood': text = 'A wave of scalding gravy rolls off the board: every pest within ' + n(Math.round((s ? s.range : 110) * (ab.rangeMul || 2.5))) + ' px takes ' + n(ab.dmg) + ' (' + n(ab.dmg + (ab.bonusBig || 0)) + ' to vehicles), burns, and is slowed by ' + Math.round((1 - ab.slow) * 100) + '% for ' + sec(ab.dur) + ' (vehicles ' + Math.round((1 - ab.bigSlow) * 100) + '%). Goes through any shell.'; break;
     case 'grandpinch': text = 'The ' + n(ab.n) + ' toughest pests on screen that aren’t bosses, vehicles included, are lifted and carried all the way back to the entrance. Bosses are held where they stand for ' + sec(ab.hold) + '.'; break;
     /* the spray bottle */
+    /* the rice cooker */
+    case 'valve': text = 'The pressure valve blows: ' + n(ab.n) + ' steam bursts in ' + sec(Math.round(ab.n * ab.every * 10) / 10) + ', each at ' + n(ab.mul) + '× damage.'; break;
+    case 'mochi': text = 'A mallet pounds the whole kitchen: every pest on screen takes ' + n(ab.dmg) + (ab.bonusBig ? ' (' + n(ab.dmg + ab.bonusBig) + ' to vehicles)' : '') + ' and is glued in place for ' + sec(ab.dur) + (ab.big ? ' (vehicles half as long)' : ' (vehicles slowed instead)') + '; bosses are slowed.'; break;
+    case 'serve': text = 'Every pot it can keep warm is cooked at once and served straight out' + (s && s.atk.main && s.atk.main.store ? ' (' + n(s.atk.main.store + 1) + ' bursts)' : '') + '.'; break;
     case 'bubblebath': text = 'The ' + n(ab.n) + ' toughest pests on screen' + (ab.big ? ', vehicles too (not bosses),' : ' (not vehicles or bosses)') + ' are trapped in soap bubbles: floated ' + n(ab.back) + ' px back up the trail (vehicles half as far) and held for ' + sec(ab.hold) + ', then the bubbles pop for ' + n(ab.pop) + (ab.popBig ? ' (' + n(ab.popBig) + ' for vehicles)' : '') + '.'; break;
     case 'downpour': text = 'Rain falls on the whole kitchen for ' + sec(ab.dur) + ': every pest on screen stays wet, and wet pests take double from cold, energy and heat.' + (ab.bolts ? ' Lightning strikes ' + n(ab.bolts) + ' times a second, each bolt hitting a wet pest for ' + n(ab.boltDmg) + ' (' + n(ab.boltDmg + (ab.boltBig || 0)) + ' to vehicles) through any shell.' : ''); break;
     case 'hydroblast': text = 'A huge jet down the line with the most pests: everything in it but bosses takes ' + n(ab.dmg) + ' (' + n(ab.dmg + (ab.bonusBig || 0)) + ' to vehicles) through any shell and is blasted ' + n(ab.push) + ' px back up the trail (vehicles half as far).'; break;
@@ -1955,6 +1980,8 @@ function abilityAim(t, ab){
     case 'stalemate': A.screen = true; A.live = onMap().length > 0; break;
     case 'flurry': A.towers = [t]; A.live = onMap().length > 0; break;
     case 'fullspin': A.towers = ridersOf(t); A.rings.push({ x: t.x, y: t.y, r: t.size * 1.3, soft: true }); A.live = A.towers.length > 0; break;
+    case 'valve': case 'serve': { A.rings.push({ x: t.x, y: t.y, r: t.s.range }); A.live = onMap().some(e => !(e.burrowT > 0) && Math.hypot(e.x - t.x, e.y - t.y) <= t.s.range + e.r) || ab.id === 'serve'; break; }
+    case 'mochi': A.screen = true; A.live = onMap().length > 0; break;
     case 'gravyflood': { const R = t.s.range * (ab.rangeMul || 2.5); A.rings.push({ x: t.x, y: t.y, r: R }); A.live = onMap().some(e => !(e.burrowT > 0) && Math.hypot(e.x - t.x, e.y - t.y) <= R + e.r); break; }
     case 'grandpinch': { const on = onMap().filter(e => !e.air); A.marks = toughestN(ab.n || 4, on.filter(e => !e.boss)).concat(on.filter(e => e.boss).slice(0, 2)); A.live = A.marks.length > 0; break; }
     case 'bubblebath': A.marks = toughestN(ab.n || 12, onMap().filter(e => !e.boss && !e.air && (ab.big || !e.big))); A.live = A.marks.length > 0; break;
@@ -2784,6 +2811,8 @@ function atkName(type, id){
   if (type === 'chess' && id === 'main') return 'Pawn';
   if (type === 'chopsticks' && id === 'main') return 'Pinch';
   if (type === 'spray' && id === 'main') return 'Spray';
+  if (type === 'rice' && id === 'main') return 'Steam burst';
+  if (type === 'rice' && id === 'balls') return 'Rice balls';
   return ATK_LABEL[id] || (/^a\d+$/.test(id) ? 'Attack ' + id.slice(1) : id.charAt(0).toUpperCase() + id.slice(1));
 }
 const num1 = v => (Math.abs(v) >= 100 || Number.isInteger(v) ? fmt(v) : (Math.round(v * 100) / 100).toString());
@@ -2852,6 +2881,16 @@ function attackLine(type, id, a){
     if (a.foam) out.push('leaves foam every ' + (a.foam.every === 2 ? 'other' : a.foam.every === 3 ? 'third' : a.foam.every + 'th') + ' spray');
     out.push(rateText(a.rate, 1));
     return { name: a.streaming ? 'Stream' : atkName(type, id) === 'Jet' ? 'Jet' : 'Mist', text: out.join(' · '), type: a.ignoreImmune ? 'Any type' : 'Water' };
+  }
+  /* the rice cooker: cooks, then a burst of steam round it */
+  if (a.kind === 'cook'){
+    const out = ['cooks for ' + num1(Math.round(a.rate * 10) / 10) + 's, then a steam burst hits up to ' + a.pierce + ' pests around it for ' + num1(a.dmg) + (a.bonusBig ? ' (+' + num1(a.bonusBig) + ' to vehicles)' : '') + (a.bonusBoss ? ' (+' + num1(a.bonusBoss) + ' to bosses)' : '')];
+    if (a.strip) out.push('strips armor');
+    if (a.after) out.push('a second burst at ' + Math.round(a.after.mul * 100) + '% follows');
+    const S = a.sticky;
+    if (S) out.push('coats them in rice: ' + Math.round((1 - S.slow) * 100) + '% slower for ' + num1(S.dur) + 's' + (S.glue ? ', small pests glued ' + num1(S.glue) + 's' : '') + (S.vuln ? ', +' + num1(S.vuln) + ' from every hit' : ''));
+    if (a.store) out.push('keeps up to ' + a.store + ' pots warm' + (a.timer ? ' (all at once for ×' + a.timer + ' when a vehicle or boss arrives)' : ''));
+    return { name: atkName(type, id), text: out.join(' · '), type: a.ignoreImmune ? 'Any type' : TYPE_LABEL[a.type] || 'Heat' };
   }
   if (a.kind === 'bubbles') return { name: 'Bubbles', text: 'blows ' + a.count + ' bubbles ' + rateText(a.rate, 1) + ' that drift back up the trail and pop on the first pest they meet for ' + num1(a.dmg) + (a.bonusBig ? ' (+' + num1(a.bonusBig) + ' to vehicles)' : '') + ', lathering every pest within ' + a.r + ' px', type: 'Soap' };
   /* chopsticks: what they can lift, and where it goes */

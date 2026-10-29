@@ -2158,6 +2158,73 @@ const MODELS3D = (() => {
     for (let i = 0; i < 3; i++){ const k = (time * 0.7 + i / 3) % 1; circle(g, -14 + i * 12, -6 - k * 8, 1 + k * 1.5); g.strokeStyle = 'rgba(230,248,255,' + (1 - k) * 0.8 + ')'; g.lineWidth = 0.8; g.stroke(); }
     g.restore();
   }
+  /* ---------------- Rice Cooker ----------------
+     A round pot with a domed lid hinged at the back (-x) and a control panel at the front (+x). The lid pops up as it
+     bursts. Pressure: a steel pot with a weighted valve, a gauge, then an industrial steamer's red valve. Sticky: a
+     rice paddle leaning on it, a bowl of rice balls, a mochi mallet, then a golden paddle. Keep Warm: an orange warm
+     plate under it, a timer dial, then a stack of little pots behind. */
+  function rice(B, c){
+    const [a, b, cc] = c.up, par = c.par, metal = a >= 3 || par;
+    /* the warm plate under it */
+    if (cc >= 2 || par){ B.color('#ff9a3c').shine(0.2).glow(0.35); B.push().at(0, 0, 0).cyl(17.5, 17.5, 1.2, 28).pop(); B.glow(0); }
+    /* the stack of little pots behind */
+    if (cc >= 5 || par) for (const [x, y] of [[-17, -11], [-17, 11], [-22, 0]]){
+      if (par) gold(B); else plastic(B, '#f2b07a');
+      B.push().at(x, y, 0).cyl(5.5, 5, 7, 18).pop();
+      B.color('#fffbea').shine(0.1); B.push().at(x, y, 7).sphere(4.2, 12, 6).pop();
+    }
+    /* the pot */
+    if (metal) steel(B, a >= 5 ? '#9aa6ab' : null); else B.body().shine(0.35).glow(0);
+    B.lathe([[13.5, 0], [15, 1], [15.5, 4], [15.5, 13], [14.5, 15.5], [13, 16]], 30);
+    /* the hinge and the control panel with its two lights */
+    matte(B, '#5c666b'); B.push().at(-16, 0, 13).box(3, 7, 3).pop();
+    matte(B, par ? '#2a2220' : '#3a4448'); B.push().at(15.5, 0, 6).rbox(4, 11, 8, 1.6, 0.8).pop();
+    B.color('#7ee07a').shine(0.4).glow(0.6); B.push().at(17.6, -2.4, 8).sphere(1.1, 8, 5).pop();
+    B.color('#ffb347').shine(0.4).glow(cc >= 1 ? 0.6 : 0.1); B.push().at(17.6, 2.4, 8).sphere(1.1, 8, 5).pop();
+    B.glow(0);
+    /* the lid: hinged at the back, it lifts as the steam bursts */
+    B.push().at(-13, 0, 16);
+    B.part((time, t) => { const k = t && t.fireAnim > 0 ? Math.sin((1 - t.fireAnim / 0.4) * Math.PI) : 0; return { ry: -k * 0.55 }; });
+    B.push().at(13, 0, 0);
+    if (metal) steel(B, '#dfe5e8'); else B.body(1.08).shine(0.45);
+    B.lathe([[13.2, 0], [12.5, 2], [10, 4], [6, 5.3], [0.01, 5.8]], 28);
+    if (metal){
+      matte(B, '#2a2f33'); B.push().at(0, 0, 5.4).cyl(2.8, 2.6, 2.2, 14).pop();
+      B.color(a >= 5 ? '#e2383f' : '#f2a03d').shine(0.6); B.push().at(0, 0, 7.4).cyl(1.8, 1.4, 2.2, 12).pop();
+      if (a >= 4 || par){ B.color('#f4f6f6').shine(0.4); B.push().at(6, 5, 4).rotX(-0.35).cyl(2.6, 2.6, 0.9, 16).pop(); }
+    } else { steel(B); B.push().at(-1, 0, 5.4).box(3, 2.4, 1.6).pop(); }
+    if (cc >= 3 || par){ B.color('#fff4d6').shine(0.3); B.push().at(-5, 5, 4.2).rotX(0.3).cyl(2.6, 2.6, 0.9, 16).pop(); }
+    B.pop();
+    B.endPart();
+    B.pop();
+    /* the rice paddle leaning on its side, a bowl of rice balls, a mochi mallet */
+    if (b >= 1 || par){
+      if (b >= 5 || par) gold(B); else B.color('#f4efe0').shine(0.25);
+      B.push().at(5, 16.5, 9).rotX(0.35).rotZ(-0.4);
+      B.push().scale(1, 0.35, 1).sphere(3.6, 12, 8).pop();
+      B.push().at(0, 0, -7).cyl(1.1, 1, 8, 8).pop();
+      B.pop();
+    }
+    if (b >= 3 || par){
+      plastic(B, '#2a5f8a'); B.push().at(-9, 18, 0).lathe([[0.01, 0], [3.5, 0.5], [5, 3], [5.2, 4]], 18).pop();
+      B.color('#fbf7ea').shine(0.1); for (const [x, y] of [[-10.5, 17], [-7.5, 17.5], [-9, 19.6]]) B.push().at(x, y, 4.5).sphere(1.8, 10, 6).pop();
+    }
+    if (b >= 4 || par){
+      matte(B, '#8a5a2a'); B.push().at(-11, -17, 1.5).rotZ(0.6).rotY(Math.PI / 2).cyl(0.9, 0.9, 11, 8).pop();
+      plastic(B, '#c08a4a'); B.push().at(-15, -20, 2.5).rotZ(0.6).box(9, 5, 5).pop();
+    }
+  }
+  /* the rice cooker's cooking ring on the floor round it, and the pots it keeps warm */
+  function riceAfter(g, t, time, sc, up){
+    if (t.icon || !t.s || typeof riceCharge !== 'function') return;
+    const c = riceCharge(t), R = 19 * sc, CT = GL3D.CT;
+    g.save(); g.scale(1, CT); g.lineCap = 'round'; g.lineWidth = 2.6;
+    g.strokeStyle = 'rgba(0,0,0,0.2)'; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.stroke();
+    g.strokeStyle = c >= 1 ? '#7ee07a' : '#ffcf4d'; g.beginPath(); g.arc(0, 0, R, -Math.PI / 2, -Math.PI / 2 + TAU * c); g.stroke();
+    const kept = Math.min(10, t.riceStore || 0);
+    for (let i = 0; i < kept; i++){ const an = -1.2 + i * 0.26; g.beginPath(); g.arc(Math.cos(an) * (R + 5), Math.sin(an) * (R + 5), 2.4, 0, TAU); g.fillStyle = '#fffbea'; g.fill(); g.strokeStyle = '#c9a36a'; g.lineWidth = 0.8; g.stroke(); }
+    g.restore();
+  }
   /* ---------------- Spray Bottle ----------------
      A clear bottle with the liquid showing through, a trigger head on top pointing +x, its nozzle and trigger. Soap
      turns the liquid pink and blows bubbles; mist turns it icy, puffs vapour and finally carries a rain cloud; the
@@ -2274,6 +2341,7 @@ const MODELS3D = (() => {
     chopsticks: { build: chopsticks, body: (t, up, par, skin) => skin && skin.body ? null : '#f4f1ea' },
     susan: { build: susan, after: susanAfter },
     spray: { build: spray },
+    rice: { build: rice, after: riceAfter },
     chef_blaze: chefDef, chef_gelato: chefDef, chef_penny: chefDef, chef_kenji: chefDef, chef_nonna: chefDef, chef_bruno: chefDef,
   };
   return REG;

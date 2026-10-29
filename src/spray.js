@@ -144,7 +144,7 @@ function sprayFire(t, a, id){
     case 'spray': return a.streaming ? fireStream(t, a, id) : fireMist(t, a, id);
     case 'bubbles': return fireBubbles(t, a);
   }
-  return false;
+  return riceFire(t, a, id);
 }
 function fireMist(t, a, id){
   const range = attackRange(t, a);

@@ -1564,3 +1564,9 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .toggle-inline{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:14px}
 @media (max-width:640px){.coop-pick{grid-template-columns:1fr}}
 .coop-badge.link{cursor:pointer;text-decoration:underline;pointer-events:auto}
+/* the rice cooker's panel */
+.rice-row{gap:6px}
+.rice-meter{height:9px;border-radius:5px;background:var(--enamel-3);overflow:hidden}
+.rice-meter i{display:block;height:100%;background:linear-gradient(90deg,#ffcf4d,#ff9a3c);transition:width .15s}
+.rice-meter.ready i{background:linear-gradient(90deg,#7ee07a,#2a9d8f)}
+.rice-acts{display:flex;align-items:center;gap:10px}.rice-kept{font-size:12.5px;color:var(--ink-2)}

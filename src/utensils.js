@@ -275,6 +275,7 @@ function utensilParaBar(t){
   if (t.type === 'chopsticks'){ const need = (s.focus && s.focus.need) || 30; return { v: S.focus / need, c: '#ffd166' }; }
   if (t.type === 'susan'){ const w = s.windup || { max: 0.6 }; return { v: S.wind / w.max, c: '#e8b04a' }; }
   if (t.type === 'spray') return sprayParaBar(t);
+  if (t.type === 'rice') return riceParaBar(t);
   return null;
 }
 function utensilParaUI(t){
@@ -291,6 +292,7 @@ function utensilParaUI(t){
       lines: ['The longer a round runs, the faster the carousel turns: its riders attack ' + Math.round(w.per * 100) + '% faster for every second, up to ' + Math.round(w.max * 100) + '%. It winds down again when the next round starts.'] };
   }
   if (t.type === 'spray') return sprayParaUI(t);
+  if (t.type === 'rice') return riceParaUI(t);
   return null;
 }
 

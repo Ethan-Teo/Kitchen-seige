@@ -1624,7 +1624,7 @@ function importCollection(code){
 /* ---------------- Remix: a built-in appliance as a starting design ----------------
    Its look, price, range, ghost sight and main attack are read off the real appliance; the paths keep the real
    upgrade names and prices, with changes that suit the attack. */
-const REMIX_STYLE = { spray:'flame', proj:'throw', pulse:'pulse', radial:'pulse', hitscan:'snipe', beam:'beam', bolt:'beam', lob:'lob', flame:'flame', tornado:'whirl', grab:'grab', catch:'grab', trap:'spikes', slick:'lob', cloud:'lob' };
+const REMIX_STYLE = { cook:'pulse', spray:'flame', proj:'throw', pulse:'pulse', radial:'pulse', hitscan:'snipe', beam:'beam', bolt:'beam', lob:'lob', flame:'flame', tornado:'whirl', grab:'grab', catch:'grab', trap:'spikes', slick:'lob', cloud:'lob' };
 function remixDesign(type){
   const T = TOWERS[type];
   if (!T || T.custom || T.hero) return null;

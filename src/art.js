@@ -647,6 +647,8 @@ const Art = (() => {
       }
       if (e.slipT > 0){ g.strokeStyle = 'rgba(255,255,255,' + (e.slipT * 2).toFixed(3) + ')'; g.lineWidth = 1.6; g.lineCap = 'round'; for (const y of [-e.r * 0.4, e.r * 0.4]){ g.beginPath(); g.moveTo(e.r * 0.9, y); g.lineTo(e.r * 1.9, y); g.stroke(); } }
     }
+    /* coated in sticky rice: grains stuck all over it */
+    if (e.riceT > 0){ const n = e.big ? 9 : 5; for (let i = 0; i < n; i++){ const an = i * 2.39 + e.id * 0.7, d = e.r * (0.25 + (i % 3) * 0.22); g.save(); g.translate(Math.cos(an) * d, Math.sin(an) * d * 0.85); g.rotate(an * 1.7); ell(g, 0, 0, e.big ? 2.6 : 1.8, e.big ? 1.2 : 0.85); fillStroke(g, '#fffdf2', 'rgba(150,140,110,0.8)', 0.5); g.restore(); } }
     if (e.soakT > 0){ ell(g, 0, 0, e.r * 0.9, e.r * 0.7); g.fillStyle = 'rgba(214,160,52,0.28)'; g.fill(); ell(g, -e.r * 0.3, -e.r * 0.3, e.r * 0.25, e.r * 0.12, -0.6); g.fillStyle = 'rgba(255,255,255,0.5)'; g.fill(); }
     if (e.glazed){ circle(g, 0, 0, e.r * 0.92); g.fillStyle = 'rgba(255,200,80,0.2)'; g.fill(); g.strokeStyle = 'rgba(255,214,120,0.75)'; g.lineWidth = 1.3; g.stroke(); ell(g, -e.r * 0.35, -e.r * 0.4, e.r * 0.3, e.r * 0.12, -0.6); g.fillStyle = 'rgba(255,250,220,0.8)'; g.fill(); }
     if (e.acid){ for (let i = 0; i < (e.big ? 4 : 2); i++){ const ph = (t * 1.3 + i * 0.47 + e.id * 0.13) % 1, an = i * 2.3 + e.id; circle(g, Math.cos(an) * e.r * 0.5, Math.sin(an) * e.r * 0.5 + ph * 4, 1.3 + (1 - ph) * 1.2); g.fillStyle = 'rgba(200,214,70,' + (0.9 * (1 - ph)).toFixed(3) + ')'; g.fill(); } }
@@ -762,6 +764,7 @@ const Art = (() => {
     chess:   ['#f3e7cb', '#f3e7cb', '#f3e7cb', '#f3e7cb'],
     chopsticks:['#f4f1ea', '#8fbf5a', '#2a2220', '#f4f1ea'],
     spray:   ['#2a9d8f', '#f278b4', '#5aa6d6', '#f2a03d'],
+    rice:    ['#f4f1ea', '#c9d2d6', '#f6e7b0', '#f2b07a'],
     susan:   ['#c99a62', '#d8aa6e', '#8f5c36', '#a8603e'],
   };
   function dominant(up){ let p = -1, m = 2; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
@@ -960,6 +963,68 @@ const Art = (() => {
     if (a >= 2){ rr(g, nl + 1, -3.5, 6, 7, 2); fillStroke(g, '#c99a5c', '#7a5428', 0.8); }
     if (c >= 4){ g.save(); g.rotate(-(t.rotNow || 0)); rr(g, 10, 8, 12, 10, 1.5); fillStroke(g, '#a57d55', '#6f5234', 1); g.strokeStyle = '#6f5234'; g.beginPath(); g.moveTo(10, 13); g.lineTo(22, 13); g.stroke(); g.restore(); }
     if (c >= 1){ for (let i = 0; i < 3; i++){ const an = time + i * 2.1; circle(g, Math.cos(an) * 20, Math.sin(an) * 20, 2.4); g.strokeStyle = 'rgba(190,240,255,0.8)'; g.lineWidth = 1; g.stroke(); } }
+  }
+  /* the Rice Cooker, from above: a round pot with a domed lid, a hinge at the back (-x) and a control panel at the
+     front (+x) with its cook and warm lights. A ring round the lid fills as the rice cooks, and the lid pops up as it
+     bursts. Pressure turns it into a steel pressure pot with a weighted valve, a gauge and finally an industrial
+     steamer; Sticky leans a rice paddle on it, then a bowl of rice balls, a mochi mallet and a golden paddle; Keep
+     Warm adds a warm glow, a timer dial, a steam tray and, at the top, a stack of little pots. Kept pots sit round it
+     as small bowls. */
+  function drawRice(g, t, up, time, par){
+    const [a, b, c] = up;
+    const body = bodyColor('rice', up, par), fire = t.fireAnim > 0;
+    const steel = a >= 3 || par;
+    const charge = typeof riceCharge === 'function' && t.s ? riceCharge(t) : 1;
+    /* Keep Warm: a warm glow under it */
+    if ((c >= 2 || par) && !lowFx()){ const gr = g.createRadialGradient(0, 0, 8, 0, 0, 26); gr.addColorStop(0, 'rgba(255,170,80,0.35)'); gr.addColorStop(1, 'rgba(255,170,80,0)'); g.fillStyle = gr; circle(g, 0, 0, 26); g.fill(); }
+    /* the stack of little pots behind (Banquet Hall, the paragon) */
+    if (c >= 5 || par) for (const [x, y] of [[-16, -12], [-16, 12], [-21, 0]]){ circle(g, x, y, 6); fillStroke(g, par ? '#f2c14e' : '#f2b07a', '#7a4a1a', 1); circle(g, x, y, 3.6); g.fillStyle = '#fffbea'; g.fill(); }
+    /* the pot */
+    circle(g, 0, 0, 15); fillStroke(g, steel ? (a >= 5 ? '#9aa6ab' : '#c9d2d6') : body, steel ? '#4d585d' : shade(body, -0.45), 1.6);
+    /* the hinge at the back and the control panel at the front */
+    rr(g, -17, -4, 4, 8, 1.6); fillStroke(g, '#5c666b', '#2a2f33', 0.8);
+    rr(g, 10, -6, 7, 12, 2.4); fillStroke(g, par ? '#2a2220' : '#3a4448', '#1a1f22', 0.9);
+    const ready = charge >= 1;
+    circle(g, 13.5, -2.6, 1.6); g.fillStyle = ready ? '#7ee07a' : '#ff6b4a'; g.fill();
+    circle(g, 13.5, 2.6, 1.6); g.fillStyle = (t.riceStore > 0 || c >= 1) ? '#ffb347' : '#5a3a2a'; g.fill();
+    /* the charge ring round the lid */
+    g.lineWidth = 2.4; g.lineCap = 'round';
+    g.strokeStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.arc(0, 0, 12.2, 0, TAU); g.stroke();
+    g.strokeStyle = ready ? '#7ee07a' : '#ffcf4d'; g.beginPath(); g.arc(0, 0, 12.2, -Math.PI / 2, -Math.PI / 2 + TAU * charge); g.stroke();
+    /* the lid: lifted as it bursts */
+    const lift = fire ? Math.sin((1 - t.fireAnim / 0.4) * Math.PI) * 3.5 : 0;
+    g.save(); g.translate(-lift * 0.6, -lift);
+    circle(g, 0, 0, 10.2); fillStroke(g, steel ? '#dfe5e8' : shade(body, 0.06), steel ? '#5c666b' : shade(body, -0.4), 1.1);
+    ell(g, -3.2, -3.4, 4, 2, -0.6); g.fillStyle = 'rgba(255,255,255,0.6)'; g.fill();
+    /* the steam vent, or the pressure valve and its gauge */
+    if (steel){
+      circle(g, 0, 0, 3.4); fillStroke(g, '#2a2f33', '#111', 0.8);
+      circle(g, 0, 0, 1.7); g.fillStyle = a >= 5 ? '#e2383f' : '#f2a03d'; g.fill();
+      if (a >= 4 || par){ circle(g, 5.5, 4.5, 2.6); fillStroke(g, '#f4f6f6', '#2a2f33', 0.7); g.strokeStyle = '#e2383f'; g.lineWidth = 0.8; const ga = -2.4 + charge * 2.8; g.beginPath(); g.moveTo(5.5, 4.5); g.lineTo(5.5 + Math.cos(ga) * 2, 4.5 + Math.sin(ga) * 2); g.stroke(); }
+    } else { rr(g, -1.5, -5.5, 3, 4, 1.2); fillStroke(g, '#c9d2d6', '#5c666b', 0.6); }
+    /* the timer dial (Rice Timer) */
+    if (c >= 3 || par){ circle(g, -4.5, 4.5, 2.6); fillStroke(g, '#fff4d6', '#7a4a1a', 0.7); g.strokeStyle = '#7a4a1a'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-4.5, 4.5); g.lineTo(-4.5 + Math.cos(time * 2) * 1.8, 4.5 + Math.sin(time * 2) * 1.8); g.stroke(); }
+    g.restore();
+    /* Sticky: a rice paddle leaning on it, a bowl of rice balls, a mallet */
+    if (b >= 1 || par){
+      g.save(); g.translate(4, 15); g.rotate(-0.5);
+      rr(g, -1.3, -2, 2.6, 9, 1.2); fillStroke(g, b >= 5 || par ? '#f2c14e' : '#f4efe0', b >= 5 || par ? '#8a6a10' : '#9c9078', 0.7);
+      ell(g, 0, -4.5, 3.4, 4.2); fillStroke(g, b >= 5 || par ? '#f2c14e' : '#f4efe0', b >= 5 || par ? '#8a6a10' : '#9c9078', 0.7);
+      for (let i = 0; i < 3; i++){ circle(g, -1 + i, -5 + (i % 2), 0.7); g.fillStyle = '#ffffff'; g.fill(); }
+      g.restore();
+    }
+    if (b >= 3 || par){ circle(g, -8, 16, 4.6); fillStroke(g, '#2a5f8a', '#163f66', 0.8); for (const [x, y] of [[-9.5, 15], [-6.5, 15.5], [-8, 17.6]]){ circle(g, x, y, 1.6); fillStroke(g, '#fbf7ea', '#9c9078', 0.5); } }
+    if (b >= 4 || par){ g.save(); g.translate(-10, -15); g.rotate(0.6); rr(g, -1, -1, 2, 10, 1); fillStroke(g, '#8a5a2a', '#4a2a10', 0.6); rr(g, -4, -4.5, 8, 4.5, 1.6); fillStroke(g, '#a8703a', '#4a2a10', 0.7); g.restore(); }
+    /* kept pots: little bowls round the front */
+    const kept = Math.min(10, t.riceStore || 0);
+    for (let i = 0; i < kept; i++){ const an = -1.2 + i * 0.26; circle(g, Math.cos(an) * 21, Math.sin(an) * 21, 2.4); fillStroke(g, '#fffbea', '#c9a36a', 0.7); }
+    /* the burst of steam as the lid pops */
+    if (fire && !lowFx()){
+      const k = 1 - t.fireAnim / 0.4;
+      for (let i = 0; i < 6; i++){ const an = i / 6 * TAU + k; circle(g, Math.cos(an) * (8 + k * 14), Math.sin(an) * (8 + k * 14), 3 + k * 4); g.fillStyle = 'rgba(255,255,255,' + (0.7 * (1 - k)).toFixed(3) + ')'; g.fill(); }
+    } else if (ready && !lowFx()){
+      const k = (time * 0.8) % 1; circle(g, 0, -k * 10, 2 + k * 3); g.fillStyle = 'rgba(255,255,255,' + (0.5 * (1 - k)).toFixed(3) + ')'; g.fill();
+    }
   }
   /* the Spray Bottle: a round bottle seen from above with its trigger head on top, pointing +x. What is in it shows
      through the plastic (water, soap, icy mist); the nozzle path grows a brass nozzle, a hose and pressure tank, and a
@@ -2828,7 +2893,7 @@ const Art = (() => {
     }
   }
   const TOWER_DRAW = { knife:drawKnife, toaster:drawToaster, blender:drawBlender, dish:drawDish, grill:drawGrill, fryer:drawFryer, freezer:drawFreezer, micro:drawMicro, siphon:drawSiphon, oven:drawOven, mixer:drawMixer, pasta:drawPasta, espresso:drawEspresso, bread:drawBread, gatling:drawGatling,
-    boat:drawBoat, sub:drawSub, heli:drawHeli, saucer:drawSaucer, mandoline:drawMandoline, caddy:drawCaddy, saucepan:drawSaucepan, bot:drawBot, pets:drawPets, lobster:drawLobster, chess:drawChess, chopsticks:drawChopsticks, susan:drawSusan, spray:drawSpray, chef_blaze:drawChef, chef_gelato:drawChef, chef_penny:drawChef, chef_kenji:drawChef, chef_nonna:drawChef, chef_bruno:drawChef };
+    boat:drawBoat, sub:drawSub, heli:drawHeli, saucer:drawSaucer, mandoline:drawMandoline, caddy:drawCaddy, saucepan:drawSaucepan, bot:drawBot, pets:drawPets, lobster:drawLobster, chess:drawChess, chopsticks:drawChopsticks, susan:drawSusan, spray:drawSpray, rice:drawRice, chef_blaze:drawChef, chef_gelato:drawChef, chef_penny:drawChef, chef_kenji:drawChef, chef_nonna:drawChef, chef_bruno:drawChef };
   /* Looks that turn to face what they attack, and which way their art faces before it turns (radians). Most point
      along +x; the boxy front-panel appliances face down the screen (+y), toward the viewer, and keep that pose until
      their first shot. Radial and area appliances (blender, freezer, pasta maker, saucer) and support ones don't turn. */
@@ -2948,7 +3013,7 @@ const Art = (() => {
   /* how tall each appliance stands, as a share of its size: a plate is low, a blender jug or a freezer is tall */
   const HEIGHT = { knife:0.78, toaster:0.78, blender:1.0, dish:0.4, grill:0.62, fryer:0.8, freezer:1.06, micro:0.8, siphon:0.8, oven:0.94,
     mixer:0.88, pasta:0.68, gatling:0.72, espresso:0.96, bread:0.84, mandoline:0.46, caddy:0.86, saucepan:0.66, bot:0.9, pets:0.42, lobster:0.92, chess:0.3,
-    chopsticks:0.36, susan:0.25, spray:0.95 };
+    chopsticks:0.36, susan:0.25, spray:0.95, rice:0.7 };
   /* how tall an appliance stands, in kitchen pixels */
   function solidDepth(T, t, sc){
     if (!T) return 0;
@@ -3044,6 +3109,7 @@ const Art = (() => {
     lobster: { parts:[{ x:-15, y:-15, w:30, h:30, r:5 }], color: () => SKIN && SKIN.body ? null : '#a8d8ea' },
     chess:   { parts:[{ x:-17, y:-17, w:34, h:34, r:2.5 }], color: () => CH_WOOD },
     spray:   { parts:[{ cx:0, cy:0, rx:12 }], color: () => SKIN && SKIN.body ? null : '#d8ecf5', bands:[0.55] },
+    rice:    { parts:[{ cx:0, cy:0, rx:15 }], bands:[0.45] },
     chopsticks:{ parts:[{ x:-0.6, y:-9, w:7.2, h:18, r:3.4 }], color: (t, P) => { const k = P ? chopStyle(P.up, t.paragon).rest : 'porcelain'; return k === 'porcelain' ? null : REST_COL[k]; } },
     susan:   { parts:[{ cx:0, cy:0, rx:23 }] },
   };
@@ -5399,6 +5465,9 @@ const Art = (() => {
     market: ['#2a9d8f', g => { g.strokeStyle = '#ffffff'; g.lineWidth = 1.6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-9, 4); g.lineTo(-4, -1); g.lineTo(0, 1.5); g.lineTo(7, -6); g.stroke(); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(9.5, -8.5); g.lineTo(4, -7); g.lineTo(8, -3); g.closePath(); g.fill(); rr(g, -7, 5, 12, 5, 2.5); fillStroke(g, '#f2c14e', '#a57412', 0.8); }],
     flurry: ['#4f8a2e', g => { g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 1.3; g.lineCap = 'round'; for (const [y, l] of [[-6, 5], [-1.5, 7], [3, 5]]){ g.beginPath(); g.moveTo(-10.5, y); g.lineTo(-10.5 + l, y); g.stroke(); } chopstick(g, -6, -4, 9.5, -0.9, 2.6, STICK_PAL.bamboo); chopstick(g, -5, 2.4, 9.5, 0.5, 2.6, STICK_PAL.bamboo); star(g, 9.5, -6, 3, '#fffbe6'); star(g, 6, 7, 2.2, '#fffbe6'); }],
     fullspin: ['#b8761f', g => { circle(g, 0, 0, 7.6); fillStroke(g, '#d8aa6e', '#ffffff', 1.1); circle(g, 0, 0, 2); g.fillStyle = '#ffffff'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.7; g.lineCap = 'round'; for (const a0 of [0.3, 0.3 + Math.PI]){ g.beginPath(); g.arc(0, 0, 10.2, a0, a0 + 1.9); g.stroke(); const ex = Math.cos(a0 + 1.9) * 10.2, ey = Math.sin(a0 + 1.9) * 10.2, ta = a0 + 1.9 + Math.PI / 2; g.beginPath(); g.moveTo(ex + Math.cos(ta - 2.4) * 3.4, ey + Math.sin(ta - 2.4) * 3.4); g.lineTo(ex, ey); g.lineTo(ex + Math.cos(ta + 2.4) * 3.4, ey + Math.sin(ta + 2.4) * 3.4); g.stroke(); } }],
+    valve: ['#8a3a1a', g => { circle(g, 0, 3, 7); fillStroke(g, '#c9d2d6', '#ffffff', 1); circle(g, 0, 3, 2.4); g.fillStyle = '#e2383f'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.7; g.lineCap = 'round'; for (const x of [-4, 0, 4]){ g.beginPath(); g.moveTo(x, -4); g.bezierCurveTo(x + 2.5, -6, x - 2.5, -8, x, -10.5); g.stroke(); } }],
+    mochi: ['#7a5a2a', g => { g.save(); g.rotate(-0.6); rr(g, -1.2, -2, 2.4, 12, 1); fillStroke(g, '#8a5a2a', '#ffffff', 0.7); rr(g, -6, -8, 12, 6.5, 2.4); fillStroke(g, '#c08a4a', '#ffffff', 0.9); g.restore(); ell(g, 3, 7, 7, 3.2); fillStroke(g, '#fffdf2', '#ffffff', 0.8); }],
+    serve: ['#b8761f', g => { ell(g, 0, 3, 9, 4); fillStroke(g, '#f4f1ea', '#ffffff', 1); g.beginPath(); g.arc(0, 2, 7, Math.PI, 0); g.closePath(); g.fillStyle = '#fffdf2'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.lineCap = 'round'; for (const x of [-3, 2]){ g.beginPath(); g.moveTo(x, -3); g.bezierCurveTo(x + 2, -5, x - 2, -7, x, -9.5); g.stroke(); } }],
     bubblebath: ['#2f8fc8', g => { for (const [x, y, r] of [[-3, 2, 7], [5, -4, 4.5], [6, 5, 3]]){ circle(g, x, y, r); g.fillStyle = 'rgba(220,245,255,0.35)'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.2; g.stroke(); circle(g, x - r * 0.35, y - r * 0.35, r * 0.22); g.fillStyle = '#ffffff'; g.fill(); } ell(g, -3, 3, 3, 2); g.fillStyle = '#5a3d2a'; g.fill(); }],
     downpour: ['#3a5f8a', g => { for (const [x, y, r] of [[-5, -3, 4.5], [0, -5, 5.5], [5, -3, 4.5], [0, -1, 5]]){ circle(g, x, y, r); g.fillStyle = '#dfe8ef'; g.fill(); } g.strokeStyle = '#9fd3ff'; g.lineWidth = 1.4; g.lineCap = 'round'; for (const x of [-6, -1, 4]){ g.beginPath(); g.moveTo(x, 4); g.lineTo(x - 1.5, 8.5); g.stroke(); } g.strokeStyle = '#ffd166'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(3, 3); g.lineTo(1, 7); g.lineTo(4, 7); g.lineTo(2, 11); g.stroke(); }],
     hydroblast: ['#1f6fa8', g => { g.save(); g.rotate(-0.5); rr(g, -10, -2.5, 9, 5, 2); fillStroke(g, '#f2a03d', '#7a3a10', 0.9); g.fillStyle = '#bfe9ff'; g.beginPath(); g.moveTo(-1, -2); g.lineTo(11, -5); g.lineTo(11, 5); g.lineTo(-1, 2); g.closePath(); g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1; for (const y of [-2.5, 0, 2.5]){ g.beginPath(); g.moveTo(2, y * 0.6); g.lineTo(10, y * 1.4); g.stroke(); } g.restore(); }],
@@ -5415,7 +5484,7 @@ const Art = (() => {
     bladestorm:'bladestorm', brioche:'brioche', liquefy:'liquefy', meteor:'meteor', rushhour:'rushhour', pyre:'pyre', inferno:'inferno', deepfry:'deepfry', longnight:'longnight', meltdown:'meltdown',
     supernova:'supernova', avalanche:'avalanche', overmix:'overmix', boil:'boil', pastageddon:'geddon', reaper:'reaper', leviathan:'leviathan', finale:'finale', strafe:'strafe', bombers:'bombers', refill:'refill', marketday:'market',
     smokebomb:'smoke', shadowstrike:'shadow', fanhammer:'hammer', highnoon:'noon', transmute:'transmute', elixir:'elixir', overdrive:'overdrive', megabot:'megabot', stampede:'stampede', feast:'feast', tsunami:'tsunami', kraken:'kraken',
-    castle:'castle', charge:'charge', checkmate:'checkmate', stalemate:'stalemate', flurry:'flurry', fullspin:'fullspin', gravyflood:'gravyflood', grandpinch:'grandpinch', bubblebath:'bubblebath', downpour:'downpour', hydroblast:'hydroblast' };
+    castle:'castle', charge:'charge', checkmate:'checkmate', stalemate:'stalemate', flurry:'flurry', fullspin:'fullspin', gravyflood:'gravyflood', grandpinch:'grandpinch', bubblebath:'bubblebath', downpour:'downpour', hydroblast:'hydroblast', valve:'valve', mochi:'mochi', serve:'serve' };
   const CUSTOM_AB_LOOK = { damage:'burst', burn:'flame', freeze:'snow', stun:'stars', slow:'clock', knock:'swirl', weaken:'crack', strip:'sparkle', bombs:'bomb', strike:'target', speed:'bolt', cash:'coin', lives:'heart' };
   /* which picture an ability uses: built-ins by id, custom ones by their first action */
   function abilityLook(ab){

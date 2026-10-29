@@ -444,7 +444,7 @@ function metaBoot(){
   const old = checkAchievements(true);
   /* only players who were here before this update get the tour; new players find it all on the menu */
   const returning = (Profile.stats.games || 0) > 0 || Object.keys(Profile.mastery).length > 0;
-  if (!(Profile.news >= NEWS) && returning && UI.screen === 'menu' && !UI.modalOpen) setTimeout(() => Profile.news >= BIG_NEWS ? showSprayNews() : Profile.news >= UTENSIL_NEWS ? showBigNews() : Profile.news >= CHESS_NEWS ? showUtensilNews() : Profile.news >= MIXER_NEWS ? showChessNews() : Profile.news >= APPLIANCE_NEWS ? showMixerNews() : Profile.news >= 5 ? showApplianceNews(Profile.news) : Profile.news === 4 ? showParagonNews() : Profile.news === 3 ? showRework() : Profile.news === 2 ? showNewChefs(joined) : Profile.news === 1 ? showChefNews(joined) : showWhatsNew(old, retro, joined), 400);
+  if (!(Profile.news >= NEWS) && returning && UI.screen === 'menu' && !UI.modalOpen) setTimeout(() => Profile.news >= RICE_NEWS ? showRiceNews() : Profile.news >= BIG_NEWS ? showSprayNews() : Profile.news >= UTENSIL_NEWS ? showBigNews() : Profile.news >= CHESS_NEWS ? showUtensilNews() : Profile.news >= MIXER_NEWS ? showChessNews() : Profile.news >= APPLIANCE_NEWS ? showMixerNews() : Profile.news >= 5 ? showApplianceNews(Profile.news) : Profile.news === 4 ? showParagonNews() : Profile.news === 3 ? showRework() : Profile.news === 2 ? showNewChefs(joined) : Profile.news === 1 ? showChefNews(joined) : showWhatsNew(old, retro, joined), 400);
   refreshMenuDots();
 }
 /* the news a player has seen: 1 the progression tour, 2 the head chefs, 3 the second three chefs, 4 the appliance rework, 5 paragon systems,
@@ -455,7 +455,8 @@ const MIXER_NEWS = APPLIANCE_NEWS + 1;
 const CHESS_NEWS = MIXER_NEWS + 1;
 const UTENSIL_NEWS = CHESS_NEWS + 1;
 const BIG_NEWS = UTENSIL_NEWS + 1;
-const NEWS = BIG_NEWS + 1;
+const RICE_NEWS = BIG_NEWS + 1;
+const NEWS = RICE_NEWS + 1;
 /* players who have seen everything else hear about the modes, kitchens and events */
 function showBigNews(){
   if (UI.modalOpen || UI.screen !== 'menu') return;
@@ -473,7 +474,7 @@ function showBigNews(){
 /* players who have seen everything else meet the Spray Bottle */
 function showSprayNews(){
   if (UI.modalOpen || UI.screen !== 'menu' || !TOWERS.spray) return;
-  Profile.news = NEWS; saveProfile();
+  Profile.news = RICE_NEWS; saveProfile();   // the Rice Cooker comes next time
   const li = (b, t) => h('li', {}, h('b', { text: b }), ' ' + t);
   const T = TOWERS.spray, P = T.paths;
   const cards = [[[0, 0, 0], T.name, money(T.cost) + ' · key ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
@@ -485,6 +486,23 @@ function showSprayNews(){
       li('Mist.', 'Combos with your other appliances: wet pests freeze solid when something cold hits them and burst into scalding steam when something hot does. The Humidifier keeps everything near it wet, and Downpour soaks the whole kitchen, with lightning on the Monsoon.'),
       li('Nozzle.', 'Twist the nozzle to Stream in its panel for a long jet that pushes pests back and scrubs off ghost cloaks, mold and armor. It grows into a pressure washer with a Hydro Blast down the busiest line of pests.'),
       li('The Car Wash.', 'Its paragon mists and jets at once, lays foam, pours out bubbles and keeps all three abilities coming.'))],
+    actions:[{ label:'Got it', kind:'primary' }] });
+}
+/* players who have seen everything else meet the Rice Cooker */
+function showRiceNews(){
+  if (UI.modalOpen || UI.screen !== 'menu' || !TOWERS.rice) return;
+  Profile.news = NEWS; saveProfile();
+  const li = (b, t) => h('li', {}, h('b', { text: b }), ' ' + t);
+  const T = TOWERS.rice, P = T.paths;
+  const cards = [[[0, 0, 0], T.name, money(T.cost) + ' · key ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
+  const row = h('div', { class:'news-chefs' }, cards.map(([up, b, sp]) => h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('rice', 96, up)), h('b', { text: b }), h('span', { text: sp }))),
+    h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('rice', 96, [5, 5, 5], true)), h('b', { text: T.paragon.name }), h('span', { text: 'Paragon' })));
+  modal({ title:'A new appliance: the Rice Cooker', lead:'It cooks quietly, then pops its lid: a burst of steam hits every pest around it at once. When the rice is ready it waits, warm, until pests come close. Open the lid early from its panel for a weaker burst.', cls:'chef-news',
+    content:[row, h('ul', { class:'news' },
+      li('Pressure.', 'Bigger bursts that cook faster, then a sealed pressure pot that gets through any shell and strips armor, a valve that lets out a run of huge bursts, and an industrial steamer.'),
+      li('Sticky.', 'Steamed pests get coated in rice: slowed, glued in place and taking extra from every hit. Rice balls reach further out, and Mochi Pound glues the whole kitchen.'),
+      li('Keep Warm.', 'With nobody near, it keeps finished pots warm and lets them all out when pests arrive. It warms the appliances around it so they attack faster, and its timer saves every pot for a vehicle or boss.'),
+      li('The Thousand-Bowl Banquet.', 'Its paragon cooks in moments, and every twelve bowls it serves bring out a Feast across the whole kitchen.'))],
     actions:[{ label:'Got it', kind:'primary' }] });
 }
 /* players who have seen everything else meet the Chopsticks and the Lazy Susan */

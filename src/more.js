@@ -583,6 +583,7 @@ function moreTick(dt){
   chessTick(dt);
   utensilTick(dt);
   sprayTick(dt);
+  riceTick(dt);
 }
 /* lives were lost: Nomads and Avengers get angry */
 function moreLeak(){
@@ -715,6 +716,7 @@ function runMoreAbility(t, ab){
     case 'castle': case 'charge': case 'checkmate': case 'stalemate': return runChessAbility(t, ab);
     case 'flurry': case 'fullspin': case 'gravyflood': case 'grandpinch': return runUtensilAbility(t, ab);
     case 'bubblebath': case 'downpour': case 'hydroblast': return runSprayAbility(t, ab);
+    case 'valve': case 'mochi': case 'serve': return runRiceAbility(t, ab);
   }
   return runMoreParaAbility(t, ab);
 }

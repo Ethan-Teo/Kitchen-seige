@@ -1574,6 +1574,12 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .toggle-inline{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:14px}
 @media (max-width:640px){.coop-pick{grid-template-columns:1fr}}
 .coop-badge.link{cursor:pointer;text-decoration:underline;pointer-events:auto}
+/* the rice cooker's panel */
+.rice-row{gap:6px}
+.rice-meter{height:9px;border-radius:5px;background:var(--enamel-3);overflow:hidden}
+.rice-meter i{display:block;height:100%;background:linear-gradient(90deg,#ffcf4d,#ff9a3c);transition:width .15s}
+.rice-meter.ready i{background:linear-gradient(90deg,#7ee07a,#2a9d8f)}
+.rice-acts{display:flex;align-items:center;gap:10px}.rice-kept{font-size:12.5px;color:var(--ink-2)}
 
 </style>
 <style>[hidden]{display:none!important}body{margin:0}</style>
@@ -2986,8 +2992,43 @@ const TOWERS = {
         bubbles:{ kind:'bubbles', rate:0.35/k, count:6, dmg:200+dd*20, bonusBig:Math.round((600+dd*60)*big), r:50, speed:55, life:8, type:'normal' },
       }, abilities:[{ id:'bubblebath', cd:35, n:40, back:300, hold:4, pop:3000+dd*300, popBig:Math.round((9000+dd*900)*big), big:true }, { id:'downpour', cd:45, dur:15, bolts:8, boltDmg:2000+dd*200, boltBig:Math.round((6000+dd*600)*big) }, { id:'hydroblast', cd:35, push:600, dmg:12000+dd*1200, bonusBig:Math.round((12000+dd*1200)*big), width:80 }] }; } },
   },
+  /* ------------------------------------------------------- RICE COOKER */
+  rice: {
+    name:'Rice Cooker', cost:400, size:16, hot:'{', faction:'line',
+    blurb:'Cooks quietly, then pops its lid: a burst of steam scalds every pest around it at once. Once the rice is ready it waits, warm, until pests come close, and you can open the lid early from its panel for a weaker burst. Build up the pressure, make the rice sticky, or keep pots warm to serve all at once.',
+    base:{ range:95, noTarget:true, atk:{ main:{ kind:'cook', rate:3.2, dmg:6, pierce:25, type:'heat' } } },
+    paths:[
+      { name:'Pressure', ups:[
+        { name:'Bigger Pot', cost:180, desc:'Steam bursts deal 9 and reach 10% further.', apply:s=>{ s.atk.main.dmg = 9; s.range *= 1.1; } },
+        { name:'Quick Cook', cost:420, desc:'Cooks 35% faster.', apply:s=>{ s.atk.main.rate /= 1.35; } },
+        { name:'Pressure Cooker', cost:1900, desc:'A sealed pot: bursts deal 28 (+60 to vehicles), get through any shell and strip armor.', apply:s=>{ const a=s.atk.main; a.dmg = 28; a.bonusBig = 60; a.ignoreImmune = true; a.strip = true; } },
+        { name:'Pressure Valve', cost:6200, desc:'Every burst is followed by a second at 60% half a second later. Ability: Blow the Valve lets out 6 bursts at triple damage in 2 seconds.', apply:s=>{ s.atk.main.after = { delay:0.5, mul:0.6 }; s.abilities.push({ id:'valve', cd:45, n:6, every:0.33, mul:3 }); } },
+        { name:'Industrial Steamer', cost:42000, desc:'Bursts deal 320 (+1,100 to vehicles, +500 to bosses) and reach 30% further. Blow the Valve bursts deal 5 times the damage.', apply:s=>{ const a=s.atk.main; a.dmg = 320; a.bonusBig = 1100; a.bonusBoss = 500; s.range *= 1.3; const ab=s.abilities.find(x=>x.id==='valve'); if (ab) ab.mul = 5; } },
+      ]},
+      { name:'Sticky', ups:[
+        { name:'Sticky Rice', cost:200, desc:'Steamed pests are coated in rice: 40% slower for 2s (vehicles 15%).', apply:s=>{ s.atk.main.sticky = { slow:0.6, bigSlow:0.85, dur:2, glue:0, vuln:0 }; } },
+        { name:'Glutinous', cost:450, desc:'Small pests are glued in place for 0.5s, and rice-coated pests take +1 from every hit.', apply:s=>{ const S=s.atk.main.sticky; if (S){ S.glue = 0.5; S.vuln = 1; } } },
+        { name:'Rice Balls', cost:1500, desc:'Also lobs 3 rice balls every 1.4s at pests further out (range 210): 6 damage each, slowing what they hit.', apply:s=>{ s.noTarget = false; s.atk.balls = { kind:'proj', rate:1.4, dmg:6, pierce:2, speed:420, size:6, type:'normal', sprite:'shape', shape:'orb', color:'#fbf7ea', count:3, spread:0.25, rangeAbs:210, slow:{ mult:0.7, dur:1.5, bigMult:0.9 } }; } },
+        { name:'Mochi Mallet', cost:5200, desc:'Glue lasts 1s, coated pests take +4 from every hit, and vehicles crawl at 60%. Ability: Mochi Pound glues every pest on screen for 2.5s (vehicles slowed, bosses 30% slower) and deals 150.', apply:s=>{ const S=s.atk.main.sticky; if (S){ S.glue = 1; S.vuln = 4; S.bigSlow = 0.6; } s.abilities.push({ id:'mochi', cd:50, dur:2.5, dmg:150, big:false, bossSlow:0.7 }); } },
+        { name:'Rice Paddy', cost:34000, desc:'Glue lasts 1.6s and holds vehicles for 0.5s; coated pests take +25 from every hit and bosses crawl 30% slower. Mochi Pound deals 2,500 (+5,000 to vehicles), holds vehicles too and lasts 4s.', apply:s=>{ const S=s.atk.main.sticky; if (S){ S.glue = 1.6; S.bigGlue = 0.5; S.vuln = 25; S.boss = 0.7; } const ab=s.abilities.find(x=>x.id==='mochi'); if (ab){ ab.dmg = 2500; ab.bonusBig = 5000; ab.big = true; ab.dur = 4; ab.bossSlow = 0.6; } } },
+      ]},
+      { name:'Keep Warm', ups:[
+        { name:'Keep Warm', cost:160, desc:'With no pests near, it keeps up to 2 finished pots warm. When pests arrive they all come out, one after another.', apply:s=>{ s.atk.main.store = 2; } },
+        { name:'Warm Plate', cost:420, desc:'Appliances in its range attack 10% faster.', apply:s=>{ s.buff = Object.assign(s.buff || {}, { speed:1.1 }); } },
+        { name:'Rice Timer', cost:1700, desc:'Keeps up to 4 pots warm. When a vehicle or boss comes into range, every kept pot comes out at once in one burst at double damage.', apply:s=>{ s.atk.main.store = 4; s.atk.main.timer = 2; } },
+        { name:'Steam Table', cost:5400, desc:'Appliances in its range attack 20% faster and hit 1 more pest. Ability: Serve! cooks every pot it can keep warm at once and serves them straight out.', apply:s=>{ s.buff = Object.assign(s.buff || {}, { speed:1.2, pierce:1 }); s.abilities.push({ id:'serve', cd:40 }); } },
+        { name:'Banquet Hall', cost:30000, desc:'Keeps up to 10 pots warm, the timer burst deals triple, bursts deal 60 and reach 25% further. Serve! recharges in 25s.', apply:s=>{ const a=s.atk.main; a.store = 10; a.timer = 3; a.dmg = Math.max(a.dmg, 60); s.range *= 1.25; const ab=s.abilities.find(x=>x.id==='serve'); if (ab) ab.cd = 25; } },
+      ]},
+    ],
+    paragon:{ name:'The Thousand-Bowl Banquet', cost:220000, desc:'A banquet kitchen of rice cookers. It cooks in moments, glues everything it steams, keeps ten pots warm, warms every appliance near it, and every twelve bowls it serves bring out the Feast across the whole kitchen. Blow the Valve, Mochi Pound and Serve! all come round quickly.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:190, camo:true, buff:{ speed:1.25, pierce:1 }, atk:{
+        main:{ kind:'cook', rate:0.7/k, dmg:500+dd*50, pierce:80, type:'heat', ignoreImmune:true, strip:true, bonusBig:Math.round((1500+dd*150)*big), bonusBoss:Math.round((800+dd*80)*big), store:10, timer:3, after:{ delay:0.4, mul:0.6 },
+          sticky:{ slow:0.5, bigSlow:0.6, dur:2.5, glue:1.4, bigGlue:0.5, vuln:40+dd*4, boss:0.65 } },
+        balls:{ kind:'proj', rate:0.35/k, dmg:80+dd*8, pierce:4, speed:480, size:7, type:'normal', sprite:'shape', shape:'orb', color:'#fbf7ea', count:5, spread:0.3, rangeAbs:280, ignoreImmune:true, slow:{ mult:0.6, dur:1.5, bigMult:0.8 } },
+      }, abilities:[{ id:'valve', cd:35, n:8, every:0.25, mul:6 }, { id:'mochi', cd:40, dur:4, dmg:8000+dd*800, bonusBig:Math.round((16000+dd*1600)*big), big:true, bossSlow:0.55 }, { id:'serve', cd:20 }] }; } },
+  },
 };
-const TOWER_ORDER = ['knife','toaster','blender','dish','grill','fryer','freezer','micro','siphon','oven','mixer','pasta','gatling','boat','sub','heli','saucer','espresso','bread','mandoline','caddy','saucepan','bot','pets','lobster','chess','chopsticks','susan','spray'];
+const TOWER_ORDER = ['knife','toaster','blender','dish','grill','fryer','freezer','micro','siphon','oven','mixer','pasta','gatling','boat','sub','heli','saucer','espresso','bread','mandoline','caddy','saucepan','bot','pets','lobster','chess','chopsticks','susan','spray','rice'];
 /* the built-in appliances; custom ones from the admin tower builder are appended to TOWER_ORDER at runtime */
 const BASE_TOWER_ORDER = TOWER_ORDER.slice();
 
@@ -8187,6 +8228,7 @@ function moreTick(dt){
   chessTick(dt);
   utensilTick(dt);
   sprayTick(dt);
+  riceTick(dt);
 }
 /* lives were lost: Nomads and Avengers get angry */
 function moreLeak(){
@@ -8319,6 +8361,7 @@ function runMoreAbility(t, ab){
     case 'castle': case 'charge': case 'checkmate': case 'stalemate': return runChessAbility(t, ab);
     case 'flurry': case 'fullspin': case 'gravyflood': case 'grandpinch': return runUtensilAbility(t, ab);
     case 'bubblebath': case 'downpour': case 'hydroblast': return runSprayAbility(t, ab);
+    case 'valve': case 'mochi': case 'serve': return runRiceAbility(t, ab);
   }
   return runMoreParaAbility(t, ab);
 }
@@ -9936,6 +9979,7 @@ function utensilParaBar(t){
   if (t.type === 'chopsticks'){ const need = (s.focus && s.focus.need) || 30; return { v: S.focus / need, c: '#ffd166' }; }
   if (t.type === 'susan'){ const w = s.windup || { max: 0.6 }; return { v: S.wind / w.max, c: '#e8b04a' }; }
   if (t.type === 'spray') return sprayParaBar(t);
+  if (t.type === 'rice') return riceParaBar(t);
   return null;
 }
 function utensilParaUI(t){
@@ -9952,6 +9996,7 @@ function utensilParaUI(t){
       lines: ['The longer a round runs, the faster the carousel turns: its riders attack ' + Math.round(w.per * 100) + '% faster for every second, up to ' + Math.round(w.max * 100) + '%. It winds down again when the next round starts.'] };
   }
   if (t.type === 'spray') return sprayParaUI(t);
+  if (t.type === 'rice') return riceParaUI(t);
   return null;
 }
 
@@ -10156,7 +10201,7 @@ function sprayFire(t, a, id){
     case 'spray': return a.streaming ? fireStream(t, a, id) : fireMist(t, a, id);
     case 'bubbles': return fireBubbles(t, a);
   }
-  return false;
+  return riceFire(t, a, id);
 }
 function fireMist(t, a, id){
   const range = attackRange(t, a);
@@ -10481,6 +10526,194 @@ function sprayParaUI(t){
   const S = t.sys, P = WASH[S.prog];
   return { title:'Wash cycle', meter: { v: S.t / WASH_LEN, c: P.c, text: P.name + ' · ' + Math.max(0, Math.ceil(WASH_LEN - S.t)) + 's left' },
     lines: ['During a round the Car Wash runs four programmes in turn, ' + WASH_LEN + ' seconds each, and starts again with Rinse every round.'].concat(WASH.map(w => (w === P ? '▶ ' : '') + w.name + ': ' + w.text)) };
+}
+
+'use strict';
+/* =====================================================================
+   Kitchen Siege — the Rice Cooker
+   A charge-up appliance. It cooks while nothing happens (its attack's
+   rate is the cooking time), and once the rice is ready it waits, warm,
+   until a pest comes into range; then the lid pops and a burst of steam
+   hits every pest around it. You can open the lid early from its panel
+   for a weaker burst.
+     cook       the attack: a steam burst around the cooker, up to `pierce`
+                pests, nearest first
+     sticky     rice sticks to what the steam hits: it slows, glues small
+                pests in place and makes them take a little more
+     store      Keep Warm: with nobody in range, a finished pot is kept warm
+                (up to `store` of them) and they all come out, one after
+                another, when pests arrive
+     timer      a vehicle or boss in range lets every kept pot out at once,
+                for `timer` times the damage
+     after      an aftershock: a second, weaker burst a moment later
+   Abilities: Blow the Valve (pressure), Mochi Pound (sticky), Serve! (warm).
+   The engine calls in through riceFire (attacks), riceTick (each frame)
+   and runRiceAbility; the panel through riceOpenLid and riceCharge.
+   ===================================================================== */
+const QRC = [];
+Object.assign(ABILITIES, {
+  valve: { name:'Blow the Valve', desc:'The pressure valve blows: a run of huge steam bursts, one after another.' },
+  mochi: { name:'Mochi Pound',    desc:'A mallet pounds the whole kitchen: every pest on screen is glued in place by rice and takes damage.' },
+  serve: { name:'Serve!',         desc:'Every pot it can keep warm is cooked at once and served straight out.' },
+});
+
+/* how far the rice is cooked: 0 just served, 1 ready */
+function riceCharge(t){
+  const a = t && t.s && t.s.atk && t.s.atk.main;
+  if (!a || a.kind !== 'cook') return 0;
+  return clamp(1 - (t.cd.main || 0) / a.rate, 0, 1);
+}
+function ricePests(t, a){
+  const range = attackRange(t, a), out = [];
+  for (const e of query(t.x, t.y, range, QRC)) if (canTarget(t, e, a) && Math.hypot(e.x - t.x, e.y - t.y) <= range + e.r) out.push(e);
+  return out;
+}
+/* one burst of steam: `mul` scales its damage (an early lid, a kept pot let out by the timer) */
+function riceBurst(t, a, mul, list){
+  list = list || ricePests(t, a);
+  if (!list.length) return false;
+  list.sort((p, q) => Math.hypot(p.x - t.x, p.y - t.y) - Math.hypot(q.x - t.x, q.y - t.y));
+  const spec = mul === 1 ? a : Object.assign({}, a, { dmg: a.dmg * mul, bonusBig: (a.bonusBig || 0) * mul, bonusBoss: (a.bonusBoss || 0) * mul });
+  const S = a.sticky;
+  let n = 0;
+  for (const e of list){
+    if (n >= a.pierce) break;
+    applyHit(e, spec, t);
+    n++;
+    if (e.dead || !S) continue;
+    if (e.boss){ if (S.boss) slowE(e, S.boss, S.dur); }
+    else if (e.big){ if (S.bigSlow < 1) slowE(e, S.bigSlow, S.dur); if (S.bigGlue) stunE(e, S.bigGlue); }
+    else { slowE(e, S.slow, S.dur); if (S.glue) stunE(e, S.glue); }
+    if (S.vuln) setVuln(e, { amt: S.vuln, dur: Math.max(S.dur, S.glue || 0) });
+    e.riceT = Math.max(e.riceT || 0, S.dur);
+  }
+  t.fireAnim = 0.4;
+  t.riceServed = (t.riceServed || 0) + 1;
+  if (t.sys && t.sys.bowls != null) t.sys.bowls++;
+  if (a.after && mul > 0.2) t.riceAfter = { t: a.after.delay, mul: mul * a.after.mul };
+  if (G.vis){
+    const R = attackRange(t, a);
+    G.fx.push({ k:'ring', x: t.x, y: t.y, r0: t.size, r1: R, t: 0, life: 0.45, c: S ? '#f6f1df' : '#ffffff', w: 3 + Math.min(5, mul * 2) });
+    if (!lowFx()) for (let i = 0; i < 14; i++){ const an = rand(0, TAU), v = rand(60, R * 1.8); part(t.x, t.y, Math.cos(an) * v, Math.sin(an) * v, 0.6, i % 4 ? '#f4f7f8' : '#ffffff', 7, 'smoke'); }
+    if (S && !lowFx()) for (let i = 0; i < 8; i++){ const an = rand(0, TAU), v = rand(40, R * 1.2); part(t.x, t.y, Math.cos(an) * v, Math.sin(an) * v, 0.5, '#fffdf2', 2.2, 'dot'); }
+  }
+  Hooks.sfx('steam');
+  return true;
+}
+/* the attack: when the rice is ready, serve it (and everything kept warm); with nobody near, keep a pot warm */
+function riceFire(t, a, id){
+  if (a.kind !== 'cook') return false;
+  const list = ricePests(t, a);
+  if (!list.length){
+    if (a.store && (t.riceStore || 0) < a.store){ t.riceStore = (t.riceStore || 0) + 1; return true; }
+    return false;
+  }
+  const kept = t.riceStore || 0;
+  if (kept && a.timer && list.some(e => e.big || e.boss)){
+    t.riceStore = 0;
+    riceBurst(t, a, a.timer * (1 + kept), list);
+    if (G.vis) G.fx.push({ k:'ring', x: t.x, y: t.y, r0: 6, r1: attackRange(t, a) * 1.15, t: 0, life: 0.6, c: '#f2c14e', w: 6 });
+    return true;
+  }
+  riceBurst(t, a, 1, list);
+  if (kept){ t.riceQ = (t.riceQ || 0) + kept; t.riceStore = 0; t.riceQT = 0.22; }
+  return true;
+}
+/* open the lid early: a weaker burst, scaled by how far the rice had cooked */
+function riceOpenLid(t){
+  const a = t && t.s && t.s.atk && t.s.atk.main;
+  if (!a || a.kind !== 'cook' || !G.active || G.over) return false;
+  const c = riceCharge(t);
+  if (c < 0.25) return false;
+  if (!ricePests(t, a).length) return false;
+  riceBurst(t, a, c >= 1 ? 1 : c * 0.8);
+  t.cd.main = a.rate;
+  return true;
+}
+function riceTick(dt){
+  for (const e of G.enemies) if (e.riceT > 0) e.riceT -= dt;
+  for (const t of G.towers){
+    const a = t.s && t.s.atk && t.s.atk.main;
+    if (!a || a.kind !== 'cook' || t.stunT > 0) continue;
+    /* kept pots, let out one after another */
+    if (t.riceQ > 0){
+      t.riceQT -= dt;
+      if (t.riceQT <= 0){
+        t.riceQT = 0.22;
+        if (riceBurst(t, a, 1)) t.riceQ--;
+        else { t.riceStore = Math.min(a.store || 0, (t.riceStore || 0) + t.riceQ); t.riceQ = 0; }
+      }
+    }
+    /* the aftershock */
+    if (t.riceAfter){ t.riceAfter.t -= dt; if (t.riceAfter.t <= 0){ const m = t.riceAfter.mul; t.riceAfter = null; const keep = a.after; a.after = null; riceBurst(t, a, m); a.after = keep; } }
+    /* Blow the Valve */
+    if (t.riceValve){
+      const V = t.riceValve;
+      V.acc -= dt;
+      if (V.acc <= 0){ V.acc = V.every; riceBurst(t, a, V.mul); V.n--; if (V.n <= 0) t.riceValve = null; }
+    }
+  }
+}
+function runRiceAbility(t, ab){
+  const a = t.s.atk.main;
+  switch (ab.id){
+    case 'valve': {
+      if (!a || !ricePests(t, a).length) return false;
+      t.riceValve = { n: ab.n, every: ab.every, mul: ab.mul, acc: 0 };
+      return true;
+    }
+    case 'mochi': {
+      const list = pestsOnScreen().filter(e => !(e.burrowT > 0) && !e.air);
+      if (!list.length) return false;
+      for (const e of list){
+        if (e.boss){ slowE(e, ab.bossSlow || 0.7, ab.dur); }
+        else if (e.big){ if (ab.big) stunE(e, ab.dur * 0.5); else slowE(e, 0.5, ab.dur); }
+        else stunE(e, ab.dur);
+        e.riceT = Math.max(e.riceT || 0, ab.dur);
+        damage(e, ab.dmg + (e.big ? ab.bonusBig || 0 : 0), 'normal', t, { ignoreImmune: true });
+      }
+      if (G.vis){ G.shake = Math.max(G.shake, 0.6); for (const e of list.slice(0, 40)) G.fx.push({ k:'ring', x: e.x, y: e.y, r0: 2, r1: e.r * 2.4, t: 0, life: 0.35, c: '#fffdf2', w: 3 }); }
+      Hooks.sfx('steam');
+      return true;
+    }
+    case 'serve': {
+      if (!a) return false;
+      t.cd.main = 0;
+      t.riceStore = a.store || 0;
+      if (!ricePests(t, a).length){ if (G.vis) G.fx.push({ k:'ring', x: t.x, y: t.y, r0: 4, r1: t.size * 2.2, t: 0, life: 0.5, c: '#f2c14e', w: 4 }); return true; }
+      riceFire(t, a, 'main');
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ---------------- the paragon: a banquet, course by course ---------------- */
+const FEAST_BOWLS = 12;
+PARA.rice = {
+  init: () => ({ bowls: 0, feasts: 0, glow: 0 }),
+  tick(t, dt){
+    const S = t.sys;
+    if (S.glow > 0) S.glow -= dt;
+    if (S.bowls < FEAST_BOWLS || !G.roundActive) return;
+    S.bowls = 0; S.feasts++; S.glow = 1;
+    const a = t.s.atk.main, list = pestsOnScreen().filter(e => !(e.burrowT > 0));
+    for (const e of list){
+      damage(e, a.dmg * 4, 'heat', t, { ignoreImmune: true, bonusBig: (a.bonusBig || 0) * 4, bonusBoss: (a.bonusBoss || 0) * 2 });
+      if (!e.dead){ if (e.boss) slowE(e, 0.6, 1.5); else stunE(e, e.big ? 0.6 : 1.2); e.riceT = Math.max(e.riceT || 0, 1.2); }
+    }
+    if (G.vis){ G.shake = Math.max(G.shake, 0.8); G.fx.push({ k:'ring', x: t.x, y: t.y, r0: 10, r1: 900, t: 0, life: 0.9, c: '#f2c14e', w: 8 }); }
+    Hooks.sfx('steam');
+  },
+  round(t, when){ if (when === 'start') t.sys.glow = 0; },
+  save: S => ({ b: S.bowls || 0, f: S.feasts || 0 }),
+  load(S, d){ S.bowls = clamp(Math.floor(+d.b || 0), 0, FEAST_BOWLS); S.feasts = clamp(Math.floor(+d.f || 0), 0, 1e7); },
+};
+function riceParaBar(t){ const S = t.sys; return { v: S.bowls / FEAST_BOWLS, c: '#f2c14e', txt: S.bowls + '/' + FEAST_BOWLS + ' BOWLS' }; }
+function riceParaUI(t){
+  const S = t.sys;
+  return { title:'The banquet', meter: { v: S.bowls / FEAST_BOWLS, c: '#f2c14e', text: S.bowls + ' of ' + FEAST_BOWLS + ' bowls served' },
+    lines: ['Every steam burst serves a bowl. Each ' + FEAST_BOWLS + ' bowls served bring out the Feast: every pest on screen takes four times a burst’s damage through any shell and is glued in place (bosses are slowed).', 'Feasts so far: ' + fmt(S.feasts || 0) + '.'] };
 }
 
 'use strict';
@@ -12109,7 +12342,7 @@ function importCollection(code){
 /* ---------------- Remix: a built-in appliance as a starting design ----------------
    Its look, price, range, ghost sight and main attack are read off the real appliance; the paths keep the real
    upgrade names and prices, with changes that suit the attack. */
-const REMIX_STYLE = { spray:'flame', proj:'throw', pulse:'pulse', radial:'pulse', hitscan:'snipe', beam:'beam', bolt:'beam', lob:'lob', flame:'flame', tornado:'whirl', grab:'grab', catch:'grab', trap:'spikes', slick:'lob', cloud:'lob' };
+const REMIX_STYLE = { cook:'pulse', spray:'flame', proj:'throw', pulse:'pulse', radial:'pulse', hitscan:'snipe', beam:'beam', bolt:'beam', lob:'lob', flame:'flame', tornado:'whirl', grab:'grab', catch:'grab', trap:'spikes', slick:'lob', cloud:'lob' };
 function remixDesign(type){
   const T = TOWERS[type];
   if (!T || T.custom || T.hero) return null;
@@ -16951,6 +17184,8 @@ const Art = (() => {
       }
       if (e.slipT > 0){ g.strokeStyle = 'rgba(255,255,255,' + (e.slipT * 2).toFixed(3) + ')'; g.lineWidth = 1.6; g.lineCap = 'round'; for (const y of [-e.r * 0.4, e.r * 0.4]){ g.beginPath(); g.moveTo(e.r * 0.9, y); g.lineTo(e.r * 1.9, y); g.stroke(); } }
     }
+    /* coated in sticky rice: grains stuck all over it */
+    if (e.riceT > 0){ const n = e.big ? 9 : 5; for (let i = 0; i < n; i++){ const an = i * 2.39 + e.id * 0.7, d = e.r * (0.25 + (i % 3) * 0.22); g.save(); g.translate(Math.cos(an) * d, Math.sin(an) * d * 0.85); g.rotate(an * 1.7); ell(g, 0, 0, e.big ? 2.6 : 1.8, e.big ? 1.2 : 0.85); fillStroke(g, '#fffdf2', 'rgba(150,140,110,0.8)', 0.5); g.restore(); } }
     if (e.soakT > 0){ ell(g, 0, 0, e.r * 0.9, e.r * 0.7); g.fillStyle = 'rgba(214,160,52,0.28)'; g.fill(); ell(g, -e.r * 0.3, -e.r * 0.3, e.r * 0.25, e.r * 0.12, -0.6); g.fillStyle = 'rgba(255,255,255,0.5)'; g.fill(); }
     if (e.glazed){ circle(g, 0, 0, e.r * 0.92); g.fillStyle = 'rgba(255,200,80,0.2)'; g.fill(); g.strokeStyle = 'rgba(255,214,120,0.75)'; g.lineWidth = 1.3; g.stroke(); ell(g, -e.r * 0.35, -e.r * 0.4, e.r * 0.3, e.r * 0.12, -0.6); g.fillStyle = 'rgba(255,250,220,0.8)'; g.fill(); }
     if (e.acid){ for (let i = 0; i < (e.big ? 4 : 2); i++){ const ph = (t * 1.3 + i * 0.47 + e.id * 0.13) % 1, an = i * 2.3 + e.id; circle(g, Math.cos(an) * e.r * 0.5, Math.sin(an) * e.r * 0.5 + ph * 4, 1.3 + (1 - ph) * 1.2); g.fillStyle = 'rgba(200,214,70,' + (0.9 * (1 - ph)).toFixed(3) + ')'; g.fill(); } }
@@ -17066,6 +17301,7 @@ const Art = (() => {
     chess:   ['#f3e7cb', '#f3e7cb', '#f3e7cb', '#f3e7cb'],
     chopsticks:['#f4f1ea', '#8fbf5a', '#2a2220', '#f4f1ea'],
     spray:   ['#2a9d8f', '#f278b4', '#5aa6d6', '#f2a03d'],
+    rice:    ['#f4f1ea', '#c9d2d6', '#f6e7b0', '#f2b07a'],
     susan:   ['#c99a62', '#d8aa6e', '#8f5c36', '#a8603e'],
   };
   function dominant(up){ let p = -1, m = 2; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
@@ -17264,6 +17500,68 @@ const Art = (() => {
     if (a >= 2){ rr(g, nl + 1, -3.5, 6, 7, 2); fillStroke(g, '#c99a5c', '#7a5428', 0.8); }
     if (c >= 4){ g.save(); g.rotate(-(t.rotNow || 0)); rr(g, 10, 8, 12, 10, 1.5); fillStroke(g, '#a57d55', '#6f5234', 1); g.strokeStyle = '#6f5234'; g.beginPath(); g.moveTo(10, 13); g.lineTo(22, 13); g.stroke(); g.restore(); }
     if (c >= 1){ for (let i = 0; i < 3; i++){ const an = time + i * 2.1; circle(g, Math.cos(an) * 20, Math.sin(an) * 20, 2.4); g.strokeStyle = 'rgba(190,240,255,0.8)'; g.lineWidth = 1; g.stroke(); } }
+  }
+  /* the Rice Cooker, from above: a round pot with a domed lid, a hinge at the back (-x) and a control panel at the
+     front (+x) with its cook and warm lights. A ring round the lid fills as the rice cooks, and the lid pops up as it
+     bursts. Pressure turns it into a steel pressure pot with a weighted valve, a gauge and finally an industrial
+     steamer; Sticky leans a rice paddle on it, then a bowl of rice balls, a mochi mallet and a golden paddle; Keep
+     Warm adds a warm glow, a timer dial, a steam tray and, at the top, a stack of little pots. Kept pots sit round it
+     as small bowls. */
+  function drawRice(g, t, up, time, par){
+    const [a, b, c] = up;
+    const body = bodyColor('rice', up, par), fire = t.fireAnim > 0;
+    const steel = a >= 3 || par;
+    const charge = typeof riceCharge === 'function' && t.s ? riceCharge(t) : 1;
+    /* Keep Warm: a warm glow under it */
+    if ((c >= 2 || par) && !lowFx()){ const gr = g.createRadialGradient(0, 0, 8, 0, 0, 26); gr.addColorStop(0, 'rgba(255,170,80,0.35)'); gr.addColorStop(1, 'rgba(255,170,80,0)'); g.fillStyle = gr; circle(g, 0, 0, 26); g.fill(); }
+    /* the stack of little pots behind (Banquet Hall, the paragon) */
+    if (c >= 5 || par) for (const [x, y] of [[-16, -12], [-16, 12], [-21, 0]]){ circle(g, x, y, 6); fillStroke(g, par ? '#f2c14e' : '#f2b07a', '#7a4a1a', 1); circle(g, x, y, 3.6); g.fillStyle = '#fffbea'; g.fill(); }
+    /* the pot */
+    circle(g, 0, 0, 15); fillStroke(g, steel ? (a >= 5 ? '#9aa6ab' : '#c9d2d6') : body, steel ? '#4d585d' : shade(body, -0.45), 1.6);
+    /* the hinge at the back and the control panel at the front */
+    rr(g, -17, -4, 4, 8, 1.6); fillStroke(g, '#5c666b', '#2a2f33', 0.8);
+    rr(g, 10, -6, 7, 12, 2.4); fillStroke(g, par ? '#2a2220' : '#3a4448', '#1a1f22', 0.9);
+    const ready = charge >= 1;
+    circle(g, 13.5, -2.6, 1.6); g.fillStyle = ready ? '#7ee07a' : '#ff6b4a'; g.fill();
+    circle(g, 13.5, 2.6, 1.6); g.fillStyle = (t.riceStore > 0 || c >= 1) ? '#ffb347' : '#5a3a2a'; g.fill();
+    /* the charge ring round the lid */
+    g.lineWidth = 2.4; g.lineCap = 'round';
+    g.strokeStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.arc(0, 0, 12.2, 0, TAU); g.stroke();
+    g.strokeStyle = ready ? '#7ee07a' : '#ffcf4d'; g.beginPath(); g.arc(0, 0, 12.2, -Math.PI / 2, -Math.PI / 2 + TAU * charge); g.stroke();
+    /* the lid: lifted as it bursts */
+    const lift = fire ? Math.sin((1 - t.fireAnim / 0.4) * Math.PI) * 3.5 : 0;
+    g.save(); g.translate(-lift * 0.6, -lift);
+    circle(g, 0, 0, 10.2); fillStroke(g, steel ? '#dfe5e8' : shade(body, 0.06), steel ? '#5c666b' : shade(body, -0.4), 1.1);
+    ell(g, -3.2, -3.4, 4, 2, -0.6); g.fillStyle = 'rgba(255,255,255,0.6)'; g.fill();
+    /* the steam vent, or the pressure valve and its gauge */
+    if (steel){
+      circle(g, 0, 0, 3.4); fillStroke(g, '#2a2f33', '#111', 0.8);
+      circle(g, 0, 0, 1.7); g.fillStyle = a >= 5 ? '#e2383f' : '#f2a03d'; g.fill();
+      if (a >= 4 || par){ circle(g, 5.5, 4.5, 2.6); fillStroke(g, '#f4f6f6', '#2a2f33', 0.7); g.strokeStyle = '#e2383f'; g.lineWidth = 0.8; const ga = -2.4 + charge * 2.8; g.beginPath(); g.moveTo(5.5, 4.5); g.lineTo(5.5 + Math.cos(ga) * 2, 4.5 + Math.sin(ga) * 2); g.stroke(); }
+    } else { rr(g, -1.5, -5.5, 3, 4, 1.2); fillStroke(g, '#c9d2d6', '#5c666b', 0.6); }
+    /* the timer dial (Rice Timer) */
+    if (c >= 3 || par){ circle(g, -4.5, 4.5, 2.6); fillStroke(g, '#fff4d6', '#7a4a1a', 0.7); g.strokeStyle = '#7a4a1a'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(-4.5, 4.5); g.lineTo(-4.5 + Math.cos(time * 2) * 1.8, 4.5 + Math.sin(time * 2) * 1.8); g.stroke(); }
+    g.restore();
+    /* Sticky: a rice paddle leaning on it, a bowl of rice balls, a mallet */
+    if (b >= 1 || par){
+      g.save(); g.translate(4, 15); g.rotate(-0.5);
+      rr(g, -1.3, -2, 2.6, 9, 1.2); fillStroke(g, b >= 5 || par ? '#f2c14e' : '#f4efe0', b >= 5 || par ? '#8a6a10' : '#9c9078', 0.7);
+      ell(g, 0, -4.5, 3.4, 4.2); fillStroke(g, b >= 5 || par ? '#f2c14e' : '#f4efe0', b >= 5 || par ? '#8a6a10' : '#9c9078', 0.7);
+      for (let i = 0; i < 3; i++){ circle(g, -1 + i, -5 + (i % 2), 0.7); g.fillStyle = '#ffffff'; g.fill(); }
+      g.restore();
+    }
+    if (b >= 3 || par){ circle(g, -8, 16, 4.6); fillStroke(g, '#2a5f8a', '#163f66', 0.8); for (const [x, y] of [[-9.5, 15], [-6.5, 15.5], [-8, 17.6]]){ circle(g, x, y, 1.6); fillStroke(g, '#fbf7ea', '#9c9078', 0.5); } }
+    if (b >= 4 || par){ g.save(); g.translate(-10, -15); g.rotate(0.6); rr(g, -1, -1, 2, 10, 1); fillStroke(g, '#8a5a2a', '#4a2a10', 0.6); rr(g, -4, -4.5, 8, 4.5, 1.6); fillStroke(g, '#a8703a', '#4a2a10', 0.7); g.restore(); }
+    /* kept pots: little bowls round the front */
+    const kept = Math.min(10, t.riceStore || 0);
+    for (let i = 0; i < kept; i++){ const an = -1.2 + i * 0.26; circle(g, Math.cos(an) * 21, Math.sin(an) * 21, 2.4); fillStroke(g, '#fffbea', '#c9a36a', 0.7); }
+    /* the burst of steam as the lid pops */
+    if (fire && !lowFx()){
+      const k = 1 - t.fireAnim / 0.4;
+      for (let i = 0; i < 6; i++){ const an = i / 6 * TAU + k; circle(g, Math.cos(an) * (8 + k * 14), Math.sin(an) * (8 + k * 14), 3 + k * 4); g.fillStyle = 'rgba(255,255,255,' + (0.7 * (1 - k)).toFixed(3) + ')'; g.fill(); }
+    } else if (ready && !lowFx()){
+      const k = (time * 0.8) % 1; circle(g, 0, -k * 10, 2 + k * 3); g.fillStyle = 'rgba(255,255,255,' + (0.5 * (1 - k)).toFixed(3) + ')'; g.fill();
+    }
   }
   /* the Spray Bottle: a round bottle seen from above with its trigger head on top, pointing +x. What is in it shows
      through the plastic (water, soap, icy mist); the nozzle path grows a brass nozzle, a hose and pressure tank, and a
@@ -19132,7 +19430,7 @@ const Art = (() => {
     }
   }
   const TOWER_DRAW = { knife:drawKnife, toaster:drawToaster, blender:drawBlender, dish:drawDish, grill:drawGrill, fryer:drawFryer, freezer:drawFreezer, micro:drawMicro, siphon:drawSiphon, oven:drawOven, mixer:drawMixer, pasta:drawPasta, espresso:drawEspresso, bread:drawBread, gatling:drawGatling,
-    boat:drawBoat, sub:drawSub, heli:drawHeli, saucer:drawSaucer, mandoline:drawMandoline, caddy:drawCaddy, saucepan:drawSaucepan, bot:drawBot, pets:drawPets, lobster:drawLobster, chess:drawChess, chopsticks:drawChopsticks, susan:drawSusan, spray:drawSpray, chef_blaze:drawChef, chef_gelato:drawChef, chef_penny:drawChef, chef_kenji:drawChef, chef_nonna:drawChef, chef_bruno:drawChef };
+    boat:drawBoat, sub:drawSub, heli:drawHeli, saucer:drawSaucer, mandoline:drawMandoline, caddy:drawCaddy, saucepan:drawSaucepan, bot:drawBot, pets:drawPets, lobster:drawLobster, chess:drawChess, chopsticks:drawChopsticks, susan:drawSusan, spray:drawSpray, rice:drawRice, chef_blaze:drawChef, chef_gelato:drawChef, chef_penny:drawChef, chef_kenji:drawChef, chef_nonna:drawChef, chef_bruno:drawChef };
   /* Looks that turn to face what they attack, and which way their art faces before it turns (radians). Most point
      along +x; the boxy front-panel appliances face down the screen (+y), toward the viewer, and keep that pose until
      their first shot. Radial and area appliances (blender, freezer, pasta maker, saucer) and support ones don't turn. */
@@ -19252,7 +19550,7 @@ const Art = (() => {
   /* how tall each appliance stands, as a share of its size: a plate is low, a blender jug or a freezer is tall */
   const HEIGHT = { knife:0.78, toaster:0.78, blender:1.0, dish:0.4, grill:0.62, fryer:0.8, freezer:1.06, micro:0.8, siphon:0.8, oven:0.94,
     mixer:0.88, pasta:0.68, gatling:0.72, espresso:0.96, bread:0.84, mandoline:0.46, caddy:0.86, saucepan:0.66, bot:0.9, pets:0.42, lobster:0.92, chess:0.3,
-    chopsticks:0.36, susan:0.25, spray:0.95 };
+    chopsticks:0.36, susan:0.25, spray:0.95, rice:0.7 };
   /* how tall an appliance stands, in kitchen pixels */
   function solidDepth(T, t, sc){
     if (!T) return 0;
@@ -19348,6 +19646,7 @@ const Art = (() => {
     lobster: { parts:[{ x:-15, y:-15, w:30, h:30, r:5 }], color: () => SKIN && SKIN.body ? null : '#a8d8ea' },
     chess:   { parts:[{ x:-17, y:-17, w:34, h:34, r:2.5 }], color: () => CH_WOOD },
     spray:   { parts:[{ cx:0, cy:0, rx:12 }], color: () => SKIN && SKIN.body ? null : '#d8ecf5', bands:[0.55] },
+    rice:    { parts:[{ cx:0, cy:0, rx:15 }], bands:[0.45] },
     chopsticks:{ parts:[{ x:-0.6, y:-9, w:7.2, h:18, r:3.4 }], color: (t, P) => { const k = P ? chopStyle(P.up, t.paragon).rest : 'porcelain'; return k === 'porcelain' ? null : REST_COL[k]; } },
     susan:   { parts:[{ cx:0, cy:0, rx:23 }] },
   };
@@ -21703,6 +22002,9 @@ const Art = (() => {
     market: ['#2a9d8f', g => { g.strokeStyle = '#ffffff'; g.lineWidth = 1.6; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(-9, 4); g.lineTo(-4, -1); g.lineTo(0, 1.5); g.lineTo(7, -6); g.stroke(); g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(9.5, -8.5); g.lineTo(4, -7); g.lineTo(8, -3); g.closePath(); g.fill(); rr(g, -7, 5, 12, 5, 2.5); fillStroke(g, '#f2c14e', '#a57412', 0.8); }],
     flurry: ['#4f8a2e', g => { g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 1.3; g.lineCap = 'round'; for (const [y, l] of [[-6, 5], [-1.5, 7], [3, 5]]){ g.beginPath(); g.moveTo(-10.5, y); g.lineTo(-10.5 + l, y); g.stroke(); } chopstick(g, -6, -4, 9.5, -0.9, 2.6, STICK_PAL.bamboo); chopstick(g, -5, 2.4, 9.5, 0.5, 2.6, STICK_PAL.bamboo); star(g, 9.5, -6, 3, '#fffbe6'); star(g, 6, 7, 2.2, '#fffbe6'); }],
     fullspin: ['#b8761f', g => { circle(g, 0, 0, 7.6); fillStroke(g, '#d8aa6e', '#ffffff', 1.1); circle(g, 0, 0, 2); g.fillStyle = '#ffffff'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.7; g.lineCap = 'round'; for (const a0 of [0.3, 0.3 + Math.PI]){ g.beginPath(); g.arc(0, 0, 10.2, a0, a0 + 1.9); g.stroke(); const ex = Math.cos(a0 + 1.9) * 10.2, ey = Math.sin(a0 + 1.9) * 10.2, ta = a0 + 1.9 + Math.PI / 2; g.beginPath(); g.moveTo(ex + Math.cos(ta - 2.4) * 3.4, ey + Math.sin(ta - 2.4) * 3.4); g.lineTo(ex, ey); g.lineTo(ex + Math.cos(ta + 2.4) * 3.4, ey + Math.sin(ta + 2.4) * 3.4); g.stroke(); } }],
+    valve: ['#8a3a1a', g => { circle(g, 0, 3, 7); fillStroke(g, '#c9d2d6', '#ffffff', 1); circle(g, 0, 3, 2.4); g.fillStyle = '#e2383f'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.7; g.lineCap = 'round'; for (const x of [-4, 0, 4]){ g.beginPath(); g.moveTo(x, -4); g.bezierCurveTo(x + 2.5, -6, x - 2.5, -8, x, -10.5); g.stroke(); } }],
+    mochi: ['#7a5a2a', g => { g.save(); g.rotate(-0.6); rr(g, -1.2, -2, 2.4, 12, 1); fillStroke(g, '#8a5a2a', '#ffffff', 0.7); rr(g, -6, -8, 12, 6.5, 2.4); fillStroke(g, '#c08a4a', '#ffffff', 0.9); g.restore(); ell(g, 3, 7, 7, 3.2); fillStroke(g, '#fffdf2', '#ffffff', 0.8); }],
+    serve: ['#b8761f', g => { ell(g, 0, 3, 9, 4); fillStroke(g, '#f4f1ea', '#ffffff', 1); g.beginPath(); g.arc(0, 2, 7, Math.PI, 0); g.closePath(); g.fillStyle = '#fffdf2'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.lineCap = 'round'; for (const x of [-3, 2]){ g.beginPath(); g.moveTo(x, -3); g.bezierCurveTo(x + 2, -5, x - 2, -7, x, -9.5); g.stroke(); } }],
     bubblebath: ['#2f8fc8', g => { for (const [x, y, r] of [[-3, 2, 7], [5, -4, 4.5], [6, 5, 3]]){ circle(g, x, y, r); g.fillStyle = 'rgba(220,245,255,0.35)'; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1.2; g.stroke(); circle(g, x - r * 0.35, y - r * 0.35, r * 0.22); g.fillStyle = '#ffffff'; g.fill(); } ell(g, -3, 3, 3, 2); g.fillStyle = '#5a3d2a'; g.fill(); }],
     downpour: ['#3a5f8a', g => { for (const [x, y, r] of [[-5, -3, 4.5], [0, -5, 5.5], [5, -3, 4.5], [0, -1, 5]]){ circle(g, x, y, r); g.fillStyle = '#dfe8ef'; g.fill(); } g.strokeStyle = '#9fd3ff'; g.lineWidth = 1.4; g.lineCap = 'round'; for (const x of [-6, -1, 4]){ g.beginPath(); g.moveTo(x, 4); g.lineTo(x - 1.5, 8.5); g.stroke(); } g.strokeStyle = '#ffd166'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(3, 3); g.lineTo(1, 7); g.lineTo(4, 7); g.lineTo(2, 11); g.stroke(); }],
     hydroblast: ['#1f6fa8', g => { g.save(); g.rotate(-0.5); rr(g, -10, -2.5, 9, 5, 2); fillStroke(g, '#f2a03d', '#7a3a10', 0.9); g.fillStyle = '#bfe9ff'; g.beginPath(); g.moveTo(-1, -2); g.lineTo(11, -5); g.lineTo(11, 5); g.lineTo(-1, 2); g.closePath(); g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 1; for (const y of [-2.5, 0, 2.5]){ g.beginPath(); g.moveTo(2, y * 0.6); g.lineTo(10, y * 1.4); g.stroke(); } g.restore(); }],
@@ -21719,7 +22021,7 @@ const Art = (() => {
     bladestorm:'bladestorm', brioche:'brioche', liquefy:'liquefy', meteor:'meteor', rushhour:'rushhour', pyre:'pyre', inferno:'inferno', deepfry:'deepfry', longnight:'longnight', meltdown:'meltdown',
     supernova:'supernova', avalanche:'avalanche', overmix:'overmix', boil:'boil', pastageddon:'geddon', reaper:'reaper', leviathan:'leviathan', finale:'finale', strafe:'strafe', bombers:'bombers', refill:'refill', marketday:'market',
     smokebomb:'smoke', shadowstrike:'shadow', fanhammer:'hammer', highnoon:'noon', transmute:'transmute', elixir:'elixir', overdrive:'overdrive', megabot:'megabot', stampede:'stampede', feast:'feast', tsunami:'tsunami', kraken:'kraken',
-    castle:'castle', charge:'charge', checkmate:'checkmate', stalemate:'stalemate', flurry:'flurry', fullspin:'fullspin', gravyflood:'gravyflood', grandpinch:'grandpinch', bubblebath:'bubblebath', downpour:'downpour', hydroblast:'hydroblast' };
+    castle:'castle', charge:'charge', checkmate:'checkmate', stalemate:'stalemate', flurry:'flurry', fullspin:'fullspin', gravyflood:'gravyflood', grandpinch:'grandpinch', bubblebath:'bubblebath', downpour:'downpour', hydroblast:'hydroblast', valve:'valve', mochi:'mochi', serve:'serve' };
   const CUSTOM_AB_LOOK = { damage:'burst', burn:'flame', freeze:'snow', stun:'stars', slow:'clock', knock:'swirl', weaken:'crack', strip:'sparkle', bombs:'bomb', strike:'target', speed:'bolt', cash:'coin', lives:'heart' };
   /* which picture an ability uses: built-ins by id, custom ones by their first action */
   function abilityLook(ab){
@@ -24950,6 +25252,73 @@ const MODELS3D = (() => {
     for (let i = 0; i < 3; i++){ const k = (time * 0.7 + i / 3) % 1; circle(g, -14 + i * 12, -6 - k * 8, 1 + k * 1.5); g.strokeStyle = 'rgba(230,248,255,' + (1 - k) * 0.8 + ')'; g.lineWidth = 0.8; g.stroke(); }
     g.restore();
   }
+  /* ---------------- Rice Cooker ----------------
+     A round pot with a domed lid hinged at the back (-x) and a control panel at the front (+x). The lid pops up as it
+     bursts. Pressure: a steel pot with a weighted valve, a gauge, then an industrial steamer's red valve. Sticky: a
+     rice paddle leaning on it, a bowl of rice balls, a mochi mallet, then a golden paddle. Keep Warm: an orange warm
+     plate under it, a timer dial, then a stack of little pots behind. */
+  function rice(B, c){
+    const [a, b, cc] = c.up, par = c.par, metal = a >= 3 || par;
+    /* the warm plate under it */
+    if (cc >= 2 || par){ B.color('#ff9a3c').shine(0.2).glow(0.35); B.push().at(0, 0, 0).cyl(17.5, 17.5, 1.2, 28).pop(); B.glow(0); }
+    /* the stack of little pots behind */
+    if (cc >= 5 || par) for (const [x, y] of [[-17, -11], [-17, 11], [-22, 0]]){
+      if (par) gold(B); else plastic(B, '#f2b07a');
+      B.push().at(x, y, 0).cyl(5.5, 5, 7, 18).pop();
+      B.color('#fffbea').shine(0.1); B.push().at(x, y, 7).sphere(4.2, 12, 6).pop();
+    }
+    /* the pot */
+    if (metal) steel(B, a >= 5 ? '#9aa6ab' : null); else B.body().shine(0.35).glow(0);
+    B.lathe([[13.5, 0], [15, 1], [15.5, 4], [15.5, 13], [14.5, 15.5], [13, 16]], 30);
+    /* the hinge and the control panel with its two lights */
+    matte(B, '#5c666b'); B.push().at(-16, 0, 13).box(3, 7, 3).pop();
+    matte(B, par ? '#2a2220' : '#3a4448'); B.push().at(15.5, 0, 6).rbox(4, 11, 8, 1.6, 0.8).pop();
+    B.color('#7ee07a').shine(0.4).glow(0.6); B.push().at(17.6, -2.4, 8).sphere(1.1, 8, 5).pop();
+    B.color('#ffb347').shine(0.4).glow(cc >= 1 ? 0.6 : 0.1); B.push().at(17.6, 2.4, 8).sphere(1.1, 8, 5).pop();
+    B.glow(0);
+    /* the lid: hinged at the back, it lifts as the steam bursts */
+    B.push().at(-13, 0, 16);
+    B.part((time, t) => { const k = t && t.fireAnim > 0 ? Math.sin((1 - t.fireAnim / 0.4) * Math.PI) : 0; return { ry: -k * 0.55 }; });
+    B.push().at(13, 0, 0);
+    if (metal) steel(B, '#dfe5e8'); else B.body(1.08).shine(0.45);
+    B.lathe([[13.2, 0], [12.5, 2], [10, 4], [6, 5.3], [0.01, 5.8]], 28);
+    if (metal){
+      matte(B, '#2a2f33'); B.push().at(0, 0, 5.4).cyl(2.8, 2.6, 2.2, 14).pop();
+      B.color(a >= 5 ? '#e2383f' : '#f2a03d').shine(0.6); B.push().at(0, 0, 7.4).cyl(1.8, 1.4, 2.2, 12).pop();
+      if (a >= 4 || par){ B.color('#f4f6f6').shine(0.4); B.push().at(6, 5, 4).rotX(-0.35).cyl(2.6, 2.6, 0.9, 16).pop(); }
+    } else { steel(B); B.push().at(-1, 0, 5.4).box(3, 2.4, 1.6).pop(); }
+    if (cc >= 3 || par){ B.color('#fff4d6').shine(0.3); B.push().at(-5, 5, 4.2).rotX(0.3).cyl(2.6, 2.6, 0.9, 16).pop(); }
+    B.pop();
+    B.endPart();
+    B.pop();
+    /* the rice paddle leaning on its side, a bowl of rice balls, a mochi mallet */
+    if (b >= 1 || par){
+      if (b >= 5 || par) gold(B); else B.color('#f4efe0').shine(0.25);
+      B.push().at(5, 16.5, 9).rotX(0.35).rotZ(-0.4);
+      B.push().scale(1, 0.35, 1).sphere(3.6, 12, 8).pop();
+      B.push().at(0, 0, -7).cyl(1.1, 1, 8, 8).pop();
+      B.pop();
+    }
+    if (b >= 3 || par){
+      plastic(B, '#2a5f8a'); B.push().at(-9, 18, 0).lathe([[0.01, 0], [3.5, 0.5], [5, 3], [5.2, 4]], 18).pop();
+      B.color('#fbf7ea').shine(0.1); for (const [x, y] of [[-10.5, 17], [-7.5, 17.5], [-9, 19.6]]) B.push().at(x, y, 4.5).sphere(1.8, 10, 6).pop();
+    }
+    if (b >= 4 || par){
+      matte(B, '#8a5a2a'); B.push().at(-11, -17, 1.5).rotZ(0.6).rotY(Math.PI / 2).cyl(0.9, 0.9, 11, 8).pop();
+      plastic(B, '#c08a4a'); B.push().at(-15, -20, 2.5).rotZ(0.6).box(9, 5, 5).pop();
+    }
+  }
+  /* the rice cooker's cooking ring on the floor round it, and the pots it keeps warm */
+  function riceAfter(g, t, time, sc, up){
+    if (t.icon || !t.s || typeof riceCharge !== 'function') return;
+    const c = riceCharge(t), R = 19 * sc, CT = GL3D.CT;
+    g.save(); g.scale(1, CT); g.lineCap = 'round'; g.lineWidth = 2.6;
+    g.strokeStyle = 'rgba(0,0,0,0.2)'; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.stroke();
+    g.strokeStyle = c >= 1 ? '#7ee07a' : '#ffcf4d'; g.beginPath(); g.arc(0, 0, R, -Math.PI / 2, -Math.PI / 2 + TAU * c); g.stroke();
+    const kept = Math.min(10, t.riceStore || 0);
+    for (let i = 0; i < kept; i++){ const an = -1.2 + i * 0.26; g.beginPath(); g.arc(Math.cos(an) * (R + 5), Math.sin(an) * (R + 5), 2.4, 0, TAU); g.fillStyle = '#fffbea'; g.fill(); g.strokeStyle = '#c9a36a'; g.lineWidth = 0.8; g.stroke(); }
+    g.restore();
+  }
   /* ---------------- Spray Bottle ----------------
      A clear bottle with the liquid showing through, a trigger head on top pointing +x, its nozzle and trigger. Soap
      turns the liquid pink and blows bubbles; mist turns it icy, puffs vapour and finally carries a rain cloud; the
@@ -25066,6 +25435,7 @@ const MODELS3D = (() => {
     chopsticks: { build: chopsticks, body: (t, up, par, skin) => skin && skin.body ? null : '#f4f1ea' },
     susan: { build: susan, after: susanAfter },
     spray: { build: spray },
+    rice: { build: rice, after: riceAfter },
     chef_blaze: chefDef, chef_gelato: chefDef, chef_penny: chefDef, chef_kenji: chefDef, chef_nonna: chefDef, chef_bruno: chefDef,
   };
   return REG;
@@ -28443,7 +28813,7 @@ function metaBoot(){
   const old = checkAchievements(true);
   /* only players who were here before this update get the tour; new players find it all on the menu */
   const returning = (Profile.stats.games || 0) > 0 || Object.keys(Profile.mastery).length > 0;
-  if (!(Profile.news >= NEWS) && returning && UI.screen === 'menu' && !UI.modalOpen) setTimeout(() => Profile.news >= BIG_NEWS ? showSprayNews() : Profile.news >= UTENSIL_NEWS ? showBigNews() : Profile.news >= CHESS_NEWS ? showUtensilNews() : Profile.news >= MIXER_NEWS ? showChessNews() : Profile.news >= APPLIANCE_NEWS ? showMixerNews() : Profile.news >= 5 ? showApplianceNews(Profile.news) : Profile.news === 4 ? showParagonNews() : Profile.news === 3 ? showRework() : Profile.news === 2 ? showNewChefs(joined) : Profile.news === 1 ? showChefNews(joined) : showWhatsNew(old, retro, joined), 400);
+  if (!(Profile.news >= NEWS) && returning && UI.screen === 'menu' && !UI.modalOpen) setTimeout(() => Profile.news >= RICE_NEWS ? showRiceNews() : Profile.news >= BIG_NEWS ? showSprayNews() : Profile.news >= UTENSIL_NEWS ? showBigNews() : Profile.news >= CHESS_NEWS ? showUtensilNews() : Profile.news >= MIXER_NEWS ? showChessNews() : Profile.news >= APPLIANCE_NEWS ? showMixerNews() : Profile.news >= 5 ? showApplianceNews(Profile.news) : Profile.news === 4 ? showParagonNews() : Profile.news === 3 ? showRework() : Profile.news === 2 ? showNewChefs(joined) : Profile.news === 1 ? showChefNews(joined) : showWhatsNew(old, retro, joined), 400);
   refreshMenuDots();
 }
 /* the news a player has seen: 1 the progression tour, 2 the head chefs, 3 the second three chefs, 4 the appliance rework, 5 paragon systems,
@@ -28454,7 +28824,8 @@ const MIXER_NEWS = APPLIANCE_NEWS + 1;
 const CHESS_NEWS = MIXER_NEWS + 1;
 const UTENSIL_NEWS = CHESS_NEWS + 1;
 const BIG_NEWS = UTENSIL_NEWS + 1;
-const NEWS = BIG_NEWS + 1;
+const RICE_NEWS = BIG_NEWS + 1;
+const NEWS = RICE_NEWS + 1;
 /* players who have seen everything else hear about the modes, kitchens and events */
 function showBigNews(){
   if (UI.modalOpen || UI.screen !== 'menu') return;
@@ -28472,7 +28843,7 @@ function showBigNews(){
 /* players who have seen everything else meet the Spray Bottle */
 function showSprayNews(){
   if (UI.modalOpen || UI.screen !== 'menu' || !TOWERS.spray) return;
-  Profile.news = NEWS; saveProfile();
+  Profile.news = RICE_NEWS; saveProfile();   // the Rice Cooker comes next time
   const li = (b, t) => h('li', {}, h('b', { text: b }), ' ' + t);
   const T = TOWERS.spray, P = T.paths;
   const cards = [[[0, 0, 0], T.name, money(T.cost) + ' · key ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
@@ -28484,6 +28855,23 @@ function showSprayNews(){
       li('Mist.', 'Combos with your other appliances: wet pests freeze solid when something cold hits them and burst into scalding steam when something hot does. The Humidifier keeps everything near it wet, and Downpour soaks the whole kitchen, with lightning on the Monsoon.'),
       li('Nozzle.', 'Twist the nozzle to Stream in its panel for a long jet that pushes pests back and scrubs off ghost cloaks, mold and armor. It grows into a pressure washer with a Hydro Blast down the busiest line of pests.'),
       li('The Car Wash.', 'Its paragon mists and jets at once, lays foam, pours out bubbles and keeps all three abilities coming.'))],
+    actions:[{ label:'Got it', kind:'primary' }] });
+}
+/* players who have seen everything else meet the Rice Cooker */
+function showRiceNews(){
+  if (UI.modalOpen || UI.screen !== 'menu' || !TOWERS.rice) return;
+  Profile.news = NEWS; saveProfile();
+  const li = (b, t) => h('li', {}, h('b', { text: b }), ' ' + t);
+  const T = TOWERS.rice, P = T.paths;
+  const cards = [[[0, 0, 0], T.name, money(T.cost) + ' · key ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
+  const row = h('div', { class:'news-chefs' }, cards.map(([up, b, sp]) => h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('rice', 96, up)), h('b', { text: b }), h('span', { text: sp }))),
+    h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('rice', 96, [5, 5, 5], true)), h('b', { text: T.paragon.name }), h('span', { text: 'Paragon' })));
+  modal({ title:'A new appliance: the Rice Cooker', lead:'It cooks quietly, then pops its lid: a burst of steam hits every pest around it at once. When the rice is ready it waits, warm, until pests come close. Open the lid early from its panel for a weaker burst.', cls:'chef-news',
+    content:[row, h('ul', { class:'news' },
+      li('Pressure.', 'Bigger bursts that cook faster, then a sealed pressure pot that gets through any shell and strips armor, a valve that lets out a run of huge bursts, and an industrial steamer.'),
+      li('Sticky.', 'Steamed pests get coated in rice: slowed, glued in place and taking extra from every hit. Rice balls reach further out, and Mochi Pound glues the whole kitchen.'),
+      li('Keep Warm.', 'With nobody near, it keeps finished pots warm and lets them all out when pests arrive. It warms the appliances around it so they attack faster, and its timer saves every pot for a vehicle or boss.'),
+      li('The Thousand-Bowl Banquet.', 'Its paragon cooks in moments, and every twelve bowls it serves bring out a Feast across the whole kitchen.'))],
     actions:[{ label:'Got it', kind:'primary' }] });
 }
 /* players who have seen everything else meet the Chopsticks and the Lazy Susan */
@@ -29963,6 +30351,7 @@ const Sfx = (() => {
     spray:{ m:0.3, f:() => { noise(0.6, 0.14, 700, 0.5, 'lowpass'); tone(90, 0.4, 'sine', 0.05, 0.7); } },
     clack:{ m:0.06, f:() => { tone(R(950, 1150), 0.035, 'triangle', 0.07, 0.7); noise(0.035, 0.1, 2600, 3); } },
     mist:{ m:0.14, f:() => noise(0.12, 0.05, 3200, 0.9, 'highpass') },
+    steam:{ m:0.18, f:() => { noise(0.45, 0.12, 2200, 0.7, 'highpass'); tone(R(520, 580), 0.08, 'sine', 0.04, 1.4); } },
     clop:{ m:0.07, f:() => { tone(R(380, 460), 0.05, 'sine', 0.08, 0.55); noise(0.03, 0.06, 1400, 2); } },
   };
   function play(name){
@@ -31144,6 +31533,18 @@ function buildPanel(t){
     P.append(h('div', { class:'fly-row' }, h('span', { class:'fly-txt', text: fly === 'saucer' ? 'Flight path' : 'Flight' }), seg));
     if (fly === 'copter' && t.flyMode === 'follow') P.append(h('p', { class:'note aim-note', text: 'Flies to wherever you ' + (IS_TOUCH ? 'tap in the kitchen.' : 'point in the kitchen.') + ' When you are not pointing, it patrols near its pad.' }));
   }
+  /* a rice cooker: how far it has cooked, the pots it keeps warm, and opening the lid early */
+  if (t.s.atk.main && t.s.atk.main.kind === 'cook'){
+    const c = riceCharge(t), a = t.s.atk.main;
+    const meter = h('div', { class:'rice-meter', id:'rice-meter' }, h('i', { style:{ width: Math.round(c * 100) + '%' } }));
+    const label = h('span', { class:'fly-txt', id:'rice-label', text: c >= 1 ? 'Ready: waiting for pests' : 'Cooking ' + Math.round(c * 100) + '%' });
+    const kept = a.store ? h('span', { class:'rice-kept', id:'rice-kept', text: 'Kept warm: ' + (t.riceStore || 0) + ' of ' + a.store }) : null;
+    const btn = h('button', { class:'btn btn-small', id:'rice-lid', title:'Let the steam out now. The less it has cooked, the weaker the burst (it needs at least a quarter).', onclick: () => {
+      if (coopGuest()){ toast('In co-op, only the host can open the lid early.', 'info'); return; }
+      if (riceOpenLid(t)) Sfx.play('click'); else { Sfx.play('error'); toast(riceCharge(t) < 0.25 ? 'The rice has barely started cooking.' : 'No pests in range to steam.', 'warn'); }
+    } }, 'Open the lid');
+    P.append(h('div', { class:'fly-row rice-row' }, label, meter, h('div', { class:'rice-acts' }, btn, kept)));
+  }
   /* a spray bottle's nozzle: twist it between a wide mist and a long jet */
   if (t.s.sprayStream && !t.paragon){
     const cur = nozzleOf(t);
@@ -31309,6 +31710,14 @@ function mergeBox(t, ms){
   return box;
 }
 function refreshPanel(t){
+  const rm = $('#rice-meter');
+  if (rm){
+    const c = riceCharge(t), a = t.s.atk.main;
+    rm.firstChild.style.width = Math.round(c * 100) + '%'; rm.classList.toggle('ready', c >= 1);
+    const l = $('#rice-label'); if (l) l.textContent = c >= 1 ? 'Ready: waiting for pests' : 'Cooking ' + Math.round(c * 100) + '%';
+    const k = $('#rice-kept'); if (k && a) k.textContent = 'Kept warm: ' + (t.riceStore || 0) + ' of ' + a.store;
+    const b = $('#rice-lid'); if (b) b.disabled = c < 0.25;
+  }
   const stats = $('#tp-stats');
   if (stats){
     const parts = [];
@@ -31649,6 +32058,10 @@ function abilityDetails(ab, s){
     case 'gravyflood': text = 'A wave of scalding gravy rolls off the board: every pest within ' + n(Math.round((s ? s.range : 110) * (ab.rangeMul || 2.5))) + ' px takes ' + n(ab.dmg) + ' (' + n(ab.dmg + (ab.bonusBig || 0)) + ' to vehicles), burns, and is slowed by ' + Math.round((1 - ab.slow) * 100) + '% for ' + sec(ab.dur) + ' (vehicles ' + Math.round((1 - ab.bigSlow) * 100) + '%). Goes through any shell.'; break;
     case 'grandpinch': text = 'The ' + n(ab.n) + ' toughest pests on screen that aren’t bosses, vehicles included, are lifted and carried all the way back to the entrance. Bosses are held where they stand for ' + sec(ab.hold) + '.'; break;
     /* the spray bottle */
+    /* the rice cooker */
+    case 'valve': text = 'The pressure valve blows: ' + n(ab.n) + ' steam bursts in ' + sec(Math.round(ab.n * ab.every * 10) / 10) + ', each at ' + n(ab.mul) + '× damage.'; break;
+    case 'mochi': text = 'A mallet pounds the whole kitchen: every pest on screen takes ' + n(ab.dmg) + (ab.bonusBig ? ' (' + n(ab.dmg + ab.bonusBig) + ' to vehicles)' : '') + ' and is glued in place for ' + sec(ab.dur) + (ab.big ? ' (vehicles half as long)' : ' (vehicles slowed instead)') + '; bosses are slowed.'; break;
+    case 'serve': text = 'Every pot it can keep warm is cooked at once and served straight out' + (s && s.atk.main && s.atk.main.store ? ' (' + n(s.atk.main.store + 1) + ' bursts)' : '') + '.'; break;
     case 'bubblebath': text = 'The ' + n(ab.n) + ' toughest pests on screen' + (ab.big ? ', vehicles too (not bosses),' : ' (not vehicles or bosses)') + ' are trapped in soap bubbles: floated ' + n(ab.back) + ' px back up the trail (vehicles half as far) and held for ' + sec(ab.hold) + ', then the bubbles pop for ' + n(ab.pop) + (ab.popBig ? ' (' + n(ab.popBig) + ' for vehicles)' : '') + '.'; break;
     case 'downpour': text = 'Rain falls on the whole kitchen for ' + sec(ab.dur) + ': every pest on screen stays wet, and wet pests take double from cold, energy and heat.' + (ab.bolts ? ' Lightning strikes ' + n(ab.bolts) + ' times a second, each bolt hitting a wet pest for ' + n(ab.boltDmg) + ' (' + n(ab.boltDmg + (ab.boltBig || 0)) + ' to vehicles) through any shell.' : ''); break;
     case 'hydroblast': text = 'A huge jet down the line with the most pests: everything in it but bosses takes ' + n(ab.dmg) + ' (' + n(ab.dmg + (ab.bonusBig || 0)) + ' to vehicles) through any shell and is blasted ' + n(ab.push) + ' px back up the trail (vehicles half as far).'; break;
@@ -31803,6 +32216,8 @@ function abilityAim(t, ab){
     case 'stalemate': A.screen = true; A.live = onMap().length > 0; break;
     case 'flurry': A.towers = [t]; A.live = onMap().length > 0; break;
     case 'fullspin': A.towers = ridersOf(t); A.rings.push({ x: t.x, y: t.y, r: t.size * 1.3, soft: true }); A.live = A.towers.length > 0; break;
+    case 'valve': case 'serve': { A.rings.push({ x: t.x, y: t.y, r: t.s.range }); A.live = onMap().some(e => !(e.burrowT > 0) && Math.hypot(e.x - t.x, e.y - t.y) <= t.s.range + e.r) || ab.id === 'serve'; break; }
+    case 'mochi': A.screen = true; A.live = onMap().length > 0; break;
     case 'gravyflood': { const R = t.s.range * (ab.rangeMul || 2.5); A.rings.push({ x: t.x, y: t.y, r: R }); A.live = onMap().some(e => !(e.burrowT > 0) && Math.hypot(e.x - t.x, e.y - t.y) <= R + e.r); break; }
     case 'grandpinch': { const on = onMap().filter(e => !e.air); A.marks = toughestN(ab.n || 4, on.filter(e => !e.boss)).concat(on.filter(e => e.boss).slice(0, 2)); A.live = A.marks.length > 0; break; }
     case 'bubblebath': A.marks = toughestN(ab.n || 12, onMap().filter(e => !e.boss && !e.air && (ab.big || !e.big))); A.live = A.marks.length > 0; break;
@@ -32632,6 +33047,8 @@ function atkName(type, id){
   if (type === 'chess' && id === 'main') return 'Pawn';
   if (type === 'chopsticks' && id === 'main') return 'Pinch';
   if (type === 'spray' && id === 'main') return 'Spray';
+  if (type === 'rice' && id === 'main') return 'Steam burst';
+  if (type === 'rice' && id === 'balls') return 'Rice balls';
   return ATK_LABEL[id] || (/^a\d+$/.test(id) ? 'Attack ' + id.slice(1) : id.charAt(0).toUpperCase() + id.slice(1));
 }
 const num1 = v => (Math.abs(v) >= 100 || Number.isInteger(v) ? fmt(v) : (Math.round(v * 100) / 100).toString());
@@ -32700,6 +33117,16 @@ function attackLine(type, id, a){
     if (a.foam) out.push('leaves foam every ' + (a.foam.every === 2 ? 'other' : a.foam.every === 3 ? 'third' : a.foam.every + 'th') + ' spray');
     out.push(rateText(a.rate, 1));
     return { name: a.streaming ? 'Stream' : atkName(type, id) === 'Jet' ? 'Jet' : 'Mist', text: out.join(' · '), type: a.ignoreImmune ? 'Any type' : 'Water' };
+  }
+  /* the rice cooker: cooks, then a burst of steam round it */
+  if (a.kind === 'cook'){
+    const out = ['cooks for ' + num1(Math.round(a.rate * 10) / 10) + 's, then a steam burst hits up to ' + a.pierce + ' pests around it for ' + num1(a.dmg) + (a.bonusBig ? ' (+' + num1(a.bonusBig) + ' to vehicles)' : '') + (a.bonusBoss ? ' (+' + num1(a.bonusBoss) + ' to bosses)' : '')];
+    if (a.strip) out.push('strips armor');
+    if (a.after) out.push('a second burst at ' + Math.round(a.after.mul * 100) + '% follows');
+    const S = a.sticky;
+    if (S) out.push('coats them in rice: ' + Math.round((1 - S.slow) * 100) + '% slower for ' + num1(S.dur) + 's' + (S.glue ? ', small pests glued ' + num1(S.glue) + 's' : '') + (S.vuln ? ', +' + num1(S.vuln) + ' from every hit' : ''));
+    if (a.store) out.push('keeps up to ' + a.store + ' pots warm' + (a.timer ? ' (all at once for ×' + a.timer + ' when a vehicle or boss arrives)' : ''));
+    return { name: atkName(type, id), text: out.join(' · '), type: a.ignoreImmune ? 'Any type' : TYPE_LABEL[a.type] || 'Heat' };
   }
   if (a.kind === 'bubbles') return { name: 'Bubbles', text: 'blows ' + a.count + ' bubbles ' + rateText(a.rate, 1) + ' that drift back up the trail and pop on the first pest they meet for ' + num1(a.dmg) + (a.bonusBig ? ' (+' + num1(a.bonusBig) + ' to vehicles)' : '') + ', lathering every pest within ' + a.r + ' px', type: 'Soap' };
   /* chopsticks: what they can lift, and where it goes */

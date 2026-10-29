@@ -1298,8 +1298,43 @@ const TOWERS = {
         bubbles:{ kind:'bubbles', rate:0.35/k, count:6, dmg:200+dd*20, bonusBig:Math.round((600+dd*60)*big), r:50, speed:55, life:8, type:'normal' },
       }, abilities:[{ id:'bubblebath', cd:35, n:40, back:300, hold:4, pop:3000+dd*300, popBig:Math.round((9000+dd*900)*big), big:true }, { id:'downpour', cd:45, dur:15, bolts:8, boltDmg:2000+dd*200, boltBig:Math.round((6000+dd*600)*big) }, { id:'hydroblast', cd:35, push:600, dmg:12000+dd*1200, bonusBig:Math.round((12000+dd*1200)*big), width:80 }] }; } },
   },
+  /* ------------------------------------------------------- RICE COOKER */
+  rice: {
+    name:'Rice Cooker', cost:400, size:16, hot:'{', faction:'line',
+    blurb:'Cooks quietly, then pops its lid: a burst of steam scalds every pest around it at once. Once the rice is ready it waits, warm, until pests come close, and you can open the lid early from its panel for a weaker burst. Build up the pressure, make the rice sticky, or keep pots warm to serve all at once.',
+    base:{ range:95, noTarget:true, atk:{ main:{ kind:'cook', rate:3.2, dmg:6, pierce:25, type:'heat' } } },
+    paths:[
+      { name:'Pressure', ups:[
+        { name:'Bigger Pot', cost:180, desc:'Steam bursts deal 9 and reach 10% further.', apply:s=>{ s.atk.main.dmg = 9; s.range *= 1.1; } },
+        { name:'Quick Cook', cost:420, desc:'Cooks 35% faster.', apply:s=>{ s.atk.main.rate /= 1.35; } },
+        { name:'Pressure Cooker', cost:1900, desc:'A sealed pot: bursts deal 28 (+60 to vehicles), get through any shell and strip armor.', apply:s=>{ const a=s.atk.main; a.dmg = 28; a.bonusBig = 60; a.ignoreImmune = true; a.strip = true; } },
+        { name:'Pressure Valve', cost:6200, desc:'Every burst is followed by a second at 60% half a second later. Ability: Blow the Valve lets out 6 bursts at triple damage in 2 seconds.', apply:s=>{ s.atk.main.after = { delay:0.5, mul:0.6 }; s.abilities.push({ id:'valve', cd:45, n:6, every:0.33, mul:3 }); } },
+        { name:'Industrial Steamer', cost:42000, desc:'Bursts deal 320 (+1,100 to vehicles, +500 to bosses) and reach 30% further. Blow the Valve bursts deal 5 times the damage.', apply:s=>{ const a=s.atk.main; a.dmg = 320; a.bonusBig = 1100; a.bonusBoss = 500; s.range *= 1.3; const ab=s.abilities.find(x=>x.id==='valve'); if (ab) ab.mul = 5; } },
+      ]},
+      { name:'Sticky', ups:[
+        { name:'Sticky Rice', cost:200, desc:'Steamed pests are coated in rice: 40% slower for 2s (vehicles 15%).', apply:s=>{ s.atk.main.sticky = { slow:0.6, bigSlow:0.85, dur:2, glue:0, vuln:0 }; } },
+        { name:'Glutinous', cost:450, desc:'Small pests are glued in place for 0.5s, and rice-coated pests take +1 from every hit.', apply:s=>{ const S=s.atk.main.sticky; if (S){ S.glue = 0.5; S.vuln = 1; } } },
+        { name:'Rice Balls', cost:1500, desc:'Also lobs 3 rice balls every 1.4s at pests further out (range 210): 6 damage each, slowing what they hit.', apply:s=>{ s.noTarget = false; s.atk.balls = { kind:'proj', rate:1.4, dmg:6, pierce:2, speed:420, size:6, type:'normal', sprite:'shape', shape:'orb', color:'#fbf7ea', count:3, spread:0.25, rangeAbs:210, slow:{ mult:0.7, dur:1.5, bigMult:0.9 } }; } },
+        { name:'Mochi Mallet', cost:5200, desc:'Glue lasts 1s, coated pests take +4 from every hit, and vehicles crawl at 60%. Ability: Mochi Pound glues every pest on screen for 2.5s (vehicles slowed, bosses 30% slower) and deals 150.', apply:s=>{ const S=s.atk.main.sticky; if (S){ S.glue = 1; S.vuln = 4; S.bigSlow = 0.6; } s.abilities.push({ id:'mochi', cd:50, dur:2.5, dmg:150, big:false, bossSlow:0.7 }); } },
+        { name:'Rice Paddy', cost:34000, desc:'Glue lasts 1.6s and holds vehicles for 0.5s; coated pests take +25 from every hit and bosses crawl 30% slower. Mochi Pound deals 2,500 (+5,000 to vehicles), holds vehicles too and lasts 4s.', apply:s=>{ const S=s.atk.main.sticky; if (S){ S.glue = 1.6; S.bigGlue = 0.5; S.vuln = 25; S.boss = 0.7; } const ab=s.abilities.find(x=>x.id==='mochi'); if (ab){ ab.dmg = 2500; ab.bonusBig = 5000; ab.big = true; ab.dur = 4; ab.bossSlow = 0.6; } } },
+      ]},
+      { name:'Keep Warm', ups:[
+        { name:'Keep Warm', cost:160, desc:'With no pests near, it keeps up to 2 finished pots warm. When pests arrive they all come out, one after another.', apply:s=>{ s.atk.main.store = 2; } },
+        { name:'Warm Plate', cost:420, desc:'Appliances in its range attack 10% faster.', apply:s=>{ s.buff = Object.assign(s.buff || {}, { speed:1.1 }); } },
+        { name:'Rice Timer', cost:1700, desc:'Keeps up to 4 pots warm. When a vehicle or boss comes into range, every kept pot comes out at once in one burst at double damage.', apply:s=>{ s.atk.main.store = 4; s.atk.main.timer = 2; } },
+        { name:'Steam Table', cost:5400, desc:'Appliances in its range attack 20% faster and hit 1 more pest. Ability: Serve! cooks every pot it can keep warm at once and serves them straight out.', apply:s=>{ s.buff = Object.assign(s.buff || {}, { speed:1.2, pierce:1 }); s.abilities.push({ id:'serve', cd:40 }); } },
+        { name:'Banquet Hall', cost:30000, desc:'Keeps up to 10 pots warm, the timer burst deals triple, bursts deal 60 and reach 25% further. Serve! recharges in 25s.', apply:s=>{ const a=s.atk.main; a.store = 10; a.timer = 3; a.dmg = Math.max(a.dmg, 60); s.range *= 1.25; const ab=s.abilities.find(x=>x.id==='serve'); if (ab) ab.cd = 25; } },
+      ]},
+    ],
+    paragon:{ name:'The Thousand-Bowl Banquet', cost:220000, desc:'A banquet kitchen of rice cookers. It cooks in moments, glues everything it steams, keeps ten pots warm, warms every appliance near it, and every twelve bowls it serves bring out the Feast across the whole kitchen. Blow the Valve, Mochi Pound and Serve! all come round quickly.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:190, camo:true, buff:{ speed:1.25, pierce:1 }, atk:{
+        main:{ kind:'cook', rate:0.7/k, dmg:500+dd*50, pierce:80, type:'heat', ignoreImmune:true, strip:true, bonusBig:Math.round((1500+dd*150)*big), bonusBoss:Math.round((800+dd*80)*big), store:10, timer:3, after:{ delay:0.4, mul:0.6 },
+          sticky:{ slow:0.5, bigSlow:0.6, dur:2.5, glue:1.4, bigGlue:0.5, vuln:40+dd*4, boss:0.65 } },
+        balls:{ kind:'proj', rate:0.35/k, dmg:80+dd*8, pierce:4, speed:480, size:7, type:'normal', sprite:'shape', shape:'orb', color:'#fbf7ea', count:5, spread:0.3, rangeAbs:280, ignoreImmune:true, slow:{ mult:0.6, dur:1.5, bigMult:0.8 } },
+      }, abilities:[{ id:'valve', cd:35, n:8, every:0.25, mul:6 }, { id:'mochi', cd:40, dur:4, dmg:8000+dd*800, bonusBig:Math.round((16000+dd*1600)*big), big:true, bossSlow:0.55 }, { id:'serve', cd:20 }] }; } },
+  },
 };
-const TOWER_ORDER = ['knife','toaster','blender','dish','grill','fryer','freezer','micro','siphon','oven','mixer','pasta','gatling','boat','sub','heli','saucer','espresso','bread','mandoline','caddy','saucepan','bot','pets','lobster','chess','chopsticks','susan','spray'];
+const TOWER_ORDER = ['knife','toaster','blender','dish','grill','fryer','freezer','micro','siphon','oven','mixer','pasta','gatling','boat','sub','heli','saucer','espresso','bread','mandoline','caddy','saucepan','bot','pets','lobster','chess','chopsticks','susan','spray','rice'];
 /* the built-in appliances; custom ones from the admin tower builder are appended to TOWER_ORDER at runtime */
 const BASE_TOWER_ORDER = TOWER_ORDER.slice();
 
