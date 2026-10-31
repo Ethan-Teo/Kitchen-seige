@@ -2,7 +2,7 @@
 /* =====================================================================
    Kitchen Siege — the community gallery: browse, get, share, paste a code
    ===================================================================== */
-const GAL_GLYPH = { tower:'🔧', kitchen:'🗺️', body:'🤖', object:'🧩', collection:'📦' };
+const GAL_GLYPH = { tower:'🔧', kitchen:'🗺️', body:'🤖', object:'🧩', collection:'📦', mod:'⚙️' };
 const KM_FLOOR = { block:'#c8955c', diner:'#e9e4da', pantry:'#d6b98c', freezer:'#c9d6dd' };
 /* a little picture of a kitchen code: its floor, water and trails */
 function kitchenMini(k, w, hgt){
@@ -43,7 +43,7 @@ function showGallery(back){
         try {
           const r = galleryGet(e.code);
           Sfx.play('upgrade');
-          toast(r.have ? 'You already have ' + e.name + '.' : e.kind === 'collection' ? 'Added ' + r.added + ' things from ' + e.name + '.' : 'Added ' + e.name + ' to your ' + (e.kind === 'tower' ? 'tower builder' : e.kind === 'kitchen' ? 'kitchens' : e.kind === 'body' ? 'body workshop' : 'objects') + '.', 'gold');
+          toast(r.have ? 'You already have ' + e.name + '.' : e.kind === 'collection' ? 'Added ' + r.added + ' things from ' + e.name + '.' : 'Added ' + e.name + ' to your ' + (e.kind === 'tower' ? 'tower builder' : e.kind === 'kitchen' ? 'kitchens' : e.kind === 'body' ? 'body workshop' : e.kind === 'mod' ? 'mods (switch it on in Mods)' : 'objects') + '.', 'gold');
           get.textContent = 'Got it ✓'; get.disabled = true;
         } catch (err) { Sfx.play('error'); toast(err.message, 'warn'); }
       } }, 'Get');
@@ -58,7 +58,7 @@ function showGallery(back){
       : Gallery.featured && Gallery.featured.length ? 'Featured picks from the game’s GitHub page. Share yours with a GitHub issue and it can join them.'
       : 'Featured picks. Share yours with a code, or with a GitHub issue to have it featured.';
   };
-  const paste = h('textarea', { class:'gal-paste', rows: 2, placeholder:'Paste a code: KSA1: appliance, KSM1: kitchen, KSB1: body, KSO1: object, KSC1: collection', 'aria-label':'Paste a code' });
+  const paste = h('textarea', { class:'gal-paste', rows: 2, placeholder:'Paste a code: KSA1: appliance, KSM1: kitchen, KSB1: body, KSO1: object, KSC1: collection, KSX1: mod', 'aria-label':'Paste a code' });
   const pasteBtn = h('button', { class:'btn btn-small', onclick: () => {
     try { const p = codePeek(paste.value); const r = galleryGet(paste.value); paste.value = ''; Sfx.play('upgrade'); toast(r.have ? 'You already have that ' + GALLERY_KINDS[p.kind].name.toLowerCase() + '.' : 'Added ' + p.name + '.', 'gold'); }
     catch (err) { Sfx.play('error'); toast(err.message, 'warn'); }

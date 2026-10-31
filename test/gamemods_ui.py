@@ -1,0 +1,65 @@
+"""The Mod Maker in the browser: the menu button, making a mod in the editor, switching it on, the new-game note,
+a modded game (label, cash, banned card), the example mods, and mod codes.
+Usage: python3 test/gamemods_ui.py [shots dir]"""
+import asyncio, sys, json, pathlib
+from playwright.async_api import async_playwright
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+URL = 'file://' + str(ROOT / 'dist' / 'test.html')
+OUT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else '/tmp/ks-mods'); OUT.mkdir(parents=True, exist_ok=True)
+fails = []
+def check(ok, what):
+    print(('PASS ' if ok else 'FAIL ') + what)
+    if not ok: fails.append(what)
+async def main():
+    async with async_playwright() as p:
+        b = await p.chromium.launch()
+        page = await b.new_page(viewport={'width': 1366, 'height': 900})
+        errors = []
+        page.on('pageerror', lambda e: errors.append(str(e)))
+        page.on('console', lambda m: errors.append(m.text) if m.type == 'error' and 'Failed to load resource' not in m.text else None)
+        await page.goto(URL); await page.wait_for_timeout(1200)
+        await page.click('#btn-mods'); await page.wait_for_timeout(400)
+        check(await page.evaluate("document.querySelector('.modal h2').textContent") == 'Mods', 'the menu opens Mods')
+        await page.click('.modal .btn-primary:has-text("Make a mod")'); await page.wait_for_timeout(400)
+        await page.fill('.gm-meta input[aria-label="Name"]', 'Browser Mod')
+        await page.fill('.gm-field input[aria-label="Starting cash"]', '4321')
+        await page.fill('.gm-field input[aria-label="Pest health ×"]', '2')
+        await page.select_option('.gm-editor select[aria-label="Add an appliance"]', 'knife')
+        await page.wait_for_timeout(200)
+        await page.fill('.gm-trow .gm-field input[aria-label="Damage ×"]', '3')
+        await page.select_option('.gm-editor select[aria-label="Add an appliance"]', 'toaster')
+        await page.wait_for_timeout(200)
+        await page.click('.gm-trow:nth-child(2) .toggle-inline input')
+        await page.select_option('.gm-editor select[aria-label="Add a pest"]', 'ant')
+        await page.wait_for_timeout(200)
+        summ = await page.evaluate("document.querySelector('.gm-summary').textContent")
+        check('$4,321' in summ and 'Toaster banned' in summ and 'damage ×3' in summ, 'the summary follows the edits (%s)' % summ)
+        await page.screenshot(path=str(OUT / 'editor.png'), full_page=False)
+        await page.click('.modal .btn-primary:has-text("Save and switch on")'); await page.wait_for_timeout(400)
+        check(await page.evaluate("gameModsOn().length === 1 && gameModById(gameModsOn()[0]).name === 'Browser Mod'"), 'saved and switched on')
+        check(await page.query_selector('.gm-row.on') is not None, 'the list shows it on')
+        await page.screenshot(path=str(OUT / 'list.png'))
+        await page.click('.modal .acts button:has-text("Back")'); await page.wait_for_timeout(200)
+        # a new game: the note, then a modded game
+        await page.click('#btn-play'); await page.wait_for_timeout(300)
+        await page.click('.map-card >> nth=0'); await page.wait_for_timeout(300)
+        note = await page.evaluate("document.querySelector('.gm-note').textContent")
+        check('Browser Mod' in note, 'the new-game picker says which mods are on')
+        await page.click('.modal .btn-primary:has-text("Start cooking")'); await page.wait_for_timeout(700)
+        st = await page.evaluate("({ cash: G.cash, label: document.querySelector('#mode-label').textContent, toaster: !!document.querySelector('#shop .card[data-type=\"toaster\"]') })")
+        check(st['cash'] == 4321 and 'Modded' in st['label'] and not st['toaster'], 'a modded game: its cash, its label, the toaster gone ' + json.dumps(st))
+        await page.screenshot(path=str(OUT / 'game.png'))
+        await page.evaluate("exitToMenu()"); await page.wait_for_timeout(300)
+        # examples and codes
+        await page.click('#btn-mods'); await page.wait_for_timeout(300)
+        await page.click('.gm-presets button:has-text("Glass Cannons")'); await page.wait_for_timeout(300)
+        check(await page.evaluate("document.querySelector('.modal h2').textContent") == 'Edit mod', 'an example opens in the editor')
+        await page.click('.modal .acts button:has-text("Back")'); await page.wait_for_timeout(300)
+        code = await page.evaluate("gameModCode(gameModById(gameModList()[0]))")
+        await page.evaluate("deleteGameMod(gameModList()[0]); showMods()"); await page.wait_for_timeout(300)
+        await page.fill('.gamemods .gal-paste', code); await page.click('.gamemods button:has-text("Add from code")'); await page.wait_for_timeout(300)
+        check(await page.evaluate("gameModList().some(id => gameModById(id).name === 'Browser Mod')"), 'a mod code adds it back')
+        check(not errors, 'no page errors ' + json.dumps(errors[:4]))
+        await b.close()
+    print('FAILURES: %d' % len(fails)); sys.exit(1 if fails else 0)
+asyncio.run(main())

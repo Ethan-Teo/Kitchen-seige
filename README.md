@@ -11,7 +11,7 @@ The whole game is that one file. It needs no server and saves to your browser.
 - Game modes on every difficulty, weekly events, Boss Battles, the Tasting Menu, Expeditions (five kitchens in a row), daily challenges and a Sandbox
 - A tower builder: design attacks, abilities and upgrade paths, draw your own projectiles and model your own 3D appliance bodies
 - Co-op for two players: each with their own cash and appliances, sharing the lives
-- A Kitchen Editor for kitchens of your own, and a community Gallery to share what you make
+- A Kitchen Editor for kitchens of your own, a Mod Maker to change the game's rules, and a community Gallery to share what you make
 - Game stats and a build replay after every game, colour-blind mode and larger text
 - Six save slots, and save codes to move your progress between devices
 
@@ -40,6 +40,6 @@ The source is in `src/`. `python3 build.py` puts every script and the stylesheet
 
 Tests:
 - `node test/<name>.js` runs a game test (no browser needed), for example `node test/rounds.js`.
-- `python3 test/<name>.py` runs a browser test with Playwright and Chromium: `browser`, `flows`, `new_towers`, `utensils_ui`, `spray_ui`, `models3d`, `kitchens_ui`, `expeditions_ui`, `polish_ui`, `gallery_ui`, `coop_ui`, `rice_ui`.
+- `python3 test/<name>.py` runs a browser test with Playwright and Chromium: `browser`, `flows`, `new_towers`, `utensils_ui`, `spray_ui`, `models3d`, `kitchens_ui`, `expeditions_ui`, `polish_ui`, `gallery_ui`, `coop_ui`, `rice_ui`, `gamemods_ui`.
 
 GitHub Actions runs the game tests on every push (`.github/workflows/tests.yml`).

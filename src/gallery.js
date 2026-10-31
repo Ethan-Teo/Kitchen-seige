@@ -23,6 +23,7 @@ const GALLERY_KINDS = {
   body:       { name:'Body',       plural:'Bodies',      prefix: BODY_PREFIX },
   object:     { name:'Object',     plural:'Objects',     prefix: OBJ_PREFIX },
   collection: { name:'Collection', plural:'Collections', prefix: COLLECTION_PREFIX },
+  mod:        { name:'Mod',        plural:'Mods',        prefix: GMOD_PREFIX },
 };
 function codeKind(code){
   code = String(code || '').trim();
@@ -38,6 +39,7 @@ function codePeek(code){
   if (kind === 'kitchen'){ const k = kitchenFromCode(code); return { kind, name: k.name, data: k }; }
   if (kind === 'body'){ const b = bodyFromCode(code); return { kind, name: b.name || 'Body', data: b }; }
   if (kind === 'object'){ const o = objectFromCode(code); return { kind, name: o.name || 'Object', data: o }; }
+  if (kind === 'mod'){ const m = gameModFromCode(code); return { kind, name: m.name, data: m }; }
   let raw;
   try { raw = JSON.parse(decodeURIComponent(escape(atob(code.slice(COLLECTION_PREFIX.length))))); } catch (e) { throw new Error('That code is damaged or incomplete.'); }
   const n = ['designs', 'objs', 'bodies'].reduce((a, k) => a + Object.keys((raw && raw[k]) || {}).length, 0);
@@ -109,6 +111,14 @@ function galleryGet(code){
     if (!id) throw new Error('Your object workshop is full.');
     return { kind, id, added: 1 };
   }
+  if (kind === 'mod'){
+    const m = gameModFromCode(code);
+    const same = gameModList().find(id => fp(gameModById(id), { created: 0 }) === fp(m, { created: 0 }));
+    if (same) return { kind, id: same, added: 0, have: true };
+    const id = saveGameMod(m);
+    if (!id) throw new Error('You have ' + GMOD_MAX + ' mods already. Delete one to make room.');
+    return { kind, id, added: 1 };
+  }
   throw new Error('That isn’t a Kitchen Siege code.');
 }
 /* everything of yours that can be shared, as { kind, name, code } */
@@ -118,6 +128,7 @@ function shareables(){
   for (const id of kitchenList()) out.push({ kind:'kitchen', id, name: kitchenById(id).name, code: kitchenCode(kitchenById(id)) });
   for (const id of bodyList()) out.push({ kind:'body', id, name: bodyById(id).name, code: bodyCode(bodyById(id)) });
   for (const id of objectList()) out.push({ kind:'object', id, name: objectById(id).name, code: objectCode(objectById(id)) });
+  for (const id of gameModList()) out.push({ kind:'mod', id, name: gameModById(id).name, code: gameModCode(gameModById(id)) });
   return out;
 }
 /* the GitHub issue that asks for an entry to be added to the featured shelf */

@@ -58,7 +58,7 @@ function addChefXP(v){
 
 /* ---------------- Rounds, wins and losses ---------------- */
 function metaRoundEnd(n){
-  if (G.attract || G.adminUsed) return;
+  if (G.attract || G.adminUsed || G.mods) return;
   const rate = (DOUGH_RATE[G.diff] || 1) * (G.mm ? 1.5 : 1), main = n <= G.win;
   G.doughAcc = (G.doughAcc || 0) + (main ? 2 + n / 20 : 1) * rate;
   const whole = Math.floor(G.doughAcc);
@@ -75,7 +75,7 @@ function metaRoundEnd(n){
 /* what a win pays: the daily challenge reward, or Dough for the win and any new medals */
 function metaVictory(fresh, freshMM){
   const out = { dough: 0, crate: null, daily: false, first: false };
-  if (G.attract || G.adminUsed) return out;
+  if (G.attract || G.adminUsed || G.mods) return out;
   if (G.ch && G.ch.tm){
     const r = tmLegDone();
     if (r){ out.tm = r; out.dough += r.dough; out.crate = r.crate; out.first = !!r.dough; }
@@ -409,6 +409,7 @@ function buyPower(id, n){
 function powerBlock(){
   if (!G.active || G.over || G.attract) return 'Start a game first';
   if (Coop.on && Coop.role === 'guest') return 'In co-op, powers and insta appliances are the host’s';
+  if (G.mods && G.mods.flags.noPowers) return 'This game’s mods allow no powers';
   if (G.ch) return 'Powers stay in the pantry during daily challenges';
   if (G.diff === 'michelin') return 'Michelin is a pure test: no powers';
   if (modeNoPowers()) return G.M.name + ' is played without powers';

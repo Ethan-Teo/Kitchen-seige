@@ -271,6 +271,7 @@ function buildMaps(){
 }
 function pickDifficulty(mapId){
   Sfx.unlock();
+  UI.lastPickMap = mapId;
   const m = Profile.medals[mapId] || {};
   const diffs = h('div', { class:'diffs' });
   const modes = h('div', { class:'modes' });
@@ -311,7 +312,7 @@ function pickDifficulty(mapId){
   const warn = h('p', { class:'note', id:'slot-note', text: slotStartNote(def) });
   slotSel.addEventListener('change', () => { UI.slotPick = +slotSel.value; warn.textContent = slotStartNote(UI.slotPick); });
   const slotRow = h('div', { class:'slot-row' }, h('label', { for:'slot-pick', text:'Save slot' }), slotSel);
-  modal({ title: MAPS[mapId].name, lead: MAPS[mapId].blurb + (isCustomMap(mapId) ? ' A kitchen of your own: it earns Dough and mastery, but no medals.' : ''), content:[diffs, h('p', { class:'lead modes-h', text:'House style' }), modes, mmRow, sbRow, slotRow, warn],
+  modal({ title: MAPS[mapId].name, lead: MAPS[mapId].blurb + (isCustomMap(mapId) ? ' A kitchen of your own: it earns Dough and mastery, but no medals.' : ''), content:[gmNoteRow(), diffs, h('p', { class:'lead modes-h', text:'House style' }), modes, mmRow, sbRow, slotRow, warn],
     actions:[{ label:'Cancel' }, { label:'Start cooking', kind:'primary', onClick: () => { pickSlot(UI.slotPick); startNewGame(mapId, UI.diffPick, UI.mmPick && !UI.sbPick, null, UI.sbPick ? 'sandbox' : UI.modePick); } }] });
 }
 
@@ -341,8 +342,8 @@ function enterGame(){
   show('game'); updateClip();
   $('#auto-start').checked = !!Profile.settings.auto;
   UI.autoArmed = false; UI.autoLeft = null;
-  $('#mode-label').textContent = G.ev ? eventLabel() : G.ch ? (G.ch.ex ? 'Expedition ' + (G.ch.ex.leg + 1) + '/5 · ' : G.ch.tm ? 'Tasting Menu · ' : 'Daily · ') + G.D.name : G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery' : '');
-  $('#mode-label').title = G.ch ? G.ch.name + ' · rounds ' + G.ch.start + ' to ' + G.ch.end + '. ' + challengeRulesText(G.ch) : G.M ? G.M.name + ': ' + modeRulesText() : '';
+  $('#mode-label').textContent = (G.mods ? '⚙ Modded · ' : '') + (G.ev ? eventLabel() : G.ch ? (G.ch.ex ? 'Expedition ' + (G.ch.ex.leg + 1) + '/5 · ' : G.ch.tm ? 'Tasting Menu · ' : 'Daily · ') + G.D.name : G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery' : ''));
+  $('#mode-label').title = G.mods ? 'Mods: ' + G.mods.names.join(', ') : G.ch ? G.ch.name + ' · rounds ' + G.ch.start + ' to ' + G.ch.end + '. ' + challengeRulesText(G.ch) : G.M ? G.M.name + ': ' + modeRulesText() : '';
   UI.abKey = '';
   buildShop(); buildAbilities(); updatePanel(true); UI.bossKey = null; bossBar(); UI.previewKey = null; buildPreview();
   $('#toasts').innerHTML = '';
@@ -3364,6 +3365,7 @@ function bindStatic(){
   $('#btn-bosses').addEventListener('click', showBosses);
   $('#btn-gallery').addEventListener('click', () => showGallery());
   $('#btn-coop').addEventListener('click', () => showCoop());
+  $('#btn-mods').addEventListener('click', () => showMods());
   $('#tut-skip').addEventListener('click', () => { Sfx.play('click'); tutEnd(); });
   $('#btn-shop').addEventListener('click', () => { Sfx.unlock(); show('shop'); });
   $('#btn-chefs').addEventListener('click', () => { Sfx.unlock(); show('chefs'); });

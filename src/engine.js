@@ -76,7 +76,7 @@ function combineProfiles(a, b){
   for (const k in bs) if (k !== 'best') o.stats[k] = mx(o.stats[k], bs[k]);
   o.stats.best = Object.assign({}, obj(o.stats.best)); for (const k in obj(bs.best)) o.stats.best[k] = mx(o.stats.best[k], bs.best[k]);
   o.seen = union(obj(o.seen), b.seen); o.ach = union(obj(o.ach), b.ach); o.custom = union(obj(o.custom), b.custom);
-  o.objects = union(obj(o.objects), b.objects); o.bodies = union(obj(o.bodies), b.bodies); o.kitchens = union(obj(o.kitchens), b.kitchens);
+  o.objects = union(obj(o.objects), b.objects); o.bodies = union(obj(o.bodies), b.bodies); o.kitchens = union(obj(o.kitchens), b.kitchens); o.gmods = union(obj(o.gmods), b.gmods);
   const ah = obj(o.heroes), bh = obj(b.heroes);
   o.heroes = Object.assign({}, ah, { owned: union(Object.assign({}, obj(ah.owned)), bh.owned), seen: union(Object.assign({}, obj(ah.seen)), bh.seen), tip: mx(ah.tip, bh.tip) });
   const ad = obj(o.daily), bd = obj(b.daily);
@@ -331,7 +331,7 @@ const AdminFlags = { unlockAll:false };
 const NO_MOD = { speed:1, hp:1, bigHp:1, cash:1, price:1, noAbilities:false, maxTier:5, noSell:false, lives:null };
 function rankOf(xp){ let r = 0; for (let i = 0; i < RANKS.length; i++) if (xp >= RANKS[i].xp) r = i; return r; }
 /* games that keep no records: the attract loop and the sandbox */
-function noRecords(){ return !!G.attract || (typeof sandboxOn === 'function' && sandboxOn()); }
+function noRecords(){ return !!G.attract || !!G.mods || (typeof sandboxOn === 'function' && sandboxOn()); }
 function masteryRank(type){ return AdminFlags.unlockAll || sandboxOn() ? RANKS.length - 1 : rankOf(Profile.mastery[type] || 0); }
 function perk(id){ return !!Profile.perks[id]; }
 function starsEarned(){
@@ -479,6 +479,7 @@ function computeStats(t){
   /* head chefs have no mastery: they grow by levels instead */
   const rank = T.hero ? 0 : masteryRank(t.type);
   if (rank >= 4 && !s.global) s.range *= 1.06;
+  if (G.mods && !T.hero) gmStats(t, s);
   for (const id in s.atk) finalizeAttack(s.atk[id], rank);
   return s;
 }
@@ -572,8 +573,8 @@ function price(base, type, x, y){
   if (x != null) m *= 1 - discountAt(x, y);
   return Math.max(5, Math.round(base * m / 5) * 5);
 }
-function towerCost(type, x, y){ let c = TOWERS[type].cost; if (type === 'knife' && perk('sharp')) c -= 50; return price(c, type, x, y); }
-function upgradeCost(t, p){ return price(TOWERS[t.type].paths[p].ups[t.up[p]].cost, t.type, t.x, t.y); }
+function towerCost(type, x, y){ let c = TOWERS[type].cost; if (type === 'knife' && perk('sharp')) c -= 50; if (G.mods) c *= gmCost(type); return price(c, type, x, y); }
+function upgradeCost(t, p){ return price(TOWERS[t.type].paths[p].ups[t.up[p]].cost * (G.mods ? gmCost(t.type) : 1), t.type, t.x, t.y); }
 function paragonCost(type){ return price(TOWERS[type].paragon.cost, type); }
 function canAfford(c){ return G.admin.infCash || G.cash >= c; }
 function spend(c){ if (!G.admin.infCash) G.cash -= c; }
@@ -610,18 +611,19 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
     doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
-    mode:'standard', M:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
+    mode:'standard', M:null, mods:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
   if (!ch) applyMode(mode);
   if (!ch) applyEvent(ev);
 }
 /* can this appliance be built here (daily challenges allow only a few) */
-function canBuild(type){ return (!G.ch || G.ch.towers.indexOf(type) >= 0 || !!(TOWERS[type] && TOWERS[type].hero)) && modeAllows(type) && crewLeft(type) > 0; }
+function canBuild(type){ return (!G.ch || G.ch.towers.indexOf(type) >= 0 || !!(TOWERS[type] && TOWERS[type].hero)) && modeAllows(type) && crewLeft(type) > 0 && !gmBanned(type); }
 function newGame(mapId, diff, mm, ch, mode, ev){
   /* the new game takes the slot asked for (SLOT_PICK), else a free one */
   setActiveSlot(SLOT_PICK != null ? SLOT_PICK : slotForNew()); SLOT_PICK = null;
   setupGame(mapId, diff, mm, ch, mode, ev);
+  applyGameMods(gameModsForNew(G.ch, ev), true);
   Profile.stats.games++;
   saveProfile();
   G.lastSnap = serializeGame();
@@ -640,7 +642,7 @@ function makeTower(type, x, y){
 function serializeGame(){
   return { v:1, savedAt: Date.now(), mapId:G.mapId, diff:G.diff, mm:G.mm, mode: G.mode !== 'standard' ? G.mode : undefined, ev: evSave(), freeplay:G.freeplay, won:G.won, round:G.round,
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
-    ch: G.ch || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
+    ch: G.ch || undefined, md: G.mods || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
     hs: G.hist && G.hist.length ? G.hist : undefined, bl: G.blog && G.blog.length ? G.blog : undefined,
     towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
@@ -656,6 +658,7 @@ function serializeGame(){
 function loadGame(data){
   if (data && data.cm && typeof adoptKitchen === 'function') adoptKitchen(data.mapId, data.cm);   // a kitchen of the player's own, carried in the save
   setupGame(data.mapId, data.diff, data.mm, data.ch, data.mode);
+  if (data.md && typeof data.md === 'object' && data.md.rules) applyGameMods(data.md, false);
   evLoad(data.ev);
   Object.assign(G, { round:data.round, cash:data.cash, lives:data.lives, freeplay:!!data.freeplay, won:!!data.won, usedSecond:!!data.usedSecond });
   G.doughGame = +data.dg || 0; G.chefXpGame = +data.cx || 0; G.doughAcc = +data.da || 0;
@@ -1004,6 +1007,7 @@ function spawnEnemy(type, o){
     /* a pest beefed up to fit its round pays a little more */
     payMul: o.hpMul > 1 && !def.boss ? Math.sqrt(o.hpMul) : 1,
   };
+  if (G.mods) gmPest(e);
   if (boss){ e.lvl = evBossLevel() || bossLevel(G.round); e.speed *= Math.min(1.6, 1 + 0.03 * (e.lvl - 1)); }
   const pos = pathPos(G.paths[path], e.d, 0);
   e.x = pos.x; e.y = pos.y; e.seg = pos.seg; e.ang = e.rot = pos.ang;
@@ -2251,7 +2255,7 @@ function endRound(){
   if (n === G.win && !G.freeplay && !G.won) victory();
 }
 function commitXP(){
-  if (G.attract || (G.M && G.M.sandbox)){ G.xp = {}; return; }
+  if (G.attract || G.mods || (G.M && G.M.sandbox)){ G.xp = {}; return; }
   let changed = false;
   for (const type in G.xp){
     const gain = G.xp[type];
@@ -2272,7 +2276,7 @@ function victory(){
   G.won = true;
   if (typeof buildLogTick === 'function') buildLogTick(G.round);
   let fresh = false, freshMM = false;
-  if (!G.ch && !G.ev && !G.adminUsed && !isCustomMap(G.mapId)){
+  if (!G.ch && !G.ev && !G.adminUsed && !G.mods && !isCustomMap(G.mapId)){
     const m = Profile.medals[G.mapId] = Profile.medals[G.mapId] || {}, key = medalKey(G.diff, G.mode);
     fresh = !m[key];
     m[key] = 1;
