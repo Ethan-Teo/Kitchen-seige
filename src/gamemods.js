@@ -31,9 +31,9 @@ const GM_RULES = {
 const GM_TOWER = { dmg:['Damage ×', 0.1, 20, 1], rate:['Attack speed ×', 0.1, 10, 1], range:['Range ×', 0.3, 4, 1], pierce:['Pierce +', -10, 100, 0], cost:['Price ×', 0.1, 10, 1] };
 const GM_PEST = { hp:['Health ×', 0.1, 20, 1], speed:['Speed ×', 0.25, 4, 1], cash:['Cash ×', 0, 20, 1] };
 function defaultGameMod(){ return { v:1, name:'My Mod', by:'', blurb:'', rules:{}, towers:{}, pests:{}, flags:{}, buffs:[], created:0 }; }
-/* purchasable buffs: bought with cash during a game, for a while (dur seconds of rounds) or for the rest of the game (dur 0) */
+/* purchasable buffs: bought with cash during a game and put on one appliance, which keeps them until it is sold */
 const GM_BUFF_MAX = 12;
-const GM_BUFF = { cost:['Price $', 1, 1e9, 1000], dur:['Lasts (s, 0 = rest of game)', 0, 3600, 30], dmg:['Damage ×', 0.1, 100, 1], rate:['Attack speed ×', 0.1, 20, 1], range:['Range ×', 0.5, 4, 1], pierce:['Pierce +', 0, 1000, 0], income:['Cash from pests ×', 0, 50, 1], lives:['Lives +', 0, 1000000, 0], max:['Times you can buy it (0 = any)', 0, 999, 0] };
+const GM_BUFF = { cost:['Price $', 1, 1e9, 1000], dmg:['Damage ×', 0.1, 100, 1], rate:['Attack speed ×', 0.1, 20, 1], range:['Range ×', 0.5, 4, 1], pierce:['Pierce +', 0, 1000, 0], income:['Cash from pests ×', 0, 50, 1], lives:['Lives +', 0, 1000000, 0], max:['Times you can buy it (0 = any)', 0, 999, 0] };
 function cleanBuff(b){
   if (!b || typeof b !== 'object') return null;
   const o = { name: cleanText(b.name, 24, 'Buff') };
@@ -52,8 +52,8 @@ function buffSummary(b, noMax){
   if (b.allTypes) x.push('hit any pest type');
   if (b.income !== 1) x.push('pest cash ×' + b.income);
   if (b.lives) x.push('+' + gmFmt(b.lives) + ' lives');
-  const timed = b.dur > 0 && (x.length > (b.lives ? 1 : 0));
-  return (x.length ? x.join(', ') : 'does nothing yet') + (b.lives && x.length === 1 ? '' : timed ? ' for ' + b.dur + 's of rounds' : ' for the rest of the game') + (b.max && !noMax ? ' · ' + (b.max === 1 ? 'once a game' : 'up to ' + b.max + ' times') : '');
+  const onTower = !gmBuffOnly(b);
+  return (x.length ? x.join(', ') : 'does nothing yet') + (onTower ? ' on one appliance, until it is sold' : '') + (b.max && !noMax ? ' · ' + (b.max === 1 ? 'once a game' : 'up to ' + b.max + ' times') : '');
 }
 function cleanGameMod(src){
   src = src && typeof src === 'object' ? src : {};
@@ -172,15 +172,15 @@ const GM_PRESETS = {
   basics: { name:'Back to Basics', blurb:'Upgrades stop at tier 3, no abilities, and you start rich.', rules:{ maxTier:3, cash:3000 }, flags:{ noAbilities:true } },
   knives: { name:'Knife Party', blurb:'Knife Blocks are cheap and deadly; nothing else is half as good.', towers:{ knife:{ dmg:3, rate:1.5, cost:0.5 }, all:{ dmg:0.5 } } },
   marathon:{ name:'Marathon', blurb:'Win on round 100 with 500 lives.', rules:{ win:100, lives:500 } },
-  buffshop:{ name:'Buff Shop', blurb:'Buy buffs with your cash from the shop during the game, all the way up to the God Boost for $1,000,000.', buffs:[
-    { name:'Sharpen Up', cost:400, dur:30, dmg:1.25 },
-    { name:'Espresso Shot', cost:900, dur:30, rate:1.4 },
-    { name:'Eagle Eye', cost:1500, dur:45, range:1.3, camo:true },
-    { name:'Overtime Pay', cost:3000, dur:60, income:2 },
+  buffshop:{ name:'Buff Shop', blurb:'Buy buffs with your cash during the game and drag each onto an appliance: it keeps it until it is sold. All the way up to the God Boost for $1,000,000.', buffs:[
+    { name:'Sharpen Up', cost:400, dmg:1.25 },
+    { name:'Espresso Shot', cost:900, rate:1.4 },
+    { name:'Eagle Eye', cost:1500, range:1.3, camo:true },
+    { name:'Overtime Pay', cost:3000, income:2 },
     { name:'Extra Lives', cost:5000, lives:50, max:5 },
-    { name:'Rage Mode', cost:25000, dur:30, dmg:2, rate:1.5, pierce:3 },
-    { name:'Chef’s Blessing', cost:150000, dur:60, dmg:3, rate:2, range:1.25, allTypes:true },
-    { name:'God Boost', cost:1000000, dur:0, dmg:10, rate:3, range:1.5, pierce:20, camo:true, allTypes:true, max:1 },
+    { name:'Rage Mode', cost:25000, dmg:2, rate:1.5, pierce:3 },
+    { name:'Chef’s Blessing', cost:150000, dmg:3, rate:2, range:1.25, allTypes:true },
+    { name:'God Boost', cost:1000000, dmg:10, rate:3, range:1.5, pierce:20, camo:true, allTypes:true, max:1 },
   ] },
 };
 
@@ -254,55 +254,58 @@ function gmPest(e){
   if (cash !== 1) e.payMul = (e.payMul || 1) * cash;
 }
 
-/* ---------------- buying buffs in a game ---------------- */
+/* ---------------- buffs in a game ----------------
+   A buff is bought and dragged (or clicked) onto one appliance: it stays on
+   that appliance for the rest of the game, until the appliance is sold
+   (a sold appliance's buffs are gone). Lives come at once; a cash buff
+   pays while the appliance holding it stands. */
 function gmBuffs(){ return G.mods && G.mods.buffs ? G.mods.buffs : []; }
-function gmBuffActive(i){ return (G.gmBuffs || []).find(a => a.i === i) || null; }
-function buyGameBuff(i){
+function gmBuffOnly(b){ return !!b && !(b.dmg !== 1 || b.rate !== 1 || b.range !== 1 || b.pierce || b.camo || b.allTypes || b.income !== 1); }
+/* can this buff go on this appliance now: why not, or null */
+function gmBuffWhy(i, t){
   const b = gmBuffs()[i];
-  if (!b) return { ok:false, why:'No such buff' };
-  if (!G.active || G.over) return { ok:false, why:'Start a game first' };
-  if (typeof Coop !== 'undefined' && Coop.on && Coop.role === 'guest') return { ok:false, why:'In co-op, the host buys buffs' };
+  if (!b) return 'No such buff';
+  if (!G.active || G.over) return 'Start a game first';
+  if (typeof Coop !== 'undefined' && Coop.on && Coop.role === 'guest') return 'In co-op, the host buys buffs';
   const n = (G.gmBought && G.gmBought[i]) || 0;
-  if (b.max && n >= b.max) return { ok:false, why:'You can buy ' + b.name + ' only ' + b.max + (b.max === 1 ? ' time' : ' times') };
-  const act = gmBuffActive(i);
-  if (act && !(act.left < Infinity)) return { ok:false, why: b.name + ' already lasts the rest of the game' };
-  if (!canAfford(b.cost)) return { ok:false, why:'Need $' + gmFmt(b.cost - G.cash) + ' more' };
+  if (b.max && n >= b.max) return 'You can buy ' + b.name + ' only ' + (b.max === 1 ? 'once' : b.max + ' times') + ' a game';
+  if (!gmBuffOnly(b)){
+    if (!t || !G.towers.includes(t)) return 'Drop it on one of your appliances';
+    if (TOWERS[t.type].hero && !b.lives) return 'Head chefs can’t take buffs';
+    if ((t.gb || []).includes(i)) return TOWERS[t.type].name + ' already has ' + b.name;
+    if (typeof Coop !== 'undefined' && Coop.on && (t.own || 0) !== Coop.actor) return 'That’s your partner’s appliance';
+  }
+  if (!canAfford(b.cost)) return 'Need $' + gmFmt(b.cost - G.cash) + ' more';
+  return null;
+}
+function buyGameBuff(i, t){
+  const why = gmBuffWhy(i, t);
+  if (why) return { ok:false, why };
+  const b = gmBuffs()[i];
   spend(b.cost);
-  G.gmBought[i] = n + 1;
+  G.gmBought[i] = ((G.gmBought && G.gmBought[i]) || 0) + 1;
   if (b.lives) G.lives += b.lives;
-  const effects = b.dmg !== 1 || b.rate !== 1 || b.range !== 1 || b.pierce || b.camo || b.allTypes || b.income !== 1;
-  if (effects){
-    if (act) act.left += b.dur;
-    else G.gmBuffs.push({ i, left: b.dur > 0 ? b.dur : Infinity });
-    gmBuffsChanged();
-  }
+  if (!gmBuffOnly(b)){ t.gb = (t.gb || []).concat([i]); gmBuffsChanged(); }
   Hooks.sfx('rank');
-  return { ok:true };
+  return { ok:true, t };
 }
-/* the buffs running now, stacked */
-function gmBuffNow(){
-  const out = { dmg:1, rate:1, range:1, pierce:0, income:1, camo:false, allTypes:false, any:false };
-  const B = gmBuffs();
-  for (const a of (G.gmBuffs || [])){
-    const b = B[a.i]; if (!b) continue;
-    out.any = true;
-    out.dmg *= b.dmg; out.rate *= b.rate; out.range *= b.range; out.pierce += b.pierce; out.income *= b.income;
-    if (b.camo) out.camo = true;
-    if (b.allTypes) out.allTypes = true;
-  }
-  return out;
-}
+/* which appliances hold a buff */
+function gmBuffHolders(i){ return G.towers.filter(t => (t.gb || []).includes(i)); }
 function gmBuffsChanged(){
-  const N = gmBuffNow();
+  if (!G.mods) return;
   if (G.gmBaseCash == null) G.gmBaseCash = G.mod.cash;
-  G.mod.cash = G.gmBaseCash * N.income;
+  const B = gmBuffs();
+  let inc = 1;
+  for (const t of G.towers) for (const i of (t.gb || [])) if (B[i]) inc *= B[i].income;
+  G.mod.cash = G.gmBaseCash * inc;
   refreshTowers();
 }
-/* an appliance's stats with the running buffs on top */
+/* an appliance's stats with its own buffs on top */
 function gmBuffStats(t, s){
-  if (!G.gmBuffs || !G.gmBuffs.length) return;
-  const N = gmBuffNow();
-  if (!N.any) return;
+  if (!t.gb || !t.gb.length) return;
+  const B = gmBuffs();
+  const N = { dmg:1, rate:1, range:1, pierce:0, camo:false, allTypes:false };
+  for (const i of t.gb){ const b = B[i]; if (!b) continue; N.dmg *= b.dmg; N.rate *= b.rate; N.range *= b.range; N.pierce += b.pierce; if (b.camo) N.camo = true; if (b.allTypes) N.allTypes = true; }
   if (!s.global) s.range *= N.range;
   if (N.camo) s.camo = true;
   if (N.allTypes) s.allTypes = true;
@@ -318,20 +321,12 @@ function gmBuffStats(t, s){
   for (const id in s.atk) scale(s.atk[id]);
   if (s.aura && s.aura.dmg) s.aura.dmg *= N.dmg;
 }
-/* timed buffs run down while rounds are on */
-function gmBuffTick(dt){
-  if (!G.gmBuffs || !G.gmBuffs.length || !G.roundActive) return;
-  let gone = false;
-  for (const a of G.gmBuffs) if (a.left < Infinity){ a.left -= dt; if (a.left <= 0) gone = true; }
-  if (gone){ G.gmBuffs = G.gmBuffs.filter(a => a.left > 0); gmBuffsChanged(); }
-}
-function gmBuffSave(){ return G.gmBuffs && (G.gmBuffs.length || Object.keys(G.gmBought || {}).length) ? { a: G.gmBuffs.map(a => [a.i, a.left < Infinity ? Math.round(a.left * 10) / 10 : -1]), n: G.gmBought } : undefined; }
+function gmBuffTick(){ /* buffs no longer run out: kept so older saves and callers still work */ }
+function gmBuffSave(){ return G.gmBought && Object.keys(G.gmBought).length ? { n: G.gmBought } : undefined; }
 function gmBuffLoad(d){
-  if (!d || !G.mods) return;
+  if (!G.mods) return;
   const B = gmBuffs();
-  G.gmBuffs = (Array.isArray(d.a) ? d.a : []).filter(x => Array.isArray(x) && B[x[0]]).map(x => ({ i: x[0], left: x[1] < 0 ? Infinity : Math.max(0, +x[1] || 0) }));
   G.gmBought = {};
-  if (d.n && typeof d.n === 'object') for (const k in d.n) if (B[k]) G.gmBought[k] = Math.max(0, Math.floor(+d.n[k] || 0));
+  if (d && d.n && typeof d.n === 'object') for (const k in d.n) if (B[k]) G.gmBought[k] = Math.max(0, Math.floor(+d.n[k] || 0));
   G.gmBaseCash = null;
-  gmBuffsChanged();
 }

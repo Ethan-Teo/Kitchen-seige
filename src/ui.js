@@ -463,6 +463,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
   const props = bg && bg.props, order = G.towers.length > 1 ? G.towers.slice().sort((a, b) => drawY(a) - drawY(b)) : G.towers;
   let pi = 0;
   coopDrawOwners(ctx);
+  gmDrawBuffs(ctx, t);
   for (const tw of order){
     if (props) while (pi < props.length && props[pi].sy <= drawY(tw)){ const p = props[pi++]; ctx.drawImage(p.img, p.x, p.y, p.w, p.h); }
     Art.drawTower(ctx, tw, t, { selected: tw === sel || tw === opt.hover, noShadow: true });
@@ -778,11 +779,12 @@ function bindStage(){
     if (UI.placing) setGhost(p.x, p.y);
     if (G.loaves.length) collectLoavesAt(p.x, p.y, 26);
     UI.hover = towerAt(p.x, p.y);
-    cv.style.cursor = UI.placing || UI.spotPick || UI.lockPick || UI.powerPick ? 'crosshair' : UI.hover ? 'pointer' : 'default';
+    cv.style.cursor = UI.buffPick != null || UI.placing || UI.spotPick || UI.lockPick || UI.powerPick ? 'crosshair' : UI.hover ? 'pointer' : 'default';
   });
   cv.addEventListener('pointerdown', ev => {
     Sfx.unlock();
     const p = toLogical(ev);
+    if (UI.buffPick != null && gmBuffClick(p, ev)) return;
     if (!$('#pw-tray').hidden) closePowerTray();
     if (UI.powerPick){ UI.pointer = p; powerPickAt(p, ev); return; }
     if (!UI.placing && !UI.spotPick && !UI.lockPick) G.aimAt = p;
@@ -1187,7 +1189,7 @@ function showInfo(type){
 /* ---------------------------------------------------------------------
    Tower panel
    --------------------------------------------------------------------- */
-function panelKey(t){ return t ? [t.id, t.level || 0, skinOf(t.type), t.up.join(''), t.paragon, t.degree, t.tg, t.flyMode || '', !!t.lock, UI.lockPick === t, Math.round(t.bank || 0), UI.sellArmed > 0, masteryRank(t.type), G.towers.length, JSON.stringify(t.buffs || {}), !!t.spot, UI.spotPick === t, t.stunT > 0, t.tb ? Object.keys(t.tb).join(',') : '', t.stack || 0, t.ub || 0, !!t.wet, t.mixKey || '', t.rushN || 0, t.oakN || 0, !!t.nonnaMix, t.nozzle || ''].join('|') : ''; }
+function panelKey(t){ return t ? [t.id, t.level || 0, skinOf(t.type), t.up.join(''), t.paragon, t.degree, t.tg, t.flyMode || '', !!t.lock, UI.lockPick === t, Math.round(t.bank || 0), UI.sellArmed > 0, masteryRank(t.type), G.towers.length, JSON.stringify(t.buffs || {}), !!t.spot, UI.spotPick === t, t.stunT > 0, t.tb ? Object.keys(t.tb).join(',') : '', t.stack || 0, t.ub || 0, !!t.wet, t.mixKey || '', t.rushN || 0, t.oakN || 0, !!t.nonnaMix, t.nozzle || '', t.gb ? t.gb.join(',') : ''].join('|') : ''; }
 function updatePanel(force){
   const t = UI.sel && G.towers.includes(UI.sel) ? UI.sel : null;
   if (!t && UI.sel) UI.sel = null;
@@ -1300,6 +1302,7 @@ function buildPanel(t){
     P.append(h('div', { class:'fly-row' }, h('span', { class:'fly-txt', text: fly === 'saucer' ? 'Flight path' : 'Flight' }), seg));
     if (fly === 'copter' && t.flyMode === 'follow') P.append(h('p', { class:'note aim-note', text: 'Flies to wherever you ' + (IS_TOUCH ? 'tap in the kitchen.' : 'point in the kitchen.') + ' When you are not pointing, it patrols near its pad.' }));
   }
+  { const gp = gmBuffPanel(t); if (gp) P.append(gp); }
   /* a rice cooker: how far it has cooked, the pots it keeps warm, and opening the lid early */
   if (t.s.atk.main && t.s.atk.main.kind === 'cook'){
     const c = riceCharge(t), a = t.s.atk.main;
@@ -2474,7 +2477,7 @@ function pauseGame(){
   clock.addEventListener('click', clockTap);
   modal({ title:'Paused', lead: (G.ch ? G.ch.name + ' · ' : '') + MAPS[G.mapId].name + ' · ' + G.D.name + (G.M ? ' · ' + G.M.name : '') + (G.mm ? ' · Mastery Mode' : '') + ' · Round ' + G.round + (G.ch ? '. ' + challengeRulesText(G.ch) : G.M ? '. ' + modeRulesText() + '.' : ''),
     content:[settingsForm(true), G.doughGame || G.chefXpGame ? h('p', { class:'note', text:'This game so far: +' + fmt(G.doughGame || 0) + ' Dough and +' + fmt(G.chefXpGame || 0) + ' chef XP.' }) : null, h('p', { class:'note', text:'Progress saves at the start and end of every round, so leaving mid-round brings you back to the start of it.' })],
-    actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Game stats', onClick: () => showGameStats(pauseGame) }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
+    actions:[{ label:'Resume', kind:'primary', onClick: resume }, { label:'How to play', onClick: () => showHowTo(pauseGame) }, { label:'Game stats', onClick: () => showGameStats(pauseGame) }, { label:'Mods', onClick: showPauseMods }, { label:'Save and exit', onClick: () => { G.paused = false; exitToMenu(); } },
       { label:'Restart', onClick: () => confirmBox('Restart this game?', 'Your towers and progress on this map will be wiped.', 'Restart', () => { pickSlot(activeSlot()); const ch = G.ch && G.ch.ex && exRecord() ? exLeg(exRecord()) : G.ch; startNewGame(G.mapId, G.diff, G.mm, ch, G.mode); }, pauseGame) }],
     onClose: resume, foot: clock });
 }
@@ -3235,6 +3238,7 @@ function onKey(ev){
   }
   const k = ev.key.toLowerCase();
   if (k === ' '){ ev.preventDefault(); goButton(); return; }
+  if (k === 'escape' && UI.buffPick != null){ gmBuffCancel(); return; }
   if (k === 'escape' && (UI.powerPick || !$('#pw-tray').hidden)){ UI.powerPick = null; closePowerTray(); updatePowerButton(); return; }
   if (k === 'escape'){ if (UI.lockPick){ UI.lockPick = null; updatePanel(true); } else if (UI.spotPick){ UI.spotPick = null; updatePanel(true); } else if (UI.placing) cancelPlacing(); else if (UI.sel) select(null); else pauseGame(); return; }
   if (k === 'tab' && UI.sel){ ev.preventDefault(); cycleTarget(); return; }

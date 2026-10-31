@@ -648,7 +648,7 @@ function serializeGame(){
     towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
       dmg: Math.round(t.dmg), kills:t.kills, inv: Math.round(t.invested), bank: Math.round(t.bank || 0), cashGen: Math.round(t.cashGen || 0),
       spot: t.spot ? [Math.round(t.spot.x), Math.round(t.spot.y)] : null, fm: t.flyMode || undefined, nz: t.nozzle || undefined, lk: t.lock ? [Math.round(t.lock.x), Math.round(t.lock.y)] : undefined,
-      hl: t.hero ? t.level : undefined, ow: t.own || undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
+      hl: t.hero ? t.level : undefined, ow: t.own || undefined, gb: t.gb && t.gb.length ? t.gb.slice() : undefined, hx: t.hero ? Math.round(t.hxp) : undefined,
       sy: t.sys ? paraSave(t) : undefined, pit: t.pit ? Math.round(t.pit) : undefined,
       pw: t.paragon && t.pw ? PARA_POOLS.map(k => Math.round(t.pw[k] || 0)) : undefined, pws: t.paragon && t.pwSeen ? [Math.round(t.pwSeen.dmg), Math.round(t.pwSeen.inc)] : undefined,
       tb: saveTb(t), ub: t.ub || undefined, fr: t.forestR ? Math.round(t.forestR) : undefined,
@@ -679,6 +679,7 @@ function loadGame(data){
     t.up = d.up.slice(); t.paragon = !!d.par; t.degree = d.par || 0; t.tg = d.tg || 'first';
     if (d.nz === 'mist' || d.nz === 'stream') t.nozzle = d.nz;
     if (d.ow === 1) t.own = 1;
+    if (Array.isArray(d.gb)) t.gb = d.gb.filter(i => Number.isInteger(i) && i >= 0 && i < 64).slice(0, 64);
     t.dmg = d.dmg || 0; t.kills = d.kills || 0; t.invested = d.inv || 0; t.bank = d.bank || 0; t.cashGen = d.cashGen || 0;
     if (d.lf) t.lifts = clamp(Math.floor(+d.lf || 0), 0, 1e9);
     t.ab = Object.assign({}, d.ab || {});
@@ -716,6 +717,7 @@ function loadGame(data){
   G.tbNext = nextTempBuffEnd();
   refreshTowers();
   if (seatCheck()) refreshTowers();
+  if (G.mods) gmBuffsChanged();
   G.lastSnap = data;
 }
 function saveGameNow(){
@@ -835,6 +837,7 @@ function sellTower(t){
   for (const tr of G.traps) if (tr.tw === t && tr.catch && !tr.done) collectCatch(tr);
   G.minions = G.minions.filter(m => m.tw !== t);
   G.towers = G.towers.filter(o => o !== t);
+  if (t.gb && t.gb.length && G.mods) gmBuffsChanged();
   G.puddles = G.puddles.filter(p => p.tw !== t);
   G.traps = G.traps.filter(p => p.tw !== t);
   G.whirls = G.whirls.filter(p => p.tw !== t);

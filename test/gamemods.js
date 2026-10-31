@@ -69,49 +69,47 @@ E.deleteGameMod(id);
 ok(!E.gameModById(id) && !E.gameModsOn().includes(id), 'deleted, it is gone and switched off');
 /* the gallery takes mods */
 ok(E.codeKind(code) === 'mod' && E.galleryGet(code).added === 1, 'mod codes work in the gallery');
-/* purchasable buffs: the Buff Shop example */
+/* purchasable buffs: the Buff Shop example, put on one appliance each */
 {
   const bid = E.saveGameMod(E.GM_PRESETS.buffshop);
   const bm = E.gameModById(bid);
-  ok(bm.buffs.length === 8 && bm.buffs[7].name === 'God Boost' && bm.buffs[7].cost === 1000000 && bm.buffs[7].dur === 0 && bm.buffs[7].max === 1, 'the Buff Shop sells 8 buffs, the God Boost for $1,000,000');
-  ok(/rest of the game/.test(E.buffSummary(bm.buffs[7])) && /for 30s/.test(E.buffSummary(bm.buffs[0])), 'buff summaries say how long they last');
+  ok(bm.buffs.length === 8 && bm.buffs[7].name === 'God Boost' && bm.buffs[7].cost === 1000000 && bm.buffs[7].max === 1, 'the Buff Shop sells 8 buffs, the God Boost for $1,000,000');
+  ok(/until it is sold/.test(E.buffSummary(bm.buffs[7])) && E.gmBuffOnly(bm.buffs[4]), 'buffs stay on one appliance until it is sold; Extra Lives needs none');
   for (const x of E.gameModsOn()) E.setGameModOn(x, false);
   E.setGameModOn(bid, true);
   E.newGame('block', 'medium', false);
-  ok(E.gmBuffs().length === 8, 'a game with it has the buffs to buy');
-  const kn = E.placeTower('knife', ...spot('knife'));
+  G.cash = 1e4;
+  const kn = E.placeTower('knife', ...spot('knife')), k2 = E.placeTower('knife', ...spot('knife'));
   const d0 = kn.s.atk.main.dmg, r0 = kn.s.atk.main.rate, p0 = kn.s.atk.main.pierce;
   G.cash = 999999;
-  const poor = E.buyGameBuff(7);
-  ok(!poor.ok && /more/.test(poor.why), 'the God Boost needs a full million');
+  ok(!E.buyGameBuff(7, kn).ok, 'the God Boost needs a full million');
   G.cash = 1000000;
-  ok(E.buyGameBuff(7).ok && G.cash === 0, 'bought for $1,000,000');
-  ok(Math.abs(kn.s.atk.main.dmg - d0 * 10) < 1e-9 && Math.abs(kn.s.atk.main.rate - r0 / 3) < 1e-9 && kn.s.atk.main.pierce === p0 + 20 && kn.s.camo && kn.s.allTypes, 'God Boost: ×10 damage, ×3 speed, +20 pierce, sees ghosts, hits anything');
-  G.cash = 5000; const k2 = E.placeTower('toaster', ...spot('toaster'));
-  ok(k2 && k2.s.camo, 'appliances built later get it too');
+  ok(!E.buyGameBuff(7, null).ok && G.cash === 1000000, 'it has to go on an appliance');
+  ok(E.buyGameBuff(7, kn).ok && G.cash === 0, 'bought for $1,000,000 and put on a knife block');
+  ok(Math.abs(kn.s.atk.main.dmg - d0 * 10) < 1e-9 && Math.abs(kn.s.atk.main.rate - r0 / 3) < 1e-9 && kn.s.atk.main.pierce === p0 + 20 && kn.s.camo && kn.s.allTypes, 'that knife block: ×10 damage, ×3 speed, +20 pierce, sees ghosts, hits anything');
+  ok(Math.abs(k2.s.atk.main.dmg - d0) < 1e-9 && !k2.s.allTypes, 'the other knife block is unchanged');
   G.cash = 2e6;
-  ok(!E.buyGameBuff(7).ok, 'only once');
-  E.startRound(); for (let i = 0; i < 60 * 40; i++) E.step(1 / 60);
-  ok(E.gmBuffActive(7) && kn.s.camo, 'and it never runs out');
-  /* a timed buff */
-  G.cash = 1e6;
-  E.buyGameBuff(0);
-  const d1 = kn.s.atk.main.dmg;
-  ok(Math.abs(d1 - d0 * 12.5) < 1e-9, 'Sharpen Up stacks on top (×1.25)');
-  G.roundActive = false; E.gmBuffTick(40);
-  ok(E.gmBuffActive(0), 'timed buffs pause between rounds');
-  G.roundActive = true; G.spawn = []; E.gmBuffTick(31);
-  ok(!E.gmBuffActive(0) && Math.abs(kn.s.atk.main.dmg - d0 * 10) < 1e-9, 'and wear off after their time in rounds');
-  G.roundActive = false;
-  const lv = G.lives; E.buyGameBuff(4);
-  ok(G.lives === lv + 50, 'Extra Lives adds 50 lives');
-  E.buyGameBuff(3); const inc = G.mod.cash;
-  /* saves keep bought buffs */
+  ok(!E.buyGameBuff(7, k2).ok, 'the God Boost only once a game');
+  E.startRound(); for (let i = 0; i < 60 * 60; i++) E.step(1 / 60);
+  ok(kn.s.allTypes && E.gmBuffHolders(7)[0] === kn, 'it never runs out');
+  ok(E.buyGameBuff(0, kn).ok && Math.abs(kn.s.atk.main.dmg - d0 * 12.5) < 1e-9, 'buffs stack on one appliance');
+  ok(!E.buyGameBuff(0, kn).ok, 'but not the same buff twice on it');
+  ok(E.buyGameBuff(0, k2).ok && Math.abs(k2.s.atk.main.dmg - d0 * 1.25) < 1e-9, 'the same buff can go on another appliance');
+  const lv = G.lives; ok(E.buyGameBuff(4, null).ok && G.lives === lv + 50, 'Extra Lives adds 50 lives at once');
+  const base = G.mod.cash;
+  E.buyGameBuff(3, k2);
+  ok(Math.abs(G.mod.cash - base * 2) < 1e-9, 'Overtime Pay doubles pest cash while its appliance stands');
+  /* saves keep them */
   const sv = JSON.parse(JSON.stringify(E.serializeGame()));
   E.loadGame(sv);
-  const kk = G.towers.find(t => t.type === 'knife');
-  ok(E.gmBuffActive(7) && E.gmBuffActive(3) && Math.abs(kk.s.atk.main.dmg - d0 * 10) < 1e-9 && G.mod.cash === inc, 'a save keeps the bought buffs');
-  ok(!E.buyGameBuff(7).ok, 'and still knows the God Boost was bought');
+  const kk = G.towers.find(t => t.id === kn.id), kk2 = G.towers.find(t => t.id === k2.id);
+  ok(kk && kk.gb.includes(7) && Math.abs(kk.s.atk.main.dmg - d0 * 12.5) < 1e-9 && Math.abs(G.mod.cash - base * 2) < 1e-9, 'a save keeps each appliance’s buffs and the cash bonus');
+  ok(!E.buyGameBuff(7, kk2).ok, 'and still knows the God Boost was bought');
+  /* selling loses them */
+  E.sellTower(kk2);
+  ok(Math.abs(G.mod.cash - base) < 1e-9 && E.gmBuffHolders(3).length === 0, 'selling the appliance loses its buffs (the cash bonus ends)');
+  E.sellTower(kk);
+  ok(E.gmBuffHolders(7).length === 0 && !E.buyGameBuff(7, G.towers[0]).ok, 'a sold God Boost is gone for good');
 }
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
