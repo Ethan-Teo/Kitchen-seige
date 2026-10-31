@@ -432,7 +432,6 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
   for (const pd of G.puddles) Art.drawPuddle(ctx, pd, t);
   for (const c of G.clouds) Art.drawCloud(ctx, c, t);
   if (G.foams && G.foams.length) drawSprayFloor(ctx, t);
-  drawChessWalls(ctx, t);
   for (const tr of G.traps) Art.drawTrap(ctx, tr, t);
   if (G.ptraps) for (const tr of G.ptraps) Art.drawPowerTrap(ctx, tr, t);
   if (G.paraList && (G.paraList.length || G.bowls.length || G.towers.some(tw => tw.forestR))) Art.drawParaFloor(ctx, t);
@@ -1304,11 +1303,8 @@ function buildPanel(t){
     if (fly === 'copter' && t.flyMode === 'follow') P.append(h('p', { class:'note aim-note', text: 'Flies to wherever you ' + (IS_TOUCH ? 'tap in the kitchen.' : 'point in the kitchen.') + ' When you are not pointing, it patrols near its pad.' }));
   }
   { const gp = gmBuffPanel(t); if (gp) P.append(gp); }
-  /* the Chess Set's gridlock walls and its King */
-  if (t.type === 'chess' && t.s.walls && t.s.walls.n){
-    const W = t.s.walls, up = (G.chWalls || []).filter(w => w.tw === t && w.hp > 0).length;
-    P.append(h('p', { class:'note aim-note', text:'Gridlock: ' + up + ' of ' + W.n + ' wall square' + (W.n === 1 ? '' : 's') + ' standing on the trail (' + fmt(wallHp(W)) + ' each' + (W.thorns ? ', stinging for ' + fmt(W.thorns) : '') + '). Pests stop and chew through them; hopping and flying pests go over. The board reshapes every round.' + (t.s.king ? ' The King: appliances in range attack ' + Math.round(((t.s.buff && t.s.buff.speed) || 1) * 100 - 100) + '% faster.' : '') }));
-  }
+  /* the Chess Set's King */
+  if (t.type === 'chess' && t.s.king) P.append(h('p', { class:'note aim-note', text:'The King: appliances in range attack ' + Math.round(((t.s.buff && t.s.buff.speed) || 1) * 100 - 100) + '% faster' + (t.s.buff && t.s.buff.pierce ? ' and hit ' + t.s.buff.pierce + ' more pest' + (t.s.buff.pierce === 1 ? '' : 's') : '') + (t.s.buff && t.s.buff.camo ? ', and spot ghost pests' : '') + '.' }));
   /* a rice cooker: how far it has cooked, the pots it keeps warm, and opening the lid early */
   if (t.s.atk.main && t.s.atk.main.kind === 'cook'){
     const c = riceCharge(t), a = t.s.atk.main;

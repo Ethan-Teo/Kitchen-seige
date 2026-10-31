@@ -611,7 +611,7 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
     doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
-    mode:'standard', M:null, mods:null, chWalls:[], gmBuffs:[], gmBought:{}, gmBaseCash:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
+    mode:'standard', M:null, mods:null, gmBuffs:[], gmBought:{}, gmBaseCash:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
   if (!ch) applyMode(mode);
@@ -2801,10 +2801,8 @@ function updateEnemies(dt){
     if (e.blowD > 0){ const v = Math.min(e.blowD, e.blowV * dt); e.d -= v; e.blowD -= v; mult = 0; }
     /* charmed by a siren song: it walks back up the trail */
     if (e.charmT > 0){ e.charmT -= dt; if (mult > 0) mult *= -0.6; }
-    const d0 = e.d;
     e.d += e.speed * mult * dt;
     if (e.d < 0) e.d = 0;
-    if (G.chWalls && G.chWalls.length && e.d > d0) wallBlock(e, d0, dt);
     const P = G.paths[e.path];
     if (e.d >= P.len){ if (G.paraList.length && paraLeakSave(e)) continue; leak(e); if (G.over) return; continue; }
     const pos = pathPos(P, e.d, e.seg);

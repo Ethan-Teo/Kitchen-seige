@@ -30,24 +30,22 @@ const hurt = e => e.hp < e.maxHp;
 /* ---- the upgrades ---- */
 const T = X.TOWERS.chess;
 ok(T && E.TOWER_ORDER.includes('chess') && E.BASE_TOWER_ORDER.includes('chess'), 'the Chess Set is built in');
-ok(T.paths.map(p => p.name).join() === 'Rook & Bishop,Knight,Royals', 'three paths: Rook & Bishop, Knight and Royals');
+ok(T.paths.map(p => p.name).join() === 'Rook,Bishop,Knight', 'three paths: Rook, Bishop and Knight');
 ok(T.paths.every(p => p.ups.length === 5 && p.ups.every(u => u.name && u.desc && u.cost > 0)), 'five upgrades a path, each named, described and priced');
-ok(T.paragon && T.paragon.name === 'The Grand Gambit', 'its paragon is the Grand Gambit');
+ok(T.paragon && T.paragon.name === 'The Checkmate Queen', 'its paragon is the Checkmate Queen');
 let threw = null, pawnLeft = false;
 for (let a = 0; a <= 5; a++) for (let b = 0; b <= 5; b++) for (let c = 0; c <= 5; c++){
   const tiers = [a, b, c].sort((x, y) => y - x);
   if (tiers[2] > 0 || tiers[1] > 2) continue;
-  try { const s = E.computeStats({ type:'chess', up:[a, b, c], paragon:false, degree:0 }); if (a + b > 0 && s.atk.main) pawnLeft = true; if (a + b === 0 && !s.atk.main) pawnLeft = true; } catch (e) { threw = a + '' + b + c + ': ' + e.message; }
+  try { const s = E.computeStats({ type:'chess', up:[a, b, c], paragon:false, degree:0 }); if (a + b + c > 0 && s.atk.main) pawnLeft = true; } catch (e) { threw = a + '' + b + c + ': ' + e.message; }
 }
 ok(!threw, 'every legal build computes' + (threw ? ' (' + threw + ')' : ''));
-ok(!pawnLeft, 'a rook or knight replaces the pawn; the Royals keep it');
+ok(!pawnLeft, 'promoted builds have no pawn attack left');
+ok(E.computeStats({ type:'chess', up:[0, 0, 0], paragon:false, degree:0 }).atk.main.dmg >= 4, 'the pawn hits hard: 4 damage to one pest');
 const base = E.computeStats({ type:'chess', up:[0, 0, 0], paragon:false, degree:0 });
-ok(base.atk.main && base.atk.main.kind === 'slide' && base.atk.main.dirs === 'pawn' && base.atk.main.dmg >= 5 && base.atk.main.pierce <= 2, 'it starts as a pawn: one heavy hit');
-ok(base.walls && base.walls.n === 1, 'and one gridlock wall');
+ok(base.atk.main && base.atk.main.kind === 'slide' && base.atk.main.dirs === 'pawn', 'it starts as a pawn');
 const s210 = E.computeStats({ type:'chess', up:[2, 1, 0], paragon:false, degree:0 });
-ok(s210.atk.rook && s210.atk.knight && !s210.atk.bishop, 'a crosspath sets a second piece beside the first');
-const s300 = E.computeStats({ type:'chess', up:[3, 0, 0], paragon:false, degree:0 });
-ok(s300.atk.rook && s300.atk.bishop && s300.atk.bishop.bounce >= 1 && s300.camo, 'Bishop’s Battery: a bishop joins the rook, its beams bouncing off the walls');
+ok(s210.atk.rook && s210.atk.bishop && !s210.atk.knight, 'a crosspath sets a second piece beside the first');
 ok(['castle', 'charge', 'checkmate', 'stalemate'].every(id => E.ABILITIES[id]), 'Castle Crush, Cavalry Charge, Checkmate and Stalemate are abilities');
 
 /* ---- slides ---- */
@@ -76,7 +74,7 @@ fresh(10);
 t = put('chess', 330, 330, [3, 0, 0]);
 const r2 = pin('ant', 600, 300, 100), c2 = pin('ant', 560, 260, 100), mid = pin('ant', 560, 300, 100), off = pin('ant', 600, 260, 100);
 E.slideAt(t, t, t.s.atk.rook, mid);
-ok(hurt(r2) && hurt(c2) && hurt(mid) && !hurt(off), 'Doubled Rooks slide along the row and the column at once, and nowhere else');
+ok(hurt(r2) && hurt(c2) && hurt(mid) && !hurt(off), 'Castling: the rook slides along the row and the column at once, and nowhere else');
 /* back rank: double damage near the pantry */
 fresh(10);
 t = put('chess', 330, 330, [4, 0, 0]);
@@ -97,25 +95,25 @@ const bounce = E.slideLine(100, 100, E.SLIDE_SETS.bishop[1], { full: true, bounc
 const flipped = bounce.some((s, i) => i > 0 && (Math.sign(s.ux) !== Math.sign(bounce[0].ux) || Math.sign(s.uy) !== Math.sign(bounce[0].uy)));
 ok(bounce.length > 2 && flipped, 'Long Diagonal: diagonals bounce off the kitchen walls (' + bounce.length + ' stretches)');
 fresh(10);
-t = put('chess', 330, 330, [3, 0, 0]);
+t = put('chess', 330, 330, [0, 3, 0]);
 const xa = pin('ant', 500, 400, 100), xb = pin('ant', 540, 440, 100), xc = pin('ant', 540, 360, 100), xd = pin('ant', 545, 400, 100);
 E.slideAt(t, t, t.s.atk.bishop, xa);
-ok(hurt(xa) && hurt(xb) && hurt(xc) && !hurt(xd), 'the bishop slides both diagonals at once, nothing straight across');
-ok(t.s.camo, 'and spots ghosts');
+ok(hurt(xa) && hurt(xb) && hurt(xc) && !hurt(xd), 'Bishop Pair: both diagonals at once, nothing straight across');
+ok(t.s.camo, 'Fianchetto spots ghosts');
 /* Colour Complex */
 fresh(10);
-t = put('chess', 330, 330, [0, 0, 5]);
+t = put('chess', 330, 330, [0, 5, 0]);
 ok(G.board && Math.abs(G.board.mul - 1.35) < 1e-9, 'Colour Complex puts the board down');
 const dark = pin('ant', 60, 20, 1000), light = pin('ant', 20, 20, 1000);
 ok(E.onDark(60, 20) && !E.onDark(20, 20), 'the squares alternate');
 E.damage(dark, 10, 'normal', null, null); E.damage(light, 10, 'normal', null, null);
 ok(Math.abs((1000 - dark.hp) - 13.5) < 1e-6 && Math.abs((1000 - light.hp) - 10) < 1e-6, 'pests on a dark square take 35% more from everything (' + (1000 - dark.hp) + ', ' + (1000 - light.hp) + ')');
 E.sellTower(t);
-ok(!G.board, 'and the board goes when the set is sold');
+ok(!G.board, 'and the board goes when the bishop is sold');
 
 /* ---- knights ---- */
 fresh(10);
-t = put('chess', 330, 330, [0, 1, 0]);
+t = put('chess', 330, 330, [0, 0, 1]);
 const P = G.paths[0];
 let dk = 0, best = Infinity;
 for (let d = 0; d < P.len; d += 4){ const q = E.pathPos(P, d, 0); const k = (q.x - t.x) ** 2 + (q.y - t.y) ** 2; if (k < best){ best = k; dk = d; } }
@@ -127,18 +125,18 @@ ok(G.leaps.length === 1, 'a knight leaps');
 run(0.6);
 ok(herd.filter(hurt).length >= 3, 'and stomps the pests where it lands (' + herd.filter(hurt).length + ')');
 fresh(10);
-t = put('chess', 330, 330, [0, 2, 0]);
+t = put('chess', 330, 330, [0, 0, 2]);
 const big = pin('cheese', 600, 500, 1e5), small = pin('ant', 610, 500, 1e5), small2 = pin('ant', 640, 520, 1e5), wee = pin('ant', 700, 560, 1e5);
 E.gridBuild();
 E.forkAt(600, 500, t.s.atk.knight.fork, t);
 ok(hurt(big) && (hurt(small) || hurt(small2)) && !hurt(wee), 'Fork: the 2 toughest pests near the landing take a hit');
 fresh(10);
-t = put('chess', 330, 330, [0, 3, 0]);
+t = put('chess', 330, 330, [0, 0, 3]);
 const tour = [];
 for (let i = 0; i < 6; i++){ const e = at('ant', 40 + i * 85); e.speed = 0; e.hp = e.maxHp = 1e5; tour.push(e); }
 E.step(E.DT);
 t.s.atk = {};   // only the leap we start, so every landing is the tour's
-E.startLeap(t, X.TOWERS.chess.paths[1].ups.slice(0, 3).reduce((s, u) => { u.apply(s); return s; }, { atk:{}, abilities:[] }).atk.knight, t.x, t.y, tour[0].x, tour[0].y, 0.1, 3, new Set([tour[0].id]));
+E.startLeap(t, X.TOWERS.chess.paths[2].ups.slice(0, 3).reduce((s, u) => { u.apply(s); return s; }, { atk:{}, abilities:[] }).atk.knight, t.x, t.y, tour[0].x, tour[0].y, 0.1, 3, new Set([tour[0].id]));
 liveRound();
 run(2.5);
 ok(tour.filter(hurt).length >= 4, 'Knight’s Tour: it leaps on from pest to pest (' + tour.filter(hurt).length + ' landings)');
@@ -158,7 +156,7 @@ const ab = t.s.abilities.find(x => x.id === 'castle');
 ok(crowd.every(e => 1e4 - e.hp >= ab.dmg - 1e-6) && 1e6 - van.hp >= ab.dmg + ab.bonusBig - 1e-6, 'it crushes everything on the trail (' + (1e4 - crowd[0].hp) + ', ' + (1e6 - van.hp) + ' to the truck)');
 ok(crowd.every((e, i) => e.d < d0[i]), 'and shoves small pests back');
 fresh(30);
-t = put('chess', 330, 330, [0, 4, 0]);
+t = put('chess', 330, 330, [0, 0, 4]);
 E.Admin.resetCooldowns();
 t.s.atk = {};   // only the charge, no leaps
 liveRound();
@@ -174,7 +172,7 @@ const qs = [put('chess', 200, 200), put('chess', 460, 440), put('chess', 700, 33
 for (let p = 0; p < 3; p++){ for (let i = 0; i < 5; i++) E.upgradeTower(qs[p], p); for (let i = 0; i < 2; i++) E.upgradeTower(qs[p], (p + 1) % 3); }
 ok(E.makeParagon(qs[0]), 'the paragon can be built');
 const Q = G.towers.find(o => o.paragon && o.type === 'chess');
-ok(Q && Q.s.atk.queen && Q.s.atk.queen.dirs === 'queen' && Q.s.atk.queen.cross && Q.s.atk.knights.kind === 'leap', 'she slides along every line and has knights of her own');
+ok(Q && Q.s.atk.elements && Q.s.atk.elements.all && Q.s.king && Q.s.atk.queen && Q.s.atk.queen.dirs === 'queen' && Q.s.atk.queen.cross && Q.s.atk.knights.kind === 'leap', 'she slides along every line and has knights of her own');
 ok(G.board && G.board.mul >= 1.5, 'her board is down');
 /* pawns march up the trail from the pantry, and one that gets all the way is promoted */
 liveRound();
@@ -217,55 +215,27 @@ E.sellTower(Q2);
 ok(!G.leaps.length && !G.queens.length && !G.board, 'selling her clears her knights, her queens and her board');
 
 
-/* ---- gridlock: wall squares on the trail ---- */
+/* ---- the new pieces: the King and the Queen's elements ---- */
 fresh(10);
-t = put('chess', 330, 330, [0, 2, 0]);
-t.s.atk = {};
-liveRound();
-E.step(E.DT);
-ok(G.chWalls.length === 1 && G.chWalls[0].tw === t && G.chWalls[0].hp > 0, 'a round starts: the board drops a wall square on the trail');
-const W0 = G.chWalls[0];
-const walker = at('ant', Math.max(0, W0.d - 80)); walker.hp = walker.maxHp = 1e6;
-run(4);
-ok(walker.d < W0.d && Math.abs(walker.d - (W0.d - walker.r - 9)) < 2 && W0.hp < W0.maxHp, 'a pest walks up to it, stops and chews (' + Math.round(W0.maxHp - W0.hp) + ' chewed)');
-const fly = at('fruitfly', Math.max(0, W0.d - 60)); fly.hp = fly.maxHp = 1e6;
-run(2);
-ok(fly.d > W0.d, 'flying pests go over it');
-const truck = at('truck', Math.max(0, W0.d - 30)); truck.hp = truck.maxHp = 1e9;
-run(20);
-ok(!G.chWalls.includes(W0) && walker.d > W0.d, 'chewed through, the wall breaks and the pests move on');
-const r1 = G.round;
-G.roundActive = false; G.round = r1 + 1; liveRound(); E.step(E.DT);
-ok(G.chWalls.length === 1, 'next round the board reshapes: the wall is rebuilt');
-t.up = [0, 0, 2]; E.refreshTowers(); E.step(E.DT);
-ok(G.chWalls.filter(w => w.tw === t).length === 3 && G.chWalls[0].maxHp >= 2 * (30 + 6 * G.round) - 1, 'Gridlock: three walls, twice as tough');
-E.sellTower(t);
-ok(!G.chWalls.length, 'selling the set clears its walls');
-/* the King */
-fresh(10);
-t = put('chess', 330, 330, [0, 0, 1]);
+t = put('chess', 330, 330, [3, 0, 0]);
 const kn = put('knife', 360, 330);
-ok(t.s.atk.main && t.s.king && kn.buffs && kn.buffs.speed >= 1.12 - 1e-9, 'the King keeps the pawn and rallies appliances near him (+12% speed)');
-/* the Queen's elements */
+ok(t.s.king && kn.buffs && kn.buffs.speed >= 1.12 - 1e-9, 'Castling: the King rallies appliances near him (+12% speed)');
 fresh(20);
-t = put('chess', 330, 330, [0, 0, 3]);
+t = put('chess', 330, 330, [0, 5, 0]);
 const q = t.s.atk.queen;
-ok(q && q.kind === 'elements', 'the Queen casts elements');
+ok(q && q.kind === 'elements' && t.s.atk.bishop, 'Colour Complex: a Queen joins the bishops');
 const vic = [];
 for (let i = 0; i < 4; i++) vic.push(pin('ant', t.x + 30 + i * 8, t.y + 10, 1e5));
 const tough = pin('roach', t.x - 30, t.y, 1e6);
 E.gridBuild();
 const seen = new Set();
 for (let i = 0; i < 4; i++){ E.chessFire(t, q, 'queen'); seen.add(t.elNow.join()); }
-ok(seen.size === 4, 'one element at a time, in turn: ' + [...seen].join(' · '));
+ok(seen.size === 4, 'she casts one element at a time, in turn: ' + [...seen].join(' · '));
 ok(vic.some(e => e.burn) && vic.some(e => e.vulnT > 0) && vic.some(e => e.freezeT > 0) && hurt(tough), 'poison burns, brand marks, ice freezes, lightning strikes the toughest');
-fresh(40);
-t = put('chess', 330, 330, [0, 2, 5]);
-ok(t.s.atk.queen.all && t.s.atk.queen.ignoreImmune && t.s.walls.thorns > 0 && G.board, 'Checkmate: all four elements at once, stinging walls and the Colour Complex board');
 
 /* ---- a real round, every path ---- */
 let crash = null;
-for (const up of [[0, 0, 0], [5, 2, 0], [2, 5, 0], [0, 2, 5], [2, 0, 5]]){
+for (const up of [[0, 0, 0], [5, 2, 0], [2, 5, 0], [0, 2, 5]]){
   fresh(55);
   const c = put('chess', 330, 330, up);
   try { E.startRound(); let n = 0; while (G.roundActive && n < 60 * 120){ E.step(E.DT); n++; for (const a of E.abilityList()) if (a.cd <= 0) E.useAbility(a.id); } } catch (e) { crash = up.join('') + ': ' + e.stack; }

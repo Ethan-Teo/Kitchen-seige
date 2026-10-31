@@ -1765,7 +1765,7 @@ const MODELS3D = (() => {
     return B;
   }
   function chessMain(up){ let p = -1, m = 0; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
-  const CH_KIND = ['rook', 'knight', 'king'];
+  const CH_KIND = ['rook', 'bishop', 'knight'];
   function chess(B, c){
     const up = c.up, par = c.par, L = Art.look3d;
     /* the square of board: a wooden frame round sixteen squares */
@@ -1797,12 +1797,16 @@ const MODELS3D = (() => {
     let q = -1;
     for (let i = 0; i < 3; i++) if (i !== p && up[i] > 0) q = i;
     if (kind === 'rook'){
-      if (tier >= 3){ place('bishop', -6.5, -6, 0.78, { glow: tier >= 4, trim: tier >= 5, col: L.CH_EBONY }); place('rook', 4, 2.5, tier >= 5 ? 1.0 : 0.88, { trim: tier >= 4, flag: tier >= 5 }, true); }
+      if (tier >= 5){ place('king', -8, -7, 0.62, { trim: true }); place('rook', 2, 1.5, 1.04, { trim: true, flag: true }, true); }
+      else if (tier >= 3){ place('king', -6.5, -6, 0.76, { trim: tier >= 4 }); place('rook', 4, 2.5, 0.88, { trim: tier >= 4 }, true); }
       else place('rook', 0, 0, 0.98, {}, true);
-    } else if (kind === 'king'){
-      const tr = tier >= 5;
-      if (tier >= 3){ place('queen', -6.5, -6, 0.8, { trim: tr, gem: tier >= 4 }); place('king', 4, 2.5, 0.86, { trim: tr }, true); }
-      else { place('pawn', -7, -6, 0.6, {}); place('king', 3.5, 2.5, 0.88, { trim: tr }, true); }
+    } else if (kind === 'bishop'){
+      if (tier >= 5){
+        B.push().at(0, 0, 3.6 + 26.5); B.part(hop); B.part(time => ({ rz: time * 0.8 })); lit(B, '#ffd166', 0.85); B.torus(8.2, 0.5, 26, 4); B.endPart(); B.endPart(); B.pop();
+        place('queen', -8, -7, 0.64, { trim: true, gem: true });
+        place('bishop', 2, 1.5, 1.02, { trim: true, glow: true }, true);
+      } else if (tier >= 3){ place('bishop', -6.5, -6, 0.8, { glow: tier >= 4, col: L.CH_EBONY }); place('bishop', 4, 2.5, 0.88, { glow: tier >= 4 }, true); }
+      else place('bishop', 0, 0, 0.95, {}, true);
     } else {
       const o = { bridle: tier >= 3, armor: tier >= 4, gold: tier >= 5, crown: tier >= 5 };
       if (tier >= 5) o.col = L.mixHex('#f2c14e', '#ffffff', 0.25);

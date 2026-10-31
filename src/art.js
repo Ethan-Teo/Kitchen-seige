@@ -2534,7 +2534,7 @@ const Art = (() => {
   }
   /* which piece a build shows: the path furthest along (the earlier path on a tie), or -1 for the pawn */
   function chessMain(up){ let p = -1, m = 0; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
-  const CH_KIND = ['rook', 'knight', 'king'];
+  const CH_KIND = ['rook', 'bishop', 'knight'];
   function drawChess(g, t, up, time, par){
     const col = bodyColor('chess', up, par);
     chessTile(g, par || t.rank >= 8);
@@ -2553,12 +2553,16 @@ const Art = (() => {
     let q = -1;
     for (let i = 0; i < 3; i++) if (i !== p && up[i] > 0) q = i;
     if (kind === 'rook'){
-      if (tier >= 3){ pieceAt(g, 'bishop', -6.5, 3.5, 0.8, CH_EBONY, { glow: tier >= 4, out: '#1c110b', trim: tier >= 5 }); pieceAt(g, 'rook', 4, 10 - hop, tier >= 5 ? 1.02 : 0.92, col, { trim: tier >= 4, flag: tier >= 5, time }); }
+      if (tier >= 5){ pieceAt(g, 'king', -8, 4, 0.62, col, { trim: true }); pieceAt(g, 'rook', 2, 9 - hop, 1.1, col, { trim: true, flag: true, time }); }
+      else if (tier >= 3){ pieceAt(g, 'king', -6.5, 3.5, 0.78, col, { trim: tier >= 4 }); pieceAt(g, 'rook', 4, 10 - hop, 0.9, col, { trim: tier >= 4 }); }
       else pieceAt(g, 'rook', 0, 8 - hop, 0.98, col);
-    } else if (kind === 'king'){
-      const tr = tier >= 5;
-      if (tier >= 3){ pieceAt(g, 'queen', -6.5, 4, 0.82, col, { trim: tr, gem: tier >= 4 }); pieceAt(g, 'king', 4.5, 10 - hop, 0.88, col, { trim: tr }); }
-      else { pieceAt(g, 'pawn', -7, 6, 0.6, col); pieceAt(g, 'king', 3, 10 - hop, 0.9, col, { trim: tr }); }
+    } else if (kind === 'bishop'){
+      if (tier >= 5){
+        g.save(); g.strokeStyle = 'rgba(255,209,102,0.75)'; g.lineWidth = 1.3; g.beginPath(); g.ellipse(0, -22.5 - hop, 8.5, 3, 0, 0, TAU); g.stroke(); g.restore();
+        pieceAt(g, 'queen', -8, 4, 0.66, col, { trim: true, gem: true });
+        pieceAt(g, 'bishop', 2, 9 - hop, 1.08, col, { trim: true, glow: true });
+      } else if (tier >= 3){ pieceAt(g, 'bishop', -6.5, 3.5, 0.82, CH_EBONY, { glow: tier >= 4, out: '#1c110b' }); pieceAt(g, 'bishop', 4, 10 - hop, 0.9, col, { glow: tier >= 4 }); }
+      else pieceAt(g, 'bishop', 0, 8 - hop, 0.95, col);
     } else {
       const o = { face, bridle: tier >= 3, armor: tier >= 4, gold: tier >= 5, crown: tier >= 5 };
       pieceAt(g, 'knight', 0, 8 - hop, tier >= 5 ? 1.1 : 1, tier >= 5 ? mixHex('#f2c14e', '#ffffff', 0.25) : col, o);

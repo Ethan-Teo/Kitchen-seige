@@ -531,12 +531,12 @@ function showChessNews(title, next){
   const cards = [[[0, 0, 0], 'Pawn', money(T.cost) + ' · ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
   const row = h('div', { class:'news-chefs' }, cards.map(([up, b, sp]) => h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('chess', 96, up)), h('b', { text: b }), h('span', { text: sp }))),
     h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('chess', 96, [5, 5, 5], true)), h('b', { text: T.paragon.name }), h('span', { text: 'Paragon' })));
-  modal({ title: title || 'A new appliance: the Chess Set', lead:'A chess board fighting a gridlock war. Its pawn hits harder than any first piece, and the board drops wall squares on the trail that pests must chew through, rebuilt in new places every round.', cls:'chef-news',
+  modal({ title: title || 'A new appliance: the Chess Set', lead:'It starts as a pawn that hits harder than any other first piece. Each path promotes it to a different piece, and its paragon is the Queen.', cls:'chef-news',
     content:[row, h('ul', { class:'news' },
-      li('Rook & Bishop.', 'The rook slides along rows and columns through the pests; a bishop joins it with diagonals that bounce off the kitchen walls. Back Rank crosses the kitchen and the Castle Keep rolls a giant rook down the trail.'),
-      li('Knight.', 'Quick leaps onto pests a knight’s move away, forks the two toughest pests nearby, tours on from pest to pest and charges up the trail with its cavalry.'),
-      li('Royals.', 'The King never attacks but makes your appliances near him faster. Gridlock adds more and tougher walls. The Queen strikes with poison, brands, lightning and ice, and Checkmate turns the floor into her board.'),
-      li('The Grand Gambit.', 'Its paragon: every piece at once, stinging walls, and pawns that march up the trail to become queens.'))],
+      li('Rook.', 'Slides along the row or the column through a pest, hitting everything in line. Castling brings in the King, who makes your appliances near him attack faster. Back Rank crosses the kitchen and hits twice as hard near the pantry, and the Castle Keep rolls a giant rook down the trail.'),
+      li('Bishop.', 'Quick slides along the diagonals that spot ghost pests and later bounce off the kitchen walls. Colour Complex turns the floor into its board, and a Queen joins with poison, brands, lightning and ice.'),
+      li('Knight.', 'Leaps onto pests in an L, faster than before, and stomps where it lands, forks the two toughest pests nearby, tours on from pest to pest, and charges up the trail with its cavalry.'),
+      li('The Checkmate Queen.', 'Slides along all four lines at once, wall to wall, casts all four elements, rallies your appliances like a King, and has knights of her own. Pawns march up the trail to be promoted to queens.'))],
     actions:[{ label:'Got it', kind:'primary' }] });
 }
 /* players who have seen everything else hear about the Stand Mixer's rework */
