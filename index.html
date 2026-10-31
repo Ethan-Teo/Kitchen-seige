@@ -1604,6 +1604,15 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .gm-note{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;padding:6px 10px;border-radius:10px;background:var(--enamel-2);color:var(--ink-3)}
 .gm-note.on{background:#efe3fb;color:#5b2d86;font-weight:600}
 @media (max-width:640px){.gm-meta{grid-template-columns:1fr}.gm-row{grid-template-columns:auto 1fr}.gm-row .gal-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
+/* mod buffs in the shop */
+.card.buffcard{border-color:#d9c2f0;background:#f8f2fd}
+.card.buffcard .buff-ic{font-size:26px;line-height:46px;height:46px}
+.card.buffcard.on{border-color:#9b4fd1;box-shadow:0 0 0 3px rgba(155,79,209,.25)}
+.card.buffcard.done{opacity:.5}
+.card.buffcard .st{color:#7a2fb5;font-weight:700;letter-spacing:0;font-size:11px}
+.card.buffcard.god{background:linear-gradient(135deg,#fff3c4,#f6e3ff);border-color:#e0b23a}
+.card.buffcard.god .pr{background:linear-gradient(90deg,#ffd166,#f2c14e)}
+.gm-bname{flex:1;font:inherit;font-weight:700;padding:5px 8px;border-radius:8px;border:1px solid var(--chrome)}
 
 </style>
 <style>[hidden]{display:none!important}body{margin:0}</style>
@@ -3998,7 +4007,7 @@ function computeStats(t){
   /* head chefs have no mastery: they grow by levels instead */
   const rank = T.hero ? 0 : masteryRank(t.type);
   if (rank >= 4 && !s.global) s.range *= 1.06;
-  if (G.mods && !T.hero) gmStats(t, s);
+  if (G.mods && !T.hero){ gmStats(t, s); gmBuffStats(t, s); }
   for (const id in s.atk) finalizeAttack(s.atk[id], rank);
   return s;
 }
@@ -4130,7 +4139,7 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
     doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
-    mode:'standard', M:null, mods:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
+    mode:'standard', M:null, mods:null, gmBuffs:[], gmBought:{}, gmBaseCash:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
   if (!ch) applyMode(mode);
@@ -4161,7 +4170,7 @@ function makeTower(type, x, y){
 function serializeGame(){
   return { v:1, savedAt: Date.now(), mapId:G.mapId, diff:G.diff, mm:G.mm, mode: G.mode !== 'standard' ? G.mode : undefined, ev: evSave(), freeplay:G.freeplay, won:G.won, round:G.round,
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
-    ch: G.ch || undefined, md: G.mods || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
+    ch: G.ch || undefined, md: G.mods || undefined, mb: G.mods ? gmBuffSave() : undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
     hs: G.hist && G.hist.length ? G.hist : undefined, bl: G.blog && G.blog.length ? G.blog : undefined,
     towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
@@ -4177,7 +4186,7 @@ function serializeGame(){
 function loadGame(data){
   if (data && data.cm && typeof adoptKitchen === 'function') adoptKitchen(data.mapId, data.cm);   // a kitchen of the player's own, carried in the save
   setupGame(data.mapId, data.diff, data.mm, data.ch, data.mode);
-  if (data.md && typeof data.md === 'object' && data.md.rules) applyGameMods(data.md, false);
+  if (data.md && typeof data.md === 'object' && data.md.rules){ applyGameMods(data.md, false); gmBuffLoad(data.mb); }
   evLoad(data.ev);
   Object.assign(G, { round:data.round, cash:data.cash, lives:data.lives, freeplay:!!data.freeplay, won:!!data.won, usedSecond:!!data.usedSecond });
   G.doughGame = +data.dg || 0; G.chefXpGame = +data.cx || 0; G.doughAcc = +data.da || 0;
@@ -8257,6 +8266,7 @@ function moreTick(dt){
   utensilTick(dt);
   sprayTick(dt);
   riceTick(dt);
+  gmBuffTick(dt);
 }
 /* lives were lost: Nomads and Avengers get angry */
 function moreLeak(){
@@ -13286,7 +13296,31 @@ const GM_RULES = {
 };
 const GM_TOWER = { dmg:['Damage ×', 0.1, 20, 1], rate:['Attack speed ×', 0.1, 10, 1], range:['Range ×', 0.3, 4, 1], pierce:['Pierce +', -10, 100, 0], cost:['Price ×', 0.1, 10, 1] };
 const GM_PEST = { hp:['Health ×', 0.1, 20, 1], speed:['Speed ×', 0.25, 4, 1], cash:['Cash ×', 0, 20, 1] };
-function defaultGameMod(){ return { v:1, name:'My Mod', by:'', blurb:'', rules:{}, towers:{}, pests:{}, flags:{}, created:0 }; }
+function defaultGameMod(){ return { v:1, name:'My Mod', by:'', blurb:'', rules:{}, towers:{}, pests:{}, flags:{}, buffs:[], created:0 }; }
+/* purchasable buffs: bought with cash during a game, for a while (dur seconds of rounds) or for the rest of the game (dur 0) */
+const GM_BUFF_MAX = 12;
+const GM_BUFF = { cost:['Price $', 1, 1e9, 1000], dur:['Lasts (s, 0 = rest of game)', 0, 3600, 30], dmg:['Damage ×', 0.1, 100, 1], rate:['Attack speed ×', 0.1, 20, 1], range:['Range ×', 0.5, 4, 1], pierce:['Pierce +', 0, 1000, 0], income:['Cash from pests ×', 0, 50, 1], lives:['Lives +', 0, 1000000, 0], max:['Times you can buy it (0 = any)', 0, 999, 0] };
+function cleanBuff(b){
+  if (!b || typeof b !== 'object') return null;
+  const o = { name: cleanText(b.name, 24, 'Buff') };
+  for (const k in GM_BUFF){ const [, lo, hi, def] = GM_BUFF[k]; const v = b[k] == null || b[k] === '' ? def : GM_NUM(b[k], lo, hi, def); o[k] = ['cost', 'dur', 'pierce', 'lives', 'max'].includes(k) ? Math.round(v) : v; }
+  if (b.camo) o.camo = true;
+  if (b.allTypes) o.allTypes = true;
+  return o;
+}
+function buffSummary(b, noMax){
+  const x = [];
+  if (b.dmg !== 1) x.push('damage ×' + b.dmg);
+  if (b.rate !== 1) x.push('attack speed ×' + b.rate);
+  if (b.range !== 1) x.push('range ×' + b.range);
+  if (b.pierce) x.push('+' + b.pierce + ' pierce');
+  if (b.camo) x.push('see ghosts');
+  if (b.allTypes) x.push('hit any pest type');
+  if (b.income !== 1) x.push('pest cash ×' + b.income);
+  if (b.lives) x.push('+' + gmFmt(b.lives) + ' lives');
+  const timed = b.dur > 0 && (x.length > (b.lives ? 1 : 0));
+  return (x.length ? x.join(', ') : 'does nothing yet') + (b.lives && x.length === 1 ? '' : timed ? ' for ' + b.dur + 's of rounds' : ' for the rest of the game') + (b.max && !noMax ? ' · ' + (b.max === 1 ? 'once a game' : 'up to ' + b.max + ' times') : '');
+}
 function cleanGameMod(src){
   src = src && typeof src === 'object' ? src : {};
   const m = defaultGameMod();
@@ -13317,6 +13351,7 @@ function cleanGameMod(src){
     for (const k in GM_PEST){ const [, lo, hi, def] = GM_PEST[k]; if (s[k] == null || s[k] === '') continue; const v = GM_NUM(s[k], lo, hi, def); if (v !== def) o[k] = v; }
     if (Object.keys(o).length) m.pests[type] = o;
   }
+  m.buffs = (Array.isArray(src.buffs) ? src.buffs : []).slice(0, GM_BUFF_MAX).map(cleanBuff).filter(Boolean);
   m.created = Number(src.created) || 0;
   return m;
 }
@@ -13355,6 +13390,7 @@ function gameModSummary(m){
     if (o.cash != null) bits.push('cash ' + x(o.cash));
     if (bits.length) out.push((p === 'all' ? 'all pests' : ENEMIES[p].name) + ': ' + bits.join(', '));
   }
+  if (m.buffs && m.buffs.length) out.push(m.buffs.length + (m.buffs.length === 1 ? ' buff' : ' buffs') + ' to buy (' + m.buffs.map(b => b.name + ' $' + gmFmt(b.cost)).join(', ') + ')');
   return out.length ? out.join(' · ') : 'Changes nothing yet.';
 }
 
@@ -13402,6 +13438,16 @@ const GM_PRESETS = {
   basics: { name:'Back to Basics', blurb:'Upgrades stop at tier 3, no abilities, and you start rich.', rules:{ maxTier:3, cash:3000 }, flags:{ noAbilities:true } },
   knives: { name:'Knife Party', blurb:'Knife Blocks are cheap and deadly; nothing else is half as good.', towers:{ knife:{ dmg:3, rate:1.5, cost:0.5 }, all:{ dmg:0.5 } } },
   marathon:{ name:'Marathon', blurb:'Win on round 100 with 500 lives.', rules:{ win:100, lives:500 } },
+  buffshop:{ name:'Buff Shop', blurb:'Buy buffs with your cash from the shop during the game, all the way up to the God Boost for $1,000,000.', buffs:[
+    { name:'Sharpen Up', cost:400, dur:30, dmg:1.25 },
+    { name:'Espresso Shot', cost:900, dur:30, rate:1.4 },
+    { name:'Eagle Eye', cost:1500, dur:45, range:1.3, camo:true },
+    { name:'Overtime Pay', cost:3000, dur:60, income:2 },
+    { name:'Extra Lives', cost:5000, lives:50, max:5 },
+    { name:'Rage Mode', cost:25000, dur:30, dmg:2, rate:1.5, pierce:3 },
+    { name:'Chef’s Blessing', cost:150000, dur:60, dmg:3, rate:2, range:1.25, allTypes:true },
+    { name:'God Boost', cost:1000000, dur:0, dmg:10, rate:3, range:1.5, pierce:20, camo:true, allTypes:true, max:1 },
+  ] },
 };
 
 /* ---------------- applying mods ---------------- */
@@ -13409,7 +13455,7 @@ const GM_PRESETS = {
 function stackGameMods(ids){
   const list = ids.map(gameModById).filter(Boolean);
   if (!list.length) return null;
-  const out = { names: list.map(m => m.name), rules:{}, flags:{}, towers:{}, pests:{} };
+  const out = { names: list.map(m => m.name), rules:{}, flags:{}, towers:{}, pests:{}, buffs:[] };
   const mulKeys = { hp:1, speed:1, income:1, price:1 };
   for (const m of list){
     for (const k in m.rules){ if (mulKeys[k]) out.rules[k] = (out.rules[k] || 1) * m.rules[k]; else if (k === 'maxTier') out.rules.maxTier = Math.min(out.rules.maxTier == null ? 5 : out.rules.maxTier, m.rules.maxTier); else out.rules[k] = m.rules[k]; }
@@ -13417,12 +13463,15 @@ function stackGameMods(ids){
     for (const t in m.towers){ const o = out.towers[t] || (out.towers[t] = {}), s = m.towers[t]; for (const k in s){ if (k === 'ban') o.ban = true; else if (k === 'pierce') o.pierce = (o.pierce || 0) + s.pierce; else o[k] = (o[k] || 1) * s[k]; } }
     for (const p in m.pests){ const o = out.pests[p] || (out.pests[p] = {}), s = m.pests[p]; for (const k in s) o[k] = (o[k] || 1) * s[k]; }
   }
+  for (const m of list) for (const b of (m.buffs || [])) out.buffs.push(Object.assign({}, b));
   return out;
 }
 /* a game takes on its mods: `fresh` for a new game (start cash and lives), not for a loaded one */
 function applyGameMods(M, fresh){
   if (!M) return;
   G.mods = M;
+  if (!Array.isArray(M.buffs)) M.buffs = [];
+  G.gmBuffs = []; G.gmBought = {};
   const R = M.rules;
   G.mod = Object.assign({}, G.mod);
   if (R.hp) { G.mod.hp *= R.hp; G.mod.bigHp *= R.hp; }
@@ -13469,6 +13518,88 @@ function gmPest(e){
   if (hp !== 1){ e.hp *= hp; e.maxHp *= hp; }
   if (sp !== 1) e.speed *= sp;
   if (cash !== 1) e.payMul = (e.payMul || 1) * cash;
+}
+
+/* ---------------- buying buffs in a game ---------------- */
+function gmBuffs(){ return G.mods && G.mods.buffs ? G.mods.buffs : []; }
+function gmBuffActive(i){ return (G.gmBuffs || []).find(a => a.i === i) || null; }
+function buyGameBuff(i){
+  const b = gmBuffs()[i];
+  if (!b) return { ok:false, why:'No such buff' };
+  if (!G.active || G.over) return { ok:false, why:'Start a game first' };
+  if (typeof Coop !== 'undefined' && Coop.on && Coop.role === 'guest') return { ok:false, why:'In co-op, the host buys buffs' };
+  const n = (G.gmBought && G.gmBought[i]) || 0;
+  if (b.max && n >= b.max) return { ok:false, why:'You can buy ' + b.name + ' only ' + b.max + (b.max === 1 ? ' time' : ' times') };
+  const act = gmBuffActive(i);
+  if (act && !(act.left < Infinity)) return { ok:false, why: b.name + ' already lasts the rest of the game' };
+  if (!canAfford(b.cost)) return { ok:false, why:'Need $' + gmFmt(b.cost - G.cash) + ' more' };
+  spend(b.cost);
+  G.gmBought[i] = n + 1;
+  if (b.lives) G.lives += b.lives;
+  const effects = b.dmg !== 1 || b.rate !== 1 || b.range !== 1 || b.pierce || b.camo || b.allTypes || b.income !== 1;
+  if (effects){
+    if (act) act.left += b.dur;
+    else G.gmBuffs.push({ i, left: b.dur > 0 ? b.dur : Infinity });
+    gmBuffsChanged();
+  }
+  Hooks.sfx('rank');
+  return { ok:true };
+}
+/* the buffs running now, stacked */
+function gmBuffNow(){
+  const out = { dmg:1, rate:1, range:1, pierce:0, income:1, camo:false, allTypes:false, any:false };
+  const B = gmBuffs();
+  for (const a of (G.gmBuffs || [])){
+    const b = B[a.i]; if (!b) continue;
+    out.any = true;
+    out.dmg *= b.dmg; out.rate *= b.rate; out.range *= b.range; out.pierce += b.pierce; out.income *= b.income;
+    if (b.camo) out.camo = true;
+    if (b.allTypes) out.allTypes = true;
+  }
+  return out;
+}
+function gmBuffsChanged(){
+  const N = gmBuffNow();
+  if (G.gmBaseCash == null) G.gmBaseCash = G.mod.cash;
+  G.mod.cash = G.gmBaseCash * N.income;
+  refreshTowers();
+}
+/* an appliance's stats with the running buffs on top */
+function gmBuffStats(t, s){
+  if (!G.gmBuffs || !G.gmBuffs.length) return;
+  const N = gmBuffNow();
+  if (!N.any) return;
+  if (!s.global) s.range *= N.range;
+  if (N.camo) s.camo = true;
+  if (N.allTypes) s.allTypes = true;
+  const scale = a => {
+    if (!a || typeof a !== 'object') return;
+    if (a.dmg > 0) a.dmg *= N.dmg;
+    if (a.bonusBig) a.bonusBig *= N.dmg;
+    if (a.bonusBoss) a.bonusBoss *= N.dmg;
+    for (const k of ['explode', 'impact', 'radial', 'mine', 'splash', 'frag', 'stream', 'burn']) if (a[k] && a[k].dmg > 0) a[k].dmg *= N.dmg;
+    if (a.rate > 0) a.rate /= N.rate;
+    if (N.pierce && a.pierce != null) a.pierce += N.pierce;
+  };
+  for (const id in s.atk) scale(s.atk[id]);
+  if (s.aura && s.aura.dmg) s.aura.dmg *= N.dmg;
+}
+/* timed buffs run down while rounds are on */
+function gmBuffTick(dt){
+  if (!G.gmBuffs || !G.gmBuffs.length || !G.roundActive) return;
+  let gone = false;
+  for (const a of G.gmBuffs) if (a.left < Infinity){ a.left -= dt; if (a.left <= 0) gone = true; }
+  if (gone){ G.gmBuffs = G.gmBuffs.filter(a => a.left > 0); gmBuffsChanged(); }
+}
+function gmBuffSave(){ return G.gmBuffs && (G.gmBuffs.length || Object.keys(G.gmBought || {}).length) ? { a: G.gmBuffs.map(a => [a.i, a.left < Infinity ? Math.round(a.left * 10) / 10 : -1]), n: G.gmBought } : undefined; }
+function gmBuffLoad(d){
+  if (!d || !G.mods) return;
+  const B = gmBuffs();
+  G.gmBuffs = (Array.isArray(d.a) ? d.a : []).filter(x => Array.isArray(x) && B[x[0]]).map(x => ({ i: x[0], left: x[1] < 0 ? Infinity : Math.max(0, +x[1] || 0) }));
+  G.gmBought = {};
+  if (d.n && typeof d.n === 'object') for (const k in d.n) if (B[k]) G.gmBought[k] = Math.max(0, Math.floor(+d.n[k] || 0));
+  G.gmBaseCash = null;
+  gmBuffsChanged();
 }
 
 'use strict';
@@ -30203,6 +30334,7 @@ function gmField(label, val, lo, hi, step, set, hint){
 }
 function showModEditor(id, back){
   const m = JSON.parse(JSON.stringify(id ? gameModById(id) : defaultGameMod()));
+  if (!Array.isArray(m.buffs)) m.buffs = [];
   const summary = h('p', { class:'gm-summary' });
   const refresh = () => { summary.textContent = gameModSummary(cleanGameMod(m)); };
   const text = (k, label, max, ph) => { const i = h('input', { type:'text', maxlength: String(max), placeholder: ph || '', 'aria-label': label, value: m[k] || '' }); i.addEventListener('input', () => { m[k] = i.value; }); return h('label', { class:'gm-field wide' }, h('span', { text: label }), i); };
@@ -30250,6 +30382,22 @@ function showModEditor(id, back){
   tPick.addEventListener('change', () => { const v = tPick.value; tPick.value = ''; if (!v) return; if (!m.towers[v]) m.towers[v] = {}; renderTowers(); refresh(); });
   const pPick = h('select', { 'aria-label':'Add a pest' }, [h('option', { value:'' }, 'Add a pest…'), h('option', { value:'all' }, 'All pests')].concat(pests.map(p => h('option', { value: p }, ENEMIES[p].name))));
   pPick.addEventListener('change', () => { const v = pPick.value; pPick.value = ''; if (!v) return; if (!m.pests[v]) m.pests[v] = {}; renderPests(); refresh(); });
+  /* buffs to buy during a game */
+  const bBox = h('div', { class:'gm-rows' });
+  const renderBuffs = () => {
+    bBox.innerHTML = '';
+    m.buffs.forEach((b, i) => {
+      const nm = h('input', { type:'text', maxlength:'24', value: b.name || '', 'aria-label':'Buff name', class:'gm-bname' });
+      nm.addEventListener('input', () => { b.name = nm.value; refresh(); });
+      const g = h('div', { class:'gm-grid' });
+      for (const k in GM_BUFF){ const [label, lo, hi, def] = GM_BUFF[k]; g.append(gmField(label, b[k], lo, hi, ['cost'].includes(k) ? 100 : ['dur', 'pierce', 'lives', 'max'].includes(k) ? 1 : 0.05, v => { if (v == null) delete b[k]; else b[k] = v; refresh(); }, def)); }
+      for (const [k, label] of [['camo', 'See ghosts'], ['allTypes', 'Hit any pest type']]){ const c = h('input', { type:'checkbox' }); c.checked = !!b[k]; c.addEventListener('change', () => { if (c.checked) b[k] = true; else delete b[k]; refresh(); }); g.append(h('label', { class:'toggle-inline' }, c, ' ' + label)); }
+      bBox.append(h('div', { class:'gm-trow gm-buff' }, h('div', { class:'gm-who' }, h('span', { class:'gal-glyph sm', text:'⚡' }), nm,
+        h('button', { class:'icon-btn', 'aria-label':'Remove', title:'Remove', onclick: () => { m.buffs.splice(i, 1); renderBuffs(); refresh(); }, text:'×' })), g));
+    });
+  };
+  const addBuff = h('button', { class:'btn btn-small', onclick: () => { if (m.buffs.length >= GM_BUFF_MAX){ toast('Up to ' + GM_BUFF_MAX + ' buffs.', 'warn'); return; } m.buffs.push({ name:'Buff ' + (m.buffs.length + 1), cost:1000, dur:30, dmg:1.5 }); renderBuffs(); refresh(); } }, '+ Add a buff');
+  renderBuffs();
   renderTowers(); renderPests(); refresh();
   const save = (andOn) => {
     const c = cleanGameMod(m);
@@ -30265,6 +30413,7 @@ function showModEditor(id, back){
       h('h3', { class:'gm-h', text:'Rules' }), rules, flags,
       h('h3', { class:'gm-h', text:'Appliances' }), tBox, tPick,
       h('h3', { class:'gm-h', text:'Pests' }), pBox, pPick,
+      h('h3', { class:'gm-h', text:'Buffs to buy' }), h('p', { class:'dly-note', text:'Buffs appear in the shop during a game. Players buy them with their cash; timed ones run while rounds are on, and a length of 0 lasts the rest of the game. They boost every appliance.' }), bBox, addBuff,
       h('div', { class:'dly-label', text:'What it changes' }), summary],
     actions:[{ label:'Back', onClick: back }, { label:'Save', keep:true, onClick: () => { save(false); } }, { label:'Save and switch on', kind:'primary', onClick: () => { if (save(true)) back(); else showModEditor(id, back); } }], onClose: back });
 }
@@ -30273,6 +30422,41 @@ function gmNoteRow(){
   const on = gameModsOn();
   return h('div', { class:'gm-note' + (on.length ? ' on' : '') }, h('span', { text: on.length ? '⚙ Mods on: ' + on.map(id => gameModById(id).name).join(', ') + '. No medals, Dough, mastery or achievements.' : '⚙ No mods on.' }),
     h('button', { class:'btn btn-small', onclick: () => { const mid = UI.lastPickMap; showMods(() => mid ? pickDifficulty(mid) : closeModal()); } }, 'Mods'));
+}
+/* ---------------- buffs in the shop ---------------- */
+function gmBuffCards(shop){
+  const B = typeof gmBuffs === 'function' ? gmBuffs() : [];
+  if (!B.length) return;
+  shop.append(h('div', { class:'fhead', style:'--fc:#9b4fd1' }, h('i', { 'aria-hidden':'true' }), '⚡ Buffs'));
+  B.forEach((b, i) => shop.append(h('button', { class:'card buffcard' + (b.name === 'God Boost' ? ' god' : ''), 'data-buff': String(i), title: b.name + ': ' + buffSummary(b), onclick: () => {
+    const r = buyGameBuff(i);
+    if (!r.ok){ Sfx.play('error'); toast(r.why + '.', 'warn'); return; }
+    toast(b.name + '! ' + buffSummary(b, true) + '.', 'gold');
+    if (G.vis) for (const t of G.towers) G.fx.push({ k:'ring', x: t.x, y: t.y, r0: t.size, r1: t.size + 30, t: 0, life: 0.5, c: '#c77dff', w: 3 });
+    buildAbilities(); updatePanel(true); gmBuffCardsUpdate(true);
+  }, onmouseenter: () => gmBuffInfo(b), onfocus: () => gmBuffInfo(b), onmouseleave: () => showInfo(UI.placing) },
+    h('span', { class:'hk', text:'⚡' }), h('span', { class:'buff-ic', text: b.name === 'God Boost' ? '👑' : '⚡' }), h('span', { class:'nm', text: b.name }), h('span', { class:'pr num', text: money(b.cost) }), h('span', { class:'st' }))));
+}
+function gmBuffInfo(b){
+  const box = $('#shop-info'); if (!box) return;
+  box.innerHTML = '';
+  box.append(h('b', { text: b.name + ' · ' + money(b.cost) }), buffSummary(b) + '. Buffs boost every appliance you have, and the ones you build later.');
+}
+function gmBuffCardsUpdate(){
+  const cards = $$('#shop .buffcard');
+  if (!cards.length) return;
+  const B = gmBuffs();
+  for (const c of cards){
+    const i = +c.dataset.buff, b = B[i]; if (!b) continue;
+    const a = gmBuffActive(i), n = (G.gmBought && G.gmBought[i]) || 0;
+    const out = (b.max && n >= b.max) || (a && !(a.left < Infinity));
+    c.classList.toggle('poor', !out && !canAfford(b.cost));
+    c.classList.toggle('on', !!a);
+    c.classList.toggle('done', !!out);
+    const st = c.querySelector('.st');
+    const txt = a ? (a.left < Infinity ? Math.ceil(a.left) + 's' : 'ON') : out ? 'SOLD' : '';
+    if (st.textContent !== txt) st.textContent = txt;
+  }
 }
 
 'use strict';
@@ -31754,6 +31938,7 @@ function buildShop(){
       oncontextmenu: ev => { ev.preventDefault(); if (!T.hero){ const on = toggleFav(type); Sfx.play('click'); toast((on ? 'Starred ' : 'Unstarred ') + T.name + '.', 'info'); buildShop(); } } },
       h('span', { class:'hk', text: T.custom ? '✦' : T.hot }), iconCanvas(Art.towerIcon(type, 64)), h('span', { class:'nm', text: T.name }), h('span', { class:'pr num' }), h('span', { class:'st' }));
   };
+  gmBuffCards(shop);
   favCards(shop, card);
   const shopTypes = factionSorted(TOWER_ORDER.filter(canBuild));
   if (adminUnitOn() && !G.towers.some(t => t.type === ADMIN_UNIT)) shopTypes.push(ADMIN_UNIT);
@@ -31771,6 +31956,7 @@ function buildShopSoon(){ clearTimeout(shopRebuildT); shopRebuildT = setTimeout(
 function crewNoteText(){ return 'Your crew: ' + G.ch.towers.map(t => TOWERS[t].name + ' ×' + Math.max(0, crewLeft(t))).join(', ') + ' left.'; }
 function updateShop(){
   updateHeroCard();
+  gmBuffCardsUpdate();
   if (G.ch && G.ch.tm){ const n = $('#crew-note'); const txt = crewNoteText(); if (n && n.textContent !== txt){ n.textContent = txt; buildShopSoon(); } }
   for (const card of $$('#shop .card[data-type]')){
     const type = card.dataset.type;

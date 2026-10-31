@@ -1594,3 +1594,12 @@ a.btn{text-decoration:none;display:inline-flex;align-items:center;justify-conten
 .gm-note{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13.5px;padding:6px 10px;border-radius:10px;background:var(--enamel-2);color:var(--ink-3)}
 .gm-note.on{background:#efe3fb;color:#5b2d86;font-weight:600}
 @media (max-width:640px){.gm-meta{grid-template-columns:1fr}.gm-row{grid-template-columns:auto 1fr}.gm-row .gal-acts{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
+/* mod buffs in the shop */
+.card.buffcard{border-color:#d9c2f0;background:#f8f2fd}
+.card.buffcard .buff-ic{font-size:26px;line-height:46px;height:46px}
+.card.buffcard.on{border-color:#9b4fd1;box-shadow:0 0 0 3px rgba(155,79,209,.25)}
+.card.buffcard.done{opacity:.5}
+.card.buffcard .st{color:#7a2fb5;font-weight:700;letter-spacing:0;font-size:11px}
+.card.buffcard.god{background:linear-gradient(135deg,#fff3c4,#f6e3ff);border-color:#e0b23a}
+.card.buffcard.god .pr{background:linear-gradient(90deg,#ffd166,#f2c14e)}
+.gm-bname{flex:1;font:inherit;font-weight:700;padding:5px 8px;border-radius:8px;border:1px solid var(--chrome)}

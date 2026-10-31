@@ -47,6 +47,7 @@ function gmField(label, val, lo, hi, step, set, hint){
 }
 function showModEditor(id, back){
   const m = JSON.parse(JSON.stringify(id ? gameModById(id) : defaultGameMod()));
+  if (!Array.isArray(m.buffs)) m.buffs = [];
   const summary = h('p', { class:'gm-summary' });
   const refresh = () => { summary.textContent = gameModSummary(cleanGameMod(m)); };
   const text = (k, label, max, ph) => { const i = h('input', { type:'text', maxlength: String(max), placeholder: ph || '', 'aria-label': label, value: m[k] || '' }); i.addEventListener('input', () => { m[k] = i.value; }); return h('label', { class:'gm-field wide' }, h('span', { text: label }), i); };
@@ -94,6 +95,22 @@ function showModEditor(id, back){
   tPick.addEventListener('change', () => { const v = tPick.value; tPick.value = ''; if (!v) return; if (!m.towers[v]) m.towers[v] = {}; renderTowers(); refresh(); });
   const pPick = h('select', { 'aria-label':'Add a pest' }, [h('option', { value:'' }, 'Add a pest…'), h('option', { value:'all' }, 'All pests')].concat(pests.map(p => h('option', { value: p }, ENEMIES[p].name))));
   pPick.addEventListener('change', () => { const v = pPick.value; pPick.value = ''; if (!v) return; if (!m.pests[v]) m.pests[v] = {}; renderPests(); refresh(); });
+  /* buffs to buy during a game */
+  const bBox = h('div', { class:'gm-rows' });
+  const renderBuffs = () => {
+    bBox.innerHTML = '';
+    m.buffs.forEach((b, i) => {
+      const nm = h('input', { type:'text', maxlength:'24', value: b.name || '', 'aria-label':'Buff name', class:'gm-bname' });
+      nm.addEventListener('input', () => { b.name = nm.value; refresh(); });
+      const g = h('div', { class:'gm-grid' });
+      for (const k in GM_BUFF){ const [label, lo, hi, def] = GM_BUFF[k]; g.append(gmField(label, b[k], lo, hi, ['cost'].includes(k) ? 100 : ['dur', 'pierce', 'lives', 'max'].includes(k) ? 1 : 0.05, v => { if (v == null) delete b[k]; else b[k] = v; refresh(); }, def)); }
+      for (const [k, label] of [['camo', 'See ghosts'], ['allTypes', 'Hit any pest type']]){ const c = h('input', { type:'checkbox' }); c.checked = !!b[k]; c.addEventListener('change', () => { if (c.checked) b[k] = true; else delete b[k]; refresh(); }); g.append(h('label', { class:'toggle-inline' }, c, ' ' + label)); }
+      bBox.append(h('div', { class:'gm-trow gm-buff' }, h('div', { class:'gm-who' }, h('span', { class:'gal-glyph sm', text:'⚡' }), nm,
+        h('button', { class:'icon-btn', 'aria-label':'Remove', title:'Remove', onclick: () => { m.buffs.splice(i, 1); renderBuffs(); refresh(); }, text:'×' })), g));
+    });
+  };
+  const addBuff = h('button', { class:'btn btn-small', onclick: () => { if (m.buffs.length >= GM_BUFF_MAX){ toast('Up to ' + GM_BUFF_MAX + ' buffs.', 'warn'); return; } m.buffs.push({ name:'Buff ' + (m.buffs.length + 1), cost:1000, dur:30, dmg:1.5 }); renderBuffs(); refresh(); } }, '+ Add a buff');
+  renderBuffs();
   renderTowers(); renderPests(); refresh();
   const save = (andOn) => {
     const c = cleanGameMod(m);
@@ -109,6 +126,7 @@ function showModEditor(id, back){
       h('h3', { class:'gm-h', text:'Rules' }), rules, flags,
       h('h3', { class:'gm-h', text:'Appliances' }), tBox, tPick,
       h('h3', { class:'gm-h', text:'Pests' }), pBox, pPick,
+      h('h3', { class:'gm-h', text:'Buffs to buy' }), h('p', { class:'dly-note', text:'Buffs appear in the shop during a game. Players buy them with their cash; timed ones run while rounds are on, and a length of 0 lasts the rest of the game. They boost every appliance.' }), bBox, addBuff,
       h('div', { class:'dly-label', text:'What it changes' }), summary],
     actions:[{ label:'Back', onClick: back }, { label:'Save', keep:true, onClick: () => { save(false); } }, { label:'Save and switch on', kind:'primary', onClick: () => { if (save(true)) back(); else showModEditor(id, back); } }], onClose: back });
 }
@@ -117,4 +135,39 @@ function gmNoteRow(){
   const on = gameModsOn();
   return h('div', { class:'gm-note' + (on.length ? ' on' : '') }, h('span', { text: on.length ? '⚙ Mods on: ' + on.map(id => gameModById(id).name).join(', ') + '. No medals, Dough, mastery or achievements.' : '⚙ No mods on.' }),
     h('button', { class:'btn btn-small', onclick: () => { const mid = UI.lastPickMap; showMods(() => mid ? pickDifficulty(mid) : closeModal()); } }, 'Mods'));
+}
+/* ---------------- buffs in the shop ---------------- */
+function gmBuffCards(shop){
+  const B = typeof gmBuffs === 'function' ? gmBuffs() : [];
+  if (!B.length) return;
+  shop.append(h('div', { class:'fhead', style:'--fc:#9b4fd1' }, h('i', { 'aria-hidden':'true' }), '⚡ Buffs'));
+  B.forEach((b, i) => shop.append(h('button', { class:'card buffcard' + (b.name === 'God Boost' ? ' god' : ''), 'data-buff': String(i), title: b.name + ': ' + buffSummary(b), onclick: () => {
+    const r = buyGameBuff(i);
+    if (!r.ok){ Sfx.play('error'); toast(r.why + '.', 'warn'); return; }
+    toast(b.name + '! ' + buffSummary(b, true) + '.', 'gold');
+    if (G.vis) for (const t of G.towers) G.fx.push({ k:'ring', x: t.x, y: t.y, r0: t.size, r1: t.size + 30, t: 0, life: 0.5, c: '#c77dff', w: 3 });
+    buildAbilities(); updatePanel(true); gmBuffCardsUpdate(true);
+  }, onmouseenter: () => gmBuffInfo(b), onfocus: () => gmBuffInfo(b), onmouseleave: () => showInfo(UI.placing) },
+    h('span', { class:'hk', text:'⚡' }), h('span', { class:'buff-ic', text: b.name === 'God Boost' ? '👑' : '⚡' }), h('span', { class:'nm', text: b.name }), h('span', { class:'pr num', text: money(b.cost) }), h('span', { class:'st' }))));
+}
+function gmBuffInfo(b){
+  const box = $('#shop-info'); if (!box) return;
+  box.innerHTML = '';
+  box.append(h('b', { text: b.name + ' · ' + money(b.cost) }), buffSummary(b) + '. Buffs boost every appliance you have, and the ones you build later.');
+}
+function gmBuffCardsUpdate(){
+  const cards = $$('#shop .buffcard');
+  if (!cards.length) return;
+  const B = gmBuffs();
+  for (const c of cards){
+    const i = +c.dataset.buff, b = B[i]; if (!b) continue;
+    const a = gmBuffActive(i), n = (G.gmBought && G.gmBought[i]) || 0;
+    const out = (b.max && n >= b.max) || (a && !(a.left < Infinity));
+    c.classList.toggle('poor', !out && !canAfford(b.cost));
+    c.classList.toggle('on', !!a);
+    c.classList.toggle('done', !!out);
+    const st = c.querySelector('.st');
+    const txt = a ? (a.left < Infinity ? Math.ceil(a.left) + 's' : 'ON') : out ? 'SOLD' : '';
+    if (st.textContent !== txt) st.textContent = txt;
+  }
 }

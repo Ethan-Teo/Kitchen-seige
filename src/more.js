@@ -584,6 +584,7 @@ function moreTick(dt){
   utensilTick(dt);
   sprayTick(dt);
   riceTick(dt);
+  gmBuffTick(dt);
 }
 /* lives were lost: Nomads and Avengers get angry */
 function moreLeak(){

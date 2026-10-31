@@ -1140,6 +1140,7 @@ function buildShop(){
       oncontextmenu: ev => { ev.preventDefault(); if (!T.hero){ const on = toggleFav(type); Sfx.play('click'); toast((on ? 'Starred ' : 'Unstarred ') + T.name + '.', 'info'); buildShop(); } } },
       h('span', { class:'hk', text: T.custom ? '✦' : T.hot }), iconCanvas(Art.towerIcon(type, 64)), h('span', { class:'nm', text: T.name }), h('span', { class:'pr num' }), h('span', { class:'st' }));
   };
+  gmBuffCards(shop);
   favCards(shop, card);
   const shopTypes = factionSorted(TOWER_ORDER.filter(canBuild));
   if (adminUnitOn() && !G.towers.some(t => t.type === ADMIN_UNIT)) shopTypes.push(ADMIN_UNIT);
@@ -1157,6 +1158,7 @@ function buildShopSoon(){ clearTimeout(shopRebuildT); shopRebuildT = setTimeout(
 function crewNoteText(){ return 'Your crew: ' + G.ch.towers.map(t => TOWERS[t].name + ' ×' + Math.max(0, crewLeft(t))).join(', ') + ' left.'; }
 function updateShop(){
   updateHeroCard();
+  gmBuffCardsUpdate();
   if (G.ch && G.ch.tm){ const n = $('#crew-note'); const txt = crewNoteText(); if (n && n.textContent !== txt){ n.textContent = txt; buildShopSoon(); } }
   for (const card of $$('#shop .card[data-type]')){
     const type = card.dataset.type;

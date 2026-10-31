@@ -479,7 +479,7 @@ function computeStats(t){
   /* head chefs have no mastery: they grow by levels instead */
   const rank = T.hero ? 0 : masteryRank(t.type);
   if (rank >= 4 && !s.global) s.range *= 1.06;
-  if (G.mods && !T.hero) gmStats(t, s);
+  if (G.mods && !T.hero){ gmStats(t, s); gmBuffStats(t, s); }
   for (const id in s.atk) finalizeAttack(s.atk[id], rank);
   return s;
 }
@@ -611,7 +611,7 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
     doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
-    mode:'standard', M:null, mods:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
+    mode:'standard', M:null, mods:null, gmBuffs:[], gmBought:{}, gmBaseCash:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
   if (!ch) applyMode(mode);
@@ -642,7 +642,7 @@ function makeTower(type, x, y){
 function serializeGame(){
   return { v:1, savedAt: Date.now(), mapId:G.mapId, diff:G.diff, mm:G.mm, mode: G.mode !== 'standard' ? G.mode : undefined, ev: evSave(), freeplay:G.freeplay, won:G.won, round:G.round,
     cash: Math.floor(G.cash), lives: G.lives, usedSecond: G.usedSecond, stats: Object.assign({}, G.stats), nextId: G.nextId,
-    ch: G.ch || undefined, md: G.mods || undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
+    ch: G.ch || undefined, md: G.mods || undefined, mb: G.mods ? gmBuffSave() : undefined, cm: typeof isCustomMap === 'function' && isCustomMap(G.mapId) ? kitchenCopy(G.mapId) : undefined, au: G.adminUsed ? 1 : undefined, sb: G.M && G.M.sandbox ? sbSave() : undefined, dg: G.doughGame || 0, cx: G.chefXpGame || 0, da: Math.round((G.doughAcc || 0) * 1000) / 1000,
     pt: G.ptraps.length ? G.ptraps.filter(tr => tr.left > 0).map(tr => ({ x: Math.round(tr.x), y: Math.round(tr.y), a: Math.round(tr.ang * 100) / 100, n: tr.left })) : undefined,
     hs: G.hist && G.hist.length ? G.hist : undefined, bl: G.blog && G.blog.length ? G.blog : undefined,
     towers: G.towers.map(t => ({ id:t.id, type:t.type, x:Math.round(t.x), y:Math.round(t.y), up:t.up.slice(), par: t.paragon ? t.degree : 0, tg:t.tg,
@@ -658,7 +658,7 @@ function serializeGame(){
 function loadGame(data){
   if (data && data.cm && typeof adoptKitchen === 'function') adoptKitchen(data.mapId, data.cm);   // a kitchen of the player's own, carried in the save
   setupGame(data.mapId, data.diff, data.mm, data.ch, data.mode);
-  if (data.md && typeof data.md === 'object' && data.md.rules) applyGameMods(data.md, false);
+  if (data.md && typeof data.md === 'object' && data.md.rules){ applyGameMods(data.md, false); gmBuffLoad(data.mb); }
   evLoad(data.ev);
   Object.assign(G, { round:data.round, cash:data.cash, lives:data.lives, freeplay:!!data.freeplay, won:!!data.won, usedSecond:!!data.usedSecond });
   G.doughGame = +data.dg || 0; G.chefXpGame = +data.cx || 0; G.doughAcc = +data.da || 0;
