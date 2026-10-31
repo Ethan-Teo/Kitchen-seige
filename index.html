@@ -2891,35 +2891,36 @@ const TOWERS = {
   /* --------------------------------------------------------- CHESS SET */
   chess: {
     name:'Chess Set', cost:325, size:17, hot:'↵', code:'Enter', faction:'special',
-    blurb:'A pawn on a corner of a chess board. Pawns take on the diagonal, so it jabs at pests one square off it. Promote it to a Rook that sweeps rows and columns, a Bishop that sweeps diagonals, or a Knight that leaps onto pests in an L.',
-    base:{ range:130, atk:{ main:{ kind:'slide', dirs:'pawn', rate:0.85, dmg:1, pierce:2, reach:30, width:20, type:'normal', piece:'pawn' } } },
+    blurb:'A chess board fighting a gridlock war. Its pawn hits harder than any other first piece, but only right next to it, and the board drops a wall square on the trail that pests have to chew through, rebuilt in a new place every round. Promote it to a Rook and Bishop that sweep lines, a Knight that leaps and forks, or the Royals: a King who rallies your appliances and a Queen of poison, brands, lightning and ice.',
+    base:{ range:120, walls:{ n:1, hp:1, thorns:0 }, atk:{ main:{ kind:'slide', dirs:'pawn', rate:1.25, dmg:5, pierce:1, reach:34, width:20, type:'normal', piece:'pawn' } } },
     finish:s=>chessFinish(s),
     paths:[
-      { name:'Rook', ups:[
-        { name:'Rook', cost:400, desc:'Promotes the pawn to a rook (or sets one beside its other piece). Every 1.15s it slides along the row or the column through a pest, whichever catches more, hitting up to 6 pests in line for 2 damage.', apply:s=>{ s.atk.rook = { kind:'slide', dirs:'rook', rate:1.15, dmg:2, pierce:6, reach:80, width:22, type:'normal', piece:'rook' }; } },
-        { name:'Open File', cost:500, desc:'Slides reach twice as far, hit 4 more pests and come 15% faster.', apply:s=>{ const r=s.atk.rook; r.reach *= 2; r.pierce += 4; r.rate /= 1.15; } },
-        { name:'Doubled Rooks', cost:1650, desc:'Two rooks: it slides along the row and the column at once. +2 damage, +4 to vehicles.', apply:s=>{ const r=s.atk.rook; r.cross = true; r.dmg += 2; r.bonusBig = (r.bonusBig||0) + 4; } },
-        { name:'Back Rank', cost:5500, desc:'Slides cross the whole kitchen, wall to wall: 10 damage (+26 to vehicles) to up to 22 pests a line. Pests in the last third of the trail, near the pantry, take double.', apply:s=>{ const r=s.atk.rook; r.full = true; r.dmg = 10; r.bonusBig = 26; r.pierce = 22; r.back = { frac:1/3, mul:2 }; } },
-        { name:'Castle Keep', cost:44000, desc:'A towering keep: slides deal 40 (+200 to vehicles) to 40 pests a line, twice as fast. Ability: Castle Crush, a giant rook rolls down every trail from the pantry, crushing every pest in its way for 600 (3,000 to vehicles) and shoving them back.', apply:s=>{ const r=s.atk.rook; r.dmg = 40; r.bonusBig = 200; r.pierce = 40; r.rate /= 2; s.abilities.push({ id:'castle', cd:40, dmg:600, bonusBig:2400, push:110, bigPush:35, stun:0.5 }); } },
-      ]},
-      { name:'Bishop', ups:[
-        { name:'Bishop', cost:300, desc:'Promotes the pawn to a bishop (or sets one beside its other piece). Every 0.75s it slides along a diagonal through a pest, whichever catches more, hitting up to 5 pests in line for 2 damage.', apply:s=>{ s.atk.bishop = { kind:'slide', dirs:'bishop', rate:0.75, dmg:2, pierce:5, reach:100, width:24, type:'normal', piece:'bishop' }; } },
-        { name:'Fianchetto', cost:450, desc:'Spots ghost pests, +15% range, and its diagonals reach twice as far.', apply:s=>{ s.camo = true; s.range *= 1.15; s.atk.bishop.reach *= 2; } },
-        { name:'Bishop Pair', cost:1400, desc:'Two bishops, one for each colour: it slides along both diagonals at once. +1 damage, 2 more pests a line, and 15% faster.', apply:s=>{ const b=s.atk.bishop; b.cross = true; b.dmg += 1; b.pierce += 2; b.rate /= 1.15; } },
-        { name:'Long Diagonal', cost:4800, desc:'Diagonals cross the whole kitchen and bounce off its walls twice: 8 damage (+8 to vehicles) to up to 16 pests a line.', apply:s=>{ const b=s.atk.bishop; b.full = true; b.bounce = 2; b.dmg = 8; b.bonusBig = 8; b.pierce = 16; } },
-        { name:'Colour Complex', cost:32000, desc:'The kitchen floor becomes its board: every pest standing on a dark square takes 35% more damage from everything. Diagonals deal 26 (+140 to vehicles) to 30 pests a line, bounce four times and come 60% faster.', apply:s=>{ const b=s.atk.bishop; b.dmg = 26; b.bonusBig = 140; b.bounce = 4; b.pierce = 30; b.rate /= 1.6; s.board = { mul:1.35 }; } },
+      { name:'Rook & Bishop', ups:[
+        { name:'Rook', cost:400, desc:'Promotes the pawn to a rook. Every 1.15s it slides along the row or the column through a pest, whichever catches more, hitting up to 6 pests in line for 2 damage.', apply:s=>{ s.atk.rook = { kind:'slide', dirs:'rook', rate:1.15, dmg:2, pierce:6, reach:80, width:22, type:'normal', piece:'rook' }; } },
+        { name:'Open File', cost:500, desc:'Rook slides reach twice as far, hit 4 more pests and come 15% faster.', apply:s=>{ const r=s.atk.rook; r.reach *= 2; r.pierce += 4; r.rate /= 1.15; } },
+        { name:'Bishop’s Battery', cost:1650, desc:'A bishop joins the rook: its diagonals cross the kitchen and bounce off the walls, hitting 8 pests for 4. The rook slides along the row and the column at once, +2 damage.', apply:s=>{ const r=s.atk.rook; r.cross = true; r.dmg += 2; s.atk.bishop = { kind:'slide', dirs:'bishop', cross:true, full:true, bounce:1, rate:0.8, dmg:4, pierce:8, width:24, type:'normal', piece:'bishop' }; s.camo = true; } },
+        { name:'Back Rank', cost:5500, desc:'Rook slides cross the whole kitchen wall to wall: 10 damage (+26 to vehicles) to 22 pests, double near the pantry. Bishop beams bounce twice for 9 (+12 to vehicles).', apply:s=>{ const r=s.atk.rook; r.full = true; r.dmg = 10; r.bonusBig = 26; r.pierce = 22; r.back = { frac:1/3, mul:2 }; const b=s.atk.bishop; if (b){ b.bounce = 2; b.dmg = 9; b.bonusBig = 12; b.pierce = 16; } } },
+        { name:'Castle Keep', cost:44000, desc:'Slides deal 40 (+200 to vehicles) to 40 pests a line, twice as fast; bishop beams deal 30 (+150) and bounce four times. Ability: Castle Crush, a giant rook rolls down every trail from the pantry, crushing every pest in its way for 600 (3,000 to vehicles).', apply:s=>{ const r=s.atk.rook; r.dmg = 40; r.bonusBig = 200; r.pierce = 40; r.rate /= 2; const b=s.atk.bishop; if (b){ b.dmg = 30; b.bonusBig = 150; b.bounce = 4; b.pierce = 30; b.rate /= 1.5; } s.abilities.push({ id:'castle', cd:40, dmg:600, bonusBig:2400, push:110, bigPush:35, stun:0.5 }); } },
       ]},
       { name:'Knight', ups:[
-        { name:'Knight', cost:450, desc:'Promotes the pawn to a knight (or sets one beside its other piece). Every 1.3s it leaps onto a pest in an L, jumping over everything in its way, and stomps up to 8 pests where it lands for 2 damage.', apply:s=>{ s.atk.knight = { kind:'leap', rate:1.3, travel:0.36, hopTime:0.24, hop:110, max:3, impact:{ r:30, dmg:2, pierce:8, type:'normal' }, piece:'knight' }; } },
+        { name:'Knight', cost:450, desc:'Promotes the pawn to a knight. Every 0.7s it leaps onto a pest a knight’s move away, jumping over everything, and stomps up to 8 pests where it lands for 2.', apply:s=>{ s.atk.knight = { kind:'leap', rate:0.7, travel:0.3, hopTime:0.2, hop:110, max:3, impact:{ r:30, dmg:2, pierce:8, type:'normal' }, piece:'knight' }; } },
         { name:'Fork', cost:550, desc:'Every landing forks the 2 toughest pests within 90 px: each takes 6 more (+4 to vehicles), through any shell.', apply:s=>{ s.atk.knight.fork = { n:2, r:90, dmg:6, bonusBig:4, type:'normal', ignoreImmune:true }; } },
-        { name:'Knight’s Tour', cost:1900, desc:'After it lands it leaps on to another pest a knight’s move away, up to 3 more times, never landing on the same pest twice. Stomps hit 10 pests for 3.', apply:s=>{ const k=s.atk.knight; k.tour = 3; Object.assign(k.impact, { dmg:3, pierce:10, r:34 }); } },
-        { name:'Cavalry', cost:6200, desc:'Stomps hit for 4 (+12 to vehicles) and stun small pests briefly, forks for 12 (+30 to vehicles). Ability: Cavalry Charge, a troop of knights gallops up every trail from the pantry, trampling every pest in its way for 60 (300 to vehicles) and knocking small pests back.', apply:s=>{ const k=s.atk.knight; Object.assign(k.impact, { dmg:4, bonusBig:12, stun:0.25 }); if (k.fork) Object.assign(k.fork, { dmg:12, bonusBig:30 }); s.abilities.push({ id:'charge', cd:40, dmg:60, bonusBig:240, push:70, bigPush:20, stun:0.6 }); } },
-        { name:'Royal Fork', cost:40000, desc:'Forks reach 220 px and hit the 2 toughest pests for 450 each (900 to vehicles, 1,350 to bosses). Tours run to 5 leaps, 20% faster, and stomps deal 22 (+80 to vehicles). Cavalry Charge tramples for 900 (4,500 to vehicles).', apply:s=>{ const k=s.atk.knight; k.tour = 5; k.rate /= 1.2; Object.assign(k.impact, { dmg:22, bonusBig:80, r:42, pierce:22 }); k.fork = { n:2, r:220, dmg:450, bonusBig:450, bonusBoss:450, type:'normal', ignoreImmune:true }; const ab = s.abilities.find(x => x.id === 'charge'); if (ab){ ab.dmg = 900; ab.bonusBig = 3600; } } },
+        { name:'Knight’s Tour', cost:1900, desc:'After it lands it leaps on to another pest a knight’s move away, up to 3 more times. Stomps hit 10 pests for 3.', apply:s=>{ const k=s.atk.knight; k.tour = 3; Object.assign(k.impact, { dmg:3, pierce:10, r:34 }); } },
+        { name:'Cavalry', cost:6200, desc:'Stomps hit for 4 (+12 to vehicles) and stun small pests, forks for 12 (+30 to vehicles). Ability: Cavalry Charge, a troop of knights gallops up every trail, trampling every pest for 60 (300 to vehicles).', apply:s=>{ const k=s.atk.knight; Object.assign(k.impact, { dmg:4, bonusBig:12, stun:0.25 }); if (k.fork) Object.assign(k.fork, { dmg:12, bonusBig:30 }); s.abilities.push({ id:'charge', cd:40, dmg:60, bonusBig:240, push:70, bigPush:20, stun:0.6 }); } },
+        { name:'Royal Fork', cost:40000, desc:'Forks reach 220 px and hit the 2 toughest pests for 450 each (900 to vehicles, 1,350 to bosses). Tours run to 5 leaps, 20% faster, and stomps deal 22 (+80 to vehicles). Cavalry Charge tramples for 900.', apply:s=>{ const k=s.atk.knight; k.tour = 5; k.rate /= 1.2; Object.assign(k.impact, { dmg:22, bonusBig:80, r:42, pierce:22 }); k.fork = { n:2, r:220, dmg:450, bonusBig:450, bonusBoss:450, type:'normal', ignoreImmune:true }; const ab = s.abilities.find(x => x.id === 'charge'); if (ab){ ab.dmg = 900; ab.bonusBig = 3600; } } },
+      ]},
+      { name:'Royals', ups:[
+        { name:'King', cost:300, desc:'A King joins the pawn. He never attacks, but appliances in range attack 12% faster. The pawn keeps jabbing.', apply:s=>{ s.buff = Object.assign(s.buff || {}, { speed:1.12 }); s.king = true; } },
+        { name:'Gridlock', cost:500, desc:'The board drops 3 wall squares on the trail instead of 1, twice as tough. Pests pile up behind them chewing; hopping and flying pests go over.', apply:s=>{ s.walls = { n:3, hp:2, thorns:0 }; } },
+        { name:'Queen', cost:2100, desc:'A Queen joins the King. Every 0.6s she strikes every pest in range with an element in turn: poison (burns over time), brand (+3 damage from every hit), lightning (double damage to the 3 toughest) and ice (freezes small pests).', apply:s=>{ s.atk.queen = { kind:'elements', rate:0.6, dmg:3, pierce:30, poison:3, brand:3, ice:0.6, bolt:3, both:false, type:'normal', piece:'queen' }; } },
+        { name:'Royal Court', cost:6000, desc:'Appliances in range attack 20% faster and hit 1 more pest. 4 wall squares that sting pests chewing them. The Queen casts two elements at once for 8. Ability: Stalemate stops every pest on screen for 3s.', apply:s=>{ s.buff = Object.assign(s.buff || {}, { speed:1.2, pierce:1 }); s.walls = { n:4, hp:3, thorns:6 }; const q=s.atk.queen; if (q){ q.dmg = 8; q.poison = 8; q.brand = 6; q.both = true; } s.abilities.push({ id:'stalemate', cd:60, dur:3 }); } },
+        { name:'Checkmate', cost:42000, desc:'The Queen casts all four elements at once for 60 (+200 to vehicles) through any shell; walls are six times tougher and sting for 40. Colour Complex: pests on dark squares take 35% more from everything. Ability: Checkmate takes the 2 toughest vehicles off the board (bosses lose 15%).', apply:s=>{ const q=s.atk.queen; if (q){ q.dmg = 60; q.bonusBig = 200; q.poison = 40; q.brand = 30; q.ice = 1; q.all = true; q.ignoreImmune = true; } s.walls = { n:5, hp:6, thorns:40 }; s.board = { mul:1.35 }; s.abilities.push({ id:'checkmate', cd:55, n:2, boss:0.15 }); } },
       ]},
     ],
-    paragon:{ name:'The Checkmate Queen', cost:260000, desc:'The most powerful piece on the board. She slides along all four lines through a pest at once, across the whole kitchen, while her knights leap and fork on their own. Pawns march up the trail to be promoted to queens, and the whole floor becomes her board: pests on the dark squares take more damage from everything.',
-      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:250, camo:true, atk:{
+    paragon:{ name:'The Grand Gambit', cost:260000, desc:'Every piece at once. The Queen slides along all four lines across the kitchen and casts all four elements, her knights leap and fork on their own, the King rallies every appliance near, and the board gridlocks the trail with walls that sting. Pawns march up the trail to be promoted to queens, and pests on the dark squares take more damage from everything.',
+      make:(deg)=>{ const {k,dd,big}=pk(deg); return { range:250, camo:true, king:true, buff:{ speed:1.25, pierce:2 }, walls:{ n:6, hp:10 + dd * 0.4, thorns:120 + dd * 12 }, atk:{
         queen:{ kind:'slide', dirs:'queen', cross:true, full:true, bounce:2, rate:0.32/k, dmg:70+dd*7, pierce:60, width:28, bonusBig:Math.round((320+dd*32)*big), bonusBoss:Math.round((160+dd*16)*big), type:'normal', ignoreImmune:true, back:{ frac:1/3, mul:2 }, piece:'queen' },
+        elements:{ kind:'elements', rate:0.45/k, dmg:120+dd*12, pierce:80, poison:80+dd*8, brand:60+dd*6, ice:1.2, bolt:4, all:true, bonusBig:Math.round((400+dd*40)*big), type:'normal', ignoreImmune:true, piece:'queen' },
         knights:{ kind:'leap', count:2, rate:0.9/k, travel:0.32, hopTime:0.2, hop:150, max:8, tour:6, impact:{ r:46, dmg:60+dd*6, pierce:30, bonusBig:Math.round((220+dd*22)*big), type:'normal', ignoreImmune:true, stun:0.3 }, fork:{ n:2, r:260, dmg:900+dd*90, bonusBig:Math.round((1800+dd*180)*big), bonusBoss:Math.round((900+dd*90)*big), type:'normal', ignoreImmune:true }, piece:'knight' },
       }, board:{ mul: 1.5 + dd * 0.025 },
       pawns:{ every:2.5, cap:10, pierce:25+dd, speed:85, max:4, life:20, hit:{ dmg:40+dd*4, bonusBig:Math.round((120+dd*12)*big), type:'normal', ignoreImmune:true },
@@ -4148,7 +4149,7 @@ function setupGame(mapId, diff, mm, ch, mode, ev){
     leaps:[], queens:[], board:null,
     globalSlow:1, leakGuard:false, sellBonus:0, lastSnap:null, shake:0, abOrder:[], aimAt:null, hasPointer:false,
     doughGame:0, doughAcc:0, chefXpGame:0, goldAt:null, hist:[], blog:[], blPrev:null,
-    mode:'standard', M:null, mods:null, gmBuffs:[], gmBought:{}, gmBaseCash:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
+    mode:'standard', M:null, mods:null, chWalls:[], gmBuffs:[], gmBought:{}, gmBaseCash:null, rushLeft:null, ev:null, evClock:0, adminUsed:false, foams:[], bubbles:[],
   });
   sandboxEnd();
   if (!ch) applyMode(mode);
@@ -6338,8 +6339,10 @@ function updateEnemies(dt){
     if (e.blowD > 0){ const v = Math.min(e.blowD, e.blowV * dt); e.d -= v; e.blowD -= v; mult = 0; }
     /* charmed by a siren song: it walks back up the trail */
     if (e.charmT > 0){ e.charmT -= dt; if (mult > 0) mult *= -0.6; }
+    const d0 = e.d;
     e.d += e.speed * mult * dt;
     if (e.d < 0) e.d = 0;
+    if (G.chWalls && G.chWalls.length && e.d > d0) wallBlock(e, d0, dt);
     const P = G.paths[e.path];
     if (e.d >= P.len){ if (G.paraList.length && paraLeakSave(e)) continue; leak(e); if (G.over) return; continue; }
     const pos = pathPos(P, e.d, e.seg);
@@ -9637,6 +9640,7 @@ function chessFire(t, a, id){
   switch (a.kind){
     case 'slide': return fireSlide(t, a, id);
     case 'leap': return fireLeap(t, a, id);
+    case 'elements': return fireElements(t, a, id);
   }
   return utensilFire(t, a, id);
 }
@@ -9651,6 +9655,8 @@ function chessRefresh(){
   G.board = m > 1 ? { mul: m } : null;
 }
 function chessTick(dt){
+  wallsTick(dt);
+  for (const e of G.enemies){ if (e.poisonT > 0) e.poisonT -= dt; if (e.brandT > 0) e.brandT -= dt; }
   if (G.leaps.length){ for (const L of G.leaps) if (!L.done) leapTick(L, dt); G.leaps = G.leaps.filter(L => !L.done); }
   if (G.queens.length){ for (const q of G.queens){ if (q.fire > 0) q.fire -= dt; if (!q.done) queenTick(q, dt); } G.queens = G.queens.filter(q => !q.done); }
 }
@@ -9660,6 +9666,7 @@ function chessRoundEnd(){
 }
 /* the set is sold or merged: its leaping knights and its queens go with it */
 function chessForget(t){
+  if (G.chWalls) G.chWalls = G.chWalls.filter(w => w.tw !== t);
   G.leaps = G.leaps.filter(L => L.tw !== t);
   G.queens = G.queens.filter(q => q.tw !== t);
   utensilForget(t);
@@ -9750,6 +9757,131 @@ function runChessAbility(t, ab){
     }
   }
   return null;
+}
+
+/* ---------------------------------------------------------------------
+   Gridlock: wall squares on the trail
+   Every Chess Set drops wall squares on the stretch of trail in its range.
+   A pest that reaches one stops and chews through it; hopping and flying
+   pests go over. The board reshapes every round: the walls are rebuilt,
+   whole, in new places.
+   --------------------------------------------------------------------- */
+const WALL_HP0 = 30, WALL_HP_ROUND = 6, WALL_GAP = 70;
+function wallHp(W){ return Math.round((WALL_HP0 + WALL_HP_ROUND * G.round) * (W.hp || 1)); }
+function chewRate(e){ return e.boss ? 600 : e.big ? 80 : 12; }
+/* the trail spots in a set's range, as [path, d] */
+function wallSpots(t){
+  const out = [], R = t.s.range * 0.92;
+  G.paths.forEach((P, pi) => {
+    for (let d = 40; d < P.len - 40; d += 16){ const q = pathPos(P, d, 0); if (q.x > 4 && q.x < W - 4 && q.y > 4 && q.y < H - 4 && Math.hypot(q.x - t.x, q.y - t.y) <= R) out.push([pi, d]); }
+  });
+  return out;
+}
+function buildWalls(t){
+  if (!G.chWalls) G.chWalls = [];
+  G.chWalls = G.chWalls.filter(w => w.tw !== t);
+  const W0 = t.s.walls;
+  t.wallRound = G.round; t.wallN = W0 ? W0.n : 0;
+  if (!W0 || !W0.n) return;
+  const spots = wallSpots(t);
+  for (let i = spots.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const x = spots[i]; spots[i] = spots[j]; spots[j] = x; }
+  let pick = [];
+  /* spread out where the trail allows, closer together where it doesn't */
+  for (const gap of [WALL_GAP, 44, 28]){
+    pick = [];
+    for (const c of spots){
+      if (pick.length >= W0.n) break;
+      if (pick.some(o => o[0] === c[0] && Math.abs(o[1] - c[1]) < gap)) continue;
+      if (G.chWalls.some(w => w.path === c[0] && Math.abs(w.d - c[1]) < 28)) continue;
+      pick.push(c);
+    }
+    if (pick.length >= W0.n) break;
+  }
+  for (const [pi, d] of pick){
+    const q = pathPos(G.paths[pi], d, 0), hp = wallHp(W0);
+    G.chWalls.push({ tw: t, path: pi, d, x: q.x, y: q.y, ang: q.ang, hp, maxHp: hp, thorns: W0.thorns || 0, acc: 0, t: 0 });
+    if (G.vis) G.fx.push({ k:'ring', x: q.x, y: q.y, r0: 4, r1: 26, t: 0, life: 0.4, c: '#f3e7cb', w: 3 });
+  }
+}
+function wallsTick(dt){
+  for (const t of G.towers){
+    if (t.type !== 'chess' || !t.s || !t.s.walls) continue;
+    if (t.wallRound !== G.round && G.roundActive) buildWalls(t);
+    else if (t.wallN !== t.s.walls.n) buildWalls(t);
+  }
+  if (!G.chWalls || !G.chWalls.length) return;
+  for (const w of G.chWalls) w.t += dt;
+  const before = G.chWalls.length;
+  G.chWalls = G.chWalls.filter(w => w.hp > 0 && G.towers.includes(w.tw));
+  if (G.chWalls.length !== before) for (const t of G.towers) if (t.type === 'chess') t.wallN = t.s.walls ? t.s.walls.n : 0;
+}
+/* called as a pest moves from d0 to e.d: a standing wall in between stops it, and it chews */
+function wallBlock(e, d0, dt){
+  if (e.def.fly || e.hopT > 0 || e.burrowT > 0 || e.air || e.blowD > 0 || e.charmT > 0) return;
+  for (const w of G.chWalls){
+    if (w.path !== e.path || w.hp <= 0) continue;
+    const front = w.d - e.r - 9;
+    if (d0 <= front + 0.5 && e.d > front){
+      e.d = front;
+      w.hp -= chewRate(e) * dt;
+      e.chewT = 0.2;
+      if (w.thorns){ w.acc += dt; if (w.acc >= 0.5){ w.acc = 0; damage(e, w.thorns, 'normal', w.tw, { ignoreImmune: true }); } }
+      if (w.hp <= 0){
+        w.hp = 0;
+        if (G.vis){ for (let i = 0; i < 10; i++){ const a = rand(0, TAU), v = rand(40, 120); part(w.x, w.y, Math.cos(a) * v, Math.sin(a) * v, 0.5, i % 2 ? '#3a2a1e' : '#f3e7cb', 3, 'spark'); } }
+        Hooks.sfx('clack');
+      }
+      return;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   The Queen's elements: poison, brand, lightning and ice, in turn or all at once
+   --------------------------------------------------------------------- */
+const ELEMENTS = ['poison', 'brand', 'bolt', 'ice'];
+const ELEMENT_COL = { poison:'#7ed957', brand:'#ff8a3d', bolt:'#ffe066', ice:'#9fe0ff' };
+function fireElements(t, a, id){
+  const range = t.s.range, list = [];
+  for (const e of query(t.x, t.y, range, QK)) if (canTarget(t, e, a) && Math.hypot(e.x - t.x, e.y - t.y) <= range + e.r) list.push(e);
+  if (!list.length) return false;
+  t.elI = ((t.elI || 0) + 1) % 4;
+  const els = a.all ? ELEMENTS : a.both ? [ELEMENTS[t.elI], ELEMENTS[(t.elI + 2) % 4]] : [ELEMENTS[t.elI]];
+  const hit = list.slice(0, a.pierce);
+  for (const el of els){
+    if (el === 'bolt'){
+      const tough = hit.slice().sort((p, q) => q.hp - p.hp).slice(0, a.bolt || 3);
+      for (const e of tough){ damage(e, a.dmg * 2, 'energy', t, a); if (G.vis) G.fx.push({ k:'zap', segs: [[t.x, t.y - 20, e.x, e.y]], t:0, life:0.17, c:'#ffe066' }); }
+      continue;
+    }
+    for (const e of hit){
+      if (e.dead) continue;
+      if (el === 'poison'){ damage(e, a.dmg, 'normal', t, a); if (!e.dead) addBurn(e, { dmg: a.poison, tick: 0.5, dur: 3 }, t, true); e.poisonT = 3; }
+      else if (el === 'brand'){ damage(e, a.dmg, 'normal', t, a); if (!e.dead) setVuln(e, { amt: a.brand, dur: 3 }); e.brandT = 3; }
+      else if (el === 'ice'){ damage(e, a.dmg, 'cold', t, a); if (!e.dead){ if (e.big) slowE(e, 0.6, 1.5); else freezeE(e, { dur: a.ice, ignoreImmune: true }, t); } }
+    }
+  }
+  t.elNow = els; t.fire2 = 0.3;
+  if (G.vis) for (const el of els) G.fx.push({ k:'ring', x: t.x, y: t.y, r0: t.size, r1: range, t: 0, life: 0.4, c: ELEMENT_COL[el], w: 3 });
+  return true;
+}
+/* the wall squares on the kitchen floor: a raised chess square, light or dark, cracking as it is chewed */
+function drawChessWalls(g, time){
+  if (!G.chWalls || !G.chWalls.length) return;
+  for (const w of G.chWalls){
+    if (w.hp <= 0) continue;
+    const k = Math.min(1, w.t * 5), s = 13 * k, f = w.hp / w.maxHp;
+    g.save(); g.translate(w.x, w.y); g.rotate(w.ang || 0);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(-s + 2, -s + 3, s * 2, s * 2);
+    const dark = onDark(w.x, w.y);
+    g.fillStyle = dark ? '#5a3b26' : '#f0e2c4'; g.fillRect(-s, -s, s * 2, s * 2);
+    g.strokeStyle = dark ? '#2e1d12' : '#9c8058'; g.lineWidth = 2; g.strokeRect(-s, -s, s * 2, s * 2);
+    g.fillStyle = dark ? '#7a5236' : '#fff6e0'; g.fillRect(-s + 2, -s + 2, s * 2 - 4, 3);
+    if (w.thorns){ g.fillStyle = '#c9d2d6'; for (const [x, y] of [[-s, -s], [s, -s], [-s, s], [s, s]]){ g.beginPath(); g.moveTo(x, y); g.lineTo(x * 0.7, y * 0.4); g.lineTo(x * 0.4, y * 0.7); g.closePath(); g.fill(); } }
+    if (f < 0.7){ g.strokeStyle = dark ? '#c9a77a' : '#6a4a2a'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-s * 0.6, -s * 0.2); g.lineTo(0, s * 0.1); g.lineTo(s * 0.4, -s * 0.5); if (f < 0.4){ g.moveTo(0, s * 0.1); g.lineTo(-s * 0.1, s * 0.7); } g.stroke(); }
+    g.restore();
+    if (f < 1){ g.fillStyle = 'rgba(20,24,28,0.75)'; g.fillRect(w.x - 13, w.y - 21, 26, 4); g.fillStyle = f > 0.5 ? '#f3e7cb' : f > 0.25 ? '#ffd166' : '#ff6b4a'; g.fillRect(w.x - 12, w.y - 20, 24 * f, 2); }
+  }
 }
 
 'use strict';
@@ -17579,6 +17711,9 @@ const Art = (() => {
       }
       if (e.slipT > 0){ g.strokeStyle = 'rgba(255,255,255,' + (e.slipT * 2).toFixed(3) + ')'; g.lineWidth = 1.6; g.lineCap = 'round'; for (const y of [-e.r * 0.4, e.r * 0.4]){ g.beginPath(); g.moveTo(e.r * 0.9, y); g.lineTo(e.r * 1.9, y); g.stroke(); } }
     }
+    /* the Queen's poison (a green sheen) and brand (a glowing mark) */
+    if (e.poisonT > 0){ ell(g, 0, 0, e.r * 0.9, e.r * 0.72); g.fillStyle = 'rgba(126,217,87,' + (0.18 + 0.1 * Math.sin(t * 6 + e.id)).toFixed(3) + ')'; g.fill(); }
+    if (e.brandT > 0){ g.strokeStyle = 'rgba(255,138,61,0.9)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-e.r * 0.35, -e.r * 0.35); g.lineTo(e.r * 0.35, e.r * 0.35); g.moveTo(e.r * 0.35, -e.r * 0.35); g.lineTo(-e.r * 0.35, e.r * 0.35); g.stroke(); }
     /* coated in sticky rice: grains stuck all over it */
     if (e.riceT > 0){ const n = e.big ? 9 : 5; for (let i = 0; i < n; i++){ const an = i * 2.39 + e.id * 0.7, d = e.r * (0.25 + (i % 3) * 0.22); g.save(); g.translate(Math.cos(an) * d, Math.sin(an) * d * 0.85); g.rotate(an * 1.7); ell(g, 0, 0, e.big ? 2.6 : 1.8, e.big ? 1.2 : 0.85); fillStroke(g, '#fffdf2', 'rgba(150,140,110,0.8)', 0.5); g.restore(); } }
     if (e.soakT > 0){ ell(g, 0, 0, e.r * 0.9, e.r * 0.7); g.fillStyle = 'rgba(214,160,52,0.28)'; g.fill(); ell(g, -e.r * 0.3, -e.r * 0.3, e.r * 0.25, e.r * 0.12, -0.6); g.fillStyle = 'rgba(255,255,255,0.5)'; g.fill(); }
@@ -19359,10 +19494,10 @@ const Art = (() => {
   function turnedPiece(g, kind, col, o){
     o = o || {};
     const out = o.out || shade(col, -0.62);
-    symPath(g, PIECE_HALF[kind]);
+    symPath(g, PIECE_HALF[kind] || PIECE_HALF.queen);
     g.fillStyle = pieceGrad(g, col, 9.4); g.fill();
     g.strokeStyle = out; g.lineWidth = 1.1; g.lineJoin = 'round'; g.stroke();
-    rims(g, PIECE_RIMS[kind], col);
+    rims(g, PIECE_RIMS[kind] || PIECE_RIMS.queen, col);
     if (kind === 'pawn'){
       /* its round head */
       circle(g, 0, -19.4, 5.1);
@@ -19387,6 +19522,12 @@ const Art = (() => {
       if (o.glow){ g.strokeStyle = 'rgba(255,240,180,0.85)'; g.lineWidth = 0.6; g.stroke(); }
       circle(g, 0, -31.3, 1.8); g.fillStyle = o.trim ? '#f2c14e' : col; g.fill(); g.strokeStyle = out; g.lineWidth = 0.9; g.stroke();
       if (o.trim){ g.strokeStyle = '#e8b93a'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(0, -17.6, 3.6, 1, 0, 0, Math.PI); g.stroke(); }
+    } else if (kind === 'king'){
+      /* his crown: a band, a dome and a cross on top */
+      ell(g, 0, -28.6, 7.4, 2); g.fillStyle = o.trim ? '#f2c14e' : shade(col, -0.15); g.fill(); g.strokeStyle = out; g.lineWidth = 0.8; g.stroke();
+      ell(g, 0, -30.2, 4.6, 3); g.fillStyle = pieceGrad(g, col, 4); g.fill(); g.strokeStyle = out; g.lineWidth = 0.9; g.stroke();
+      g.fillStyle = o.trim ? '#f2c14e' : col; g.strokeStyle = out; g.lineWidth = 0.8;
+      g.beginPath(); g.rect(-1.1, -39, 2.2, 7); g.rect(-3.3, -36.8, 6.6, 2.2); g.fill(); g.stroke();
     } else if (kind === 'queen'){
       /* her crown: a ball on every point, a dome and a jewel */
       for (const x of [-7.9, -4.8, -1.6, 1.6, 4.8, 7.9]){ const y = Math.abs(x) > 7 ? -29.3 : Math.abs(x) > 4 ? -30.5 : -30.9; circle(g, x, y, 1.15); g.fillStyle = o.trim ? '#ffe08a' : shade(col, 0.2); g.fill(); g.strokeStyle = out; g.lineWidth = 0.7; g.stroke(); }
@@ -19457,7 +19598,7 @@ const Art = (() => {
   }
   /* which piece a build shows: the path furthest along (the earlier path on a tie), or -1 for the pawn */
   function chessMain(up){ let p = -1, m = 0; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
-  const CH_KIND = ['rook', 'bishop', 'knight'];
+  const CH_KIND = ['rook', 'knight', 'king'];
   function drawChess(g, t, up, time, par){
     const col = bodyColor('chess', up, par);
     chessTile(g, par || t.rank >= 8);
@@ -19476,15 +19617,12 @@ const Art = (() => {
     let q = -1;
     for (let i = 0; i < 3; i++) if (i !== p && up[i] > 0) q = i;
     if (kind === 'rook'){
-      if (tier >= 5) pieceAt(g, 'rook', 0, 9 - hop, 1.14, col, { trim: true, flag: true, time });
-      else if (tier >= 3){ pieceAt(g, 'rook', -6.5, 3.5, 0.8, col, { trim: tier >= 4 }); pieceAt(g, 'rook', 4, 10 - hop, 0.9, col, { trim: tier >= 4 }); }
+      if (tier >= 3){ pieceAt(g, 'bishop', -6.5, 3.5, 0.8, CH_EBONY, { glow: tier >= 4, out: '#1c110b', trim: tier >= 5 }); pieceAt(g, 'rook', 4, 10 - hop, tier >= 5 ? 1.02 : 0.92, col, { trim: tier >= 4, flag: tier >= 5, time }); }
       else pieceAt(g, 'rook', 0, 8 - hop, 0.98, col);
-    } else if (kind === 'bishop'){
-      if (tier >= 5){
-        g.save(); g.strokeStyle = 'rgba(255,209,102,0.75)'; g.lineWidth = 1.3; g.beginPath(); g.ellipse(0, -22.5 - hop, 8.5, 3, 0, 0, TAU); g.stroke(); g.restore();
-        pieceAt(g, 'bishop', 0, 9 - hop, 1.12, col, { trim: true, glow: true });
-      } else if (tier >= 3){ pieceAt(g, 'bishop', -6.5, 3.5, 0.82, CH_EBONY, { glow: tier >= 4, out: '#1c110b' }); pieceAt(g, 'bishop', 4, 10 - hop, 0.9, col, { glow: tier >= 4 }); }
-      else pieceAt(g, 'bishop', 0, 8 - hop, 0.95, col);
+    } else if (kind === 'king'){
+      const tr = tier >= 5;
+      if (tier >= 3){ pieceAt(g, 'queen', -6.5, 4, 0.82, col, { trim: tr, gem: tier >= 4 }); pieceAt(g, 'king', 4.5, 10 - hop, 0.88, col, { trim: tr }); }
+      else { pieceAt(g, 'pawn', -7, 6, 0.6, col); pieceAt(g, 'king', 3, 10 - hop, 0.9, col, { trim: tr }); }
     } else {
       const o = { face, bridle: tier >= 3, armor: tier >= 4, gold: tier >= 5, crown: tier >= 5 };
       pieceAt(g, 'knight', 0, 8 - hop, tier >= 5 ? 1.1 : 1, tier >= 5 ? mixHex('#f2c14e', '#ffffff', 0.25) : col, o);
@@ -25185,7 +25323,7 @@ const MODELS3D = (() => {
     const H = Art.look3d.PIECE_HALF;
     let p;
     if (kind === 'rook') p = halfProfile(H.rook, 7).concat([[8.7, 24.4, 1], [6.2, 24.4, 1], [6.2, 22.8, 1], [0, 22.8]]);
-    else if (kind === 'queen') p = halfProfile(H.queen, 9).concat([[7.6, 29.4, 1], [3.4, 28.6, 1], [0, 28.6]]);
+    else if (kind === 'queen' || kind === 'king') p = halfProfile(H.queen, 9).concat([[7.6, 29.4, 1], [3.4, 28.6, 1], [0, 28.6]]);
     else if (kind === 'knight') p = halfProfile(Art.look3d.FOOT.concat([[0, -3.9]]));
     else p = halfProfile(H[kind]);
     return PROF[kind] = p;
@@ -25228,6 +25366,12 @@ const MODELS3D = (() => {
       for (let i = 0; i < 8; i++){ const q = i / 8 * TAU; B.push().at(Math.cos(q) * 7.4, Math.sin(q) * 7.4, 30.4); if (o.trim) lit(B, '#ffe08a', 0.3); else paint(); B.sphere(1.15, 8, 5); B.pop(); }
       paint(); B.push().at(0, 0, 28.6).scale(1, 1, 0.66).dome(3.8, 16, 5).pop(); B.push().at(0, 0, 33.4).sphere(2.2, 12, 7).pop();
       if (o.gem){ B.push().at(0, 4.6, 25.4); lit(B, '#9b5de5', 0.4); B.sphere(1.5, 10, 6); B.pop(); }
+    } else if (kind === 'king'){
+      if (o.trim) gold(B); else paint();
+      B.push().at(0, 0, 28.4).cyl(7.2, 7.4, 1.6, 20).pop();
+      paint(); B.push().at(0, 0, 29.6).scale(1, 1, 0.75).dome(4.6, 16, 5).pop();
+      if (o.trim) gold(B); else paint();
+      B.push().at(0, 0, 37).box(1.8, 1.8, 6).pop(); B.push().at(0, 0, 38).box(5.6, 1.8, 1.8).pop();
     } else if (kind === 'knight'){
       paint();
       B.push().rotX(Math.PI / 2).at(0, 0, -3).extrude(knightOutline(), 6).pop();
@@ -25248,7 +25392,7 @@ const MODELS3D = (() => {
     return B;
   }
   function chessMain(up){ let p = -1, m = 0; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
-  const CH_KIND = ['rook', 'bishop', 'knight'];
+  const CH_KIND = ['rook', 'knight', 'king'];
   function chess(B, c){
     const up = c.up, par = c.par, L = Art.look3d;
     /* the square of board: a wooden frame round sixteen squares */
@@ -25280,15 +25424,12 @@ const MODELS3D = (() => {
     let q = -1;
     for (let i = 0; i < 3; i++) if (i !== p && up[i] > 0) q = i;
     if (kind === 'rook'){
-      if (tier >= 5) place('rook', 0, 0, 1.08, { trim: true, flag: true }, true);
-      else if (tier >= 3){ place('rook', -6.5, -6, 0.78, { trim: tier >= 4 }); place('rook', 4, 2.5, 0.88, { trim: tier >= 4 }, true); }
+      if (tier >= 3){ place('bishop', -6.5, -6, 0.78, { glow: tier >= 4, trim: tier >= 5, col: L.CH_EBONY }); place('rook', 4, 2.5, tier >= 5 ? 1.0 : 0.88, { trim: tier >= 4, flag: tier >= 5 }, true); }
       else place('rook', 0, 0, 0.98, {}, true);
-    } else if (kind === 'bishop'){
-      if (tier >= 5){
-        B.push().at(0, 0, 3.6 + 26.5); B.part(hop); B.part(time => ({ rz: time * 0.8 })); lit(B, '#ffd166', 0.85); B.torus(8.2, 0.5, 26, 4); B.endPart(); B.endPart(); B.pop();
-        place('bishop', 0, 0, 1.06, { trim: true, glow: true }, true);
-      } else if (tier >= 3){ place('bishop', -6.5, -6, 0.8, { glow: tier >= 4, col: L.CH_EBONY }); place('bishop', 4, 2.5, 0.88, { glow: tier >= 4 }, true); }
-      else place('bishop', 0, 0, 0.95, {}, true);
+    } else if (kind === 'king'){
+      const tr = tier >= 5;
+      if (tier >= 3){ place('queen', -6.5, -6, 0.8, { trim: tr, gem: tier >= 4 }); place('king', 4, 2.5, 0.86, { trim: tr }, true); }
+      else { place('pawn', -7, -6, 0.6, {}); place('king', 3.5, 2.5, 0.88, { trim: tr }, true); }
     } else {
       const o = { bridle: tier >= 3, armor: tier >= 4, gold: tier >= 5, crown: tier >= 5 };
       if (tier >= 5) o.col = L.mixHex('#f2c14e', '#ffffff', 0.25);
@@ -29208,7 +29349,7 @@ function metaBoot(){
   const old = checkAchievements(true);
   /* only players who were here before this update get the tour; new players find it all on the menu */
   const returning = (Profile.stats.games || 0) > 0 || Object.keys(Profile.mastery).length > 0;
-  if (!(Profile.news >= NEWS) && returning && UI.screen === 'menu' && !UI.modalOpen) setTimeout(() => Profile.news >= RICE_NEWS ? showRiceNews() : Profile.news >= BIG_NEWS ? showSprayNews() : Profile.news >= UTENSIL_NEWS ? showBigNews() : Profile.news >= CHESS_NEWS ? showUtensilNews() : Profile.news >= MIXER_NEWS ? showChessNews() : Profile.news >= APPLIANCE_NEWS ? showMixerNews() : Profile.news >= 5 ? showApplianceNews(Profile.news) : Profile.news === 4 ? showParagonNews() : Profile.news === 3 ? showRework() : Profile.news === 2 ? showNewChefs(joined) : Profile.news === 1 ? showChefNews(joined) : showWhatsNew(old, retro, joined), 400);
+  if (!(Profile.news >= NEWS) && returning && UI.screen === 'menu' && !UI.modalOpen) setTimeout(() => Profile.news >= GAMBIT_NEWS ? showChessNews('The Chess Set, reworked', NEWS) : Profile.news >= RICE_NEWS ? showRiceNews() : Profile.news >= BIG_NEWS ? showSprayNews() : Profile.news >= UTENSIL_NEWS ? showBigNews() : Profile.news >= CHESS_NEWS ? showUtensilNews() : Profile.news >= MIXER_NEWS ? showChessNews() : Profile.news >= APPLIANCE_NEWS ? showMixerNews() : Profile.news >= 5 ? showApplianceNews(Profile.news) : Profile.news === 4 ? showParagonNews() : Profile.news === 3 ? showRework() : Profile.news === 2 ? showNewChefs(joined) : Profile.news === 1 ? showChefNews(joined) : showWhatsNew(old, retro, joined), 400);
   refreshMenuDots();
 }
 /* the news a player has seen: 1 the progression tour, 2 the head chefs, 3 the second three chefs, 4 the appliance rework, 5 paragon systems,
@@ -29220,7 +29361,8 @@ const CHESS_NEWS = MIXER_NEWS + 1;
 const UTENSIL_NEWS = CHESS_NEWS + 1;
 const BIG_NEWS = UTENSIL_NEWS + 1;
 const RICE_NEWS = BIG_NEWS + 1;
-const NEWS = RICE_NEWS + 1;
+const GAMBIT_NEWS = RICE_NEWS + 1;
+const NEWS = GAMBIT_NEWS + 1;
 /* players who have seen everything else hear about the modes, kitchens and events */
 function showBigNews(){
   if (UI.modalOpen || UI.screen !== 'menu') return;
@@ -29255,7 +29397,7 @@ function showSprayNews(){
 /* players who have seen everything else meet the Rice Cooker */
 function showRiceNews(){
   if (UI.modalOpen || UI.screen !== 'menu' || !TOWERS.rice) return;
-  Profile.news = NEWS; saveProfile();
+  Profile.news = GAMBIT_NEWS; saveProfile();   // the Chess Set's rework comes next time
   const li = (b, t) => h('li', {}, h('b', { text: b }), ' ' + t);
   const T = TOWERS.rice, P = T.paths;
   const cards = [[[0, 0, 0], T.name, money(T.cost) + ' · key ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
@@ -29286,20 +29428,20 @@ function showUtensilNews(){
     actions:[{ label:'Got it', kind:'primary' }] });
 }
 /* players who have seen everything else meet the Chess Set */
-function showChessNews(){
+function showChessNews(title, next){
   if (UI.modalOpen || UI.screen !== 'menu' || !TOWERS.chess) return;
-  Profile.news = CHESS_NEWS; saveProfile();   // the Chopsticks and the Lazy Susan come next time
+  Profile.news = next || CHESS_NEWS; saveProfile();   // the Chopsticks and the Lazy Susan come next time
   const li = (b, t) => h('li', {}, h('b', { text: b }), ' ' + t);
   const T = TOWERS.chess, P = T.paths;
   const cards = [[[0, 0, 0], 'Pawn', money(T.cost) + ' · ' + T.hot], [[5, 0, 0], P[0].ups[4].name, P[0].name], [[0, 5, 0], P[1].ups[4].name, P[1].name], [[0, 0, 5], P[2].ups[4].name, P[2].name]];
   const row = h('div', { class:'news-chefs' }, cards.map(([up, b, sp]) => h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('chess', 96, up)), h('b', { text: b }), h('span', { text: sp }))),
     h('div', { class:'news-chef' }, iconCanvas(Art.towerIcon('chess', 96, [5, 5, 5], true)), h('b', { text: T.paragon.name }), h('span', { text: 'Paragon' })));
-  modal({ title:'A new appliance: the Chess Set', lead:'It starts as a pawn. Each path promotes it to a different piece, and its paragon is the Queen.', cls:'chef-news',
+  modal({ title: title || 'A new appliance: the Chess Set', lead:'A chess board fighting a gridlock war. Its pawn hits harder than any first piece, and the board drops wall squares on the trail that pests must chew through, rebuilt in new places every round.', cls:'chef-news',
     content:[row, h('ul', { class:'news' },
-      li('Rook.', 'Slides along the row or the column through a pest, hitting everything in line. Doubled Rooks take both at once, Back Rank crosses the kitchen and hits twice as hard near the pantry, and the Castle Keep rolls a giant rook down the trail.'),
-      li('Bishop.', 'Quick slides along the diagonals that spot ghost pests and later bounce off the kitchen walls. Colour Complex turns the floor into its board: pests on the dark squares take more damage from everything.'),
-      li('Knight.', 'Leaps onto pests in an L and stomps where it lands, forks the two toughest pests nearby, tours on from pest to pest, and charges up the trail with its cavalry.'),
-      li('The Checkmate Queen.', 'Slides along all four lines at once, wall to wall, with knights of her own. Pawns march up the trail to be promoted to queens. Checkmate takes the toughest vehicles off the board, and Stalemate stops every pest where it stands.'))],
+      li('Rook & Bishop.', 'The rook slides along rows and columns through the pests; a bishop joins it with diagonals that bounce off the kitchen walls. Back Rank crosses the kitchen and the Castle Keep rolls a giant rook down the trail.'),
+      li('Knight.', 'Quick leaps onto pests a knight’s move away, forks the two toughest pests nearby, tours on from pest to pest and charges up the trail with its cavalry.'),
+      li('Royals.', 'The King never attacks but makes your appliances near him faster. Gridlock adds more and tougher walls. The Queen strikes with poison, brands, lightning and ice, and Checkmate turns the floor into her board.'),
+      li('The Grand Gambit.', 'Its paragon: every piece at once, stinging walls, and pawns that march up the trail to become queens.'))],
     actions:[{ label:'Got it', kind:'primary' }] });
 }
 /* players who have seen everything else hear about the Stand Mixer's rework */
@@ -31364,6 +31506,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
   for (const pd of G.puddles) Art.drawPuddle(ctx, pd, t);
   for (const c of G.clouds) Art.drawCloud(ctx, c, t);
   if (G.foams && G.foams.length) drawSprayFloor(ctx, t);
+  drawChessWalls(ctx, t);
   for (const tr of G.traps) Art.drawTrap(ctx, tr, t);
   if (G.ptraps) for (const tr of G.ptraps) Art.drawPowerTrap(ctx, tr, t);
   if (G.paraList && (G.paraList.length || G.bowls.length || G.towers.some(tw => tw.forestR))) Art.drawParaFloor(ctx, t);
@@ -32235,6 +32378,11 @@ function buildPanel(t){
     if (fly === 'copter' && t.flyMode === 'follow') P.append(h('p', { class:'note aim-note', text: 'Flies to wherever you ' + (IS_TOUCH ? 'tap in the kitchen.' : 'point in the kitchen.') + ' When you are not pointing, it patrols near its pad.' }));
   }
   { const gp = gmBuffPanel(t); if (gp) P.append(gp); }
+  /* the Chess Set's gridlock walls and its King */
+  if (t.type === 'chess' && t.s.walls && t.s.walls.n){
+    const W = t.s.walls, up = (G.chWalls || []).filter(w => w.tw === t && w.hp > 0).length;
+    P.append(h('p', { class:'note aim-note', text:'Gridlock: ' + up + ' of ' + W.n + ' wall square' + (W.n === 1 ? '' : 's') + ' standing on the trail (' + fmt(wallHp(W)) + ' each' + (W.thorns ? ', stinging for ' + fmt(W.thorns) : '') + '). Pests stop and chew through them; hopping and flying pests go over. The board reshapes every round.' + (t.s.king ? ' The King: appliances in range attack ' + Math.round(((t.s.buff && t.s.buff.speed) || 1) * 100 - 100) + '% faster.' : '') }));
+  }
   /* a rice cooker: how far it has cooked, the pots it keeps warm, and opening the lid early */
   if (t.s.atk.main && t.s.atk.main.kind === 'cook'){
     const c = riceCharge(t), a = t.s.atk.main;
@@ -33747,6 +33895,7 @@ function atkName(type, id){
     try { const d = cleanCustom(Profile.custom[type]), i = id === 'main' ? 0 : parseInt(id.slice(1), 10) - 1; if (d.attacks[i]) return attackLabel(d, i); } catch (e) {}
   }
   if (type === 'chess' && id === 'main') return 'Pawn';
+  if (type === 'chess' && (id === 'queen' || id === 'elements')) return 'Queen';
   if (type === 'chopsticks' && id === 'main') return 'Pinch';
   if (type === 'spray' && id === 'main') return 'Spray';
   if (type === 'rice' && id === 'main') return 'Steam burst';
@@ -33819,6 +33968,11 @@ function attackLine(type, id, a){
     if (a.foam) out.push('leaves foam every ' + (a.foam.every === 2 ? 'other' : a.foam.every === 3 ? 'third' : a.foam.every + 'th') + ' spray');
     out.push(rateText(a.rate, 1));
     return { name: a.streaming ? 'Stream' : atkName(type, id) === 'Jet' ? 'Jet' : 'Mist', text: out.join(' · '), type: a.ignoreImmune ? 'Any type' : 'Water' };
+  }
+  /* the Chess Set's Queen: an element at a time, two, or all four */
+  if (a.kind === 'elements'){
+    const n = a.all ? 'all four elements' : a.both ? 'two elements' : 'one element';
+    return { name: atkName(type, id), text: 'strikes up to ' + a.pierce + ' pests in range with ' + n + ' at a time for ' + num1(a.dmg) + (a.bonusBig ? ' (+' + num1(a.bonusBig) + ' to vehicles)' : '') + ': poison (' + num1(a.poison) + ' every 0.5s for 3s), brand (+' + num1(a.brand) + ' from every hit), lightning (double to the ' + (a.bolt || 3) + ' toughest), ice (small pests freeze ' + num1(a.ice) + 's) · ' + rateText(a.rate, 1), type: a.ignoreImmune ? 'Any type' : 'Mixed' };
   }
   /* the rice cooker: cooks, then a burst of steam round it */
   if (a.kind === 'cook'){

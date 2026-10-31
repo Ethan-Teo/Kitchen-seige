@@ -432,6 +432,7 @@ function renderWorld(ctx, k, ox, oy, bg, t, opt){
   for (const pd of G.puddles) Art.drawPuddle(ctx, pd, t);
   for (const c of G.clouds) Art.drawCloud(ctx, c, t);
   if (G.foams && G.foams.length) drawSprayFloor(ctx, t);
+  drawChessWalls(ctx, t);
   for (const tr of G.traps) Art.drawTrap(ctx, tr, t);
   if (G.ptraps) for (const tr of G.ptraps) Art.drawPowerTrap(ctx, tr, t);
   if (G.paraList && (G.paraList.length || G.bowls.length || G.towers.some(tw => tw.forestR))) Art.drawParaFloor(ctx, t);
@@ -1303,6 +1304,11 @@ function buildPanel(t){
     if (fly === 'copter' && t.flyMode === 'follow') P.append(h('p', { class:'note aim-note', text: 'Flies to wherever you ' + (IS_TOUCH ? 'tap in the kitchen.' : 'point in the kitchen.') + ' When you are not pointing, it patrols near its pad.' }));
   }
   { const gp = gmBuffPanel(t); if (gp) P.append(gp); }
+  /* the Chess Set's gridlock walls and its King */
+  if (t.type === 'chess' && t.s.walls && t.s.walls.n){
+    const W = t.s.walls, up = (G.chWalls || []).filter(w => w.tw === t && w.hp > 0).length;
+    P.append(h('p', { class:'note aim-note', text:'Gridlock: ' + up + ' of ' + W.n + ' wall square' + (W.n === 1 ? '' : 's') + ' standing on the trail (' + fmt(wallHp(W)) + ' each' + (W.thorns ? ', stinging for ' + fmt(W.thorns) : '') + '). Pests stop and chew through them; hopping and flying pests go over. The board reshapes every round.' + (t.s.king ? ' The King: appliances in range attack ' + Math.round(((t.s.buff && t.s.buff.speed) || 1) * 100 - 100) + '% faster.' : '') }));
+  }
   /* a rice cooker: how far it has cooked, the pots it keeps warm, and opening the lid early */
   if (t.s.atk.main && t.s.atk.main.kind === 'cook'){
     const c = riceCharge(t), a = t.s.atk.main;
@@ -2815,6 +2821,7 @@ function atkName(type, id){
     try { const d = cleanCustom(Profile.custom[type]), i = id === 'main' ? 0 : parseInt(id.slice(1), 10) - 1; if (d.attacks[i]) return attackLabel(d, i); } catch (e) {}
   }
   if (type === 'chess' && id === 'main') return 'Pawn';
+  if (type === 'chess' && (id === 'queen' || id === 'elements')) return 'Queen';
   if (type === 'chopsticks' && id === 'main') return 'Pinch';
   if (type === 'spray' && id === 'main') return 'Spray';
   if (type === 'rice' && id === 'main') return 'Steam burst';
@@ -2887,6 +2894,11 @@ function attackLine(type, id, a){
     if (a.foam) out.push('leaves foam every ' + (a.foam.every === 2 ? 'other' : a.foam.every === 3 ? 'third' : a.foam.every + 'th') + ' spray');
     out.push(rateText(a.rate, 1));
     return { name: a.streaming ? 'Stream' : atkName(type, id) === 'Jet' ? 'Jet' : 'Mist', text: out.join(' · '), type: a.ignoreImmune ? 'Any type' : 'Water' };
+  }
+  /* the Chess Set's Queen: an element at a time, two, or all four */
+  if (a.kind === 'elements'){
+    const n = a.all ? 'all four elements' : a.both ? 'two elements' : 'one element';
+    return { name: atkName(type, id), text: 'strikes up to ' + a.pierce + ' pests in range with ' + n + ' at a time for ' + num1(a.dmg) + (a.bonusBig ? ' (+' + num1(a.bonusBig) + ' to vehicles)' : '') + ': poison (' + num1(a.poison) + ' every 0.5s for 3s), brand (+' + num1(a.brand) + ' from every hit), lightning (double to the ' + (a.bolt || 3) + ' toughest), ice (small pests freeze ' + num1(a.ice) + 's) · ' + rateText(a.rate, 1), type: a.ignoreImmune ? 'Any type' : 'Mixed' };
   }
   /* the rice cooker: cooks, then a burst of steam round it */
   if (a.kind === 'cook'){

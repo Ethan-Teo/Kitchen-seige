@@ -299,6 +299,7 @@ function chessFire(t, a, id){
   switch (a.kind){
     case 'slide': return fireSlide(t, a, id);
     case 'leap': return fireLeap(t, a, id);
+    case 'elements': return fireElements(t, a, id);
   }
   return utensilFire(t, a, id);
 }
@@ -313,6 +314,8 @@ function chessRefresh(){
   G.board = m > 1 ? { mul: m } : null;
 }
 function chessTick(dt){
+  wallsTick(dt);
+  for (const e of G.enemies){ if (e.poisonT > 0) e.poisonT -= dt; if (e.brandT > 0) e.brandT -= dt; }
   if (G.leaps.length){ for (const L of G.leaps) if (!L.done) leapTick(L, dt); G.leaps = G.leaps.filter(L => !L.done); }
   if (G.queens.length){ for (const q of G.queens){ if (q.fire > 0) q.fire -= dt; if (!q.done) queenTick(q, dt); } G.queens = G.queens.filter(q => !q.done); }
 }
@@ -322,6 +325,7 @@ function chessRoundEnd(){
 }
 /* the set is sold or merged: its leaping knights and its queens go with it */
 function chessForget(t){
+  if (G.chWalls) G.chWalls = G.chWalls.filter(w => w.tw !== t);
   G.leaps = G.leaps.filter(L => L.tw !== t);
   G.queens = G.queens.filter(q => q.tw !== t);
   utensilForget(t);
@@ -412,4 +416,129 @@ function runChessAbility(t, ab){
     }
   }
   return null;
+}
+
+/* ---------------------------------------------------------------------
+   Gridlock: wall squares on the trail
+   Every Chess Set drops wall squares on the stretch of trail in its range.
+   A pest that reaches one stops and chews through it; hopping and flying
+   pests go over. The board reshapes every round: the walls are rebuilt,
+   whole, in new places.
+   --------------------------------------------------------------------- */
+const WALL_HP0 = 30, WALL_HP_ROUND = 6, WALL_GAP = 70;
+function wallHp(W){ return Math.round((WALL_HP0 + WALL_HP_ROUND * G.round) * (W.hp || 1)); }
+function chewRate(e){ return e.boss ? 600 : e.big ? 80 : 12; }
+/* the trail spots in a set's range, as [path, d] */
+function wallSpots(t){
+  const out = [], R = t.s.range * 0.92;
+  G.paths.forEach((P, pi) => {
+    for (let d = 40; d < P.len - 40; d += 16){ const q = pathPos(P, d, 0); if (q.x > 4 && q.x < W - 4 && q.y > 4 && q.y < H - 4 && Math.hypot(q.x - t.x, q.y - t.y) <= R) out.push([pi, d]); }
+  });
+  return out;
+}
+function buildWalls(t){
+  if (!G.chWalls) G.chWalls = [];
+  G.chWalls = G.chWalls.filter(w => w.tw !== t);
+  const W0 = t.s.walls;
+  t.wallRound = G.round; t.wallN = W0 ? W0.n : 0;
+  if (!W0 || !W0.n) return;
+  const spots = wallSpots(t);
+  for (let i = spots.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const x = spots[i]; spots[i] = spots[j]; spots[j] = x; }
+  let pick = [];
+  /* spread out where the trail allows, closer together where it doesn't */
+  for (const gap of [WALL_GAP, 44, 28]){
+    pick = [];
+    for (const c of spots){
+      if (pick.length >= W0.n) break;
+      if (pick.some(o => o[0] === c[0] && Math.abs(o[1] - c[1]) < gap)) continue;
+      if (G.chWalls.some(w => w.path === c[0] && Math.abs(w.d - c[1]) < 28)) continue;
+      pick.push(c);
+    }
+    if (pick.length >= W0.n) break;
+  }
+  for (const [pi, d] of pick){
+    const q = pathPos(G.paths[pi], d, 0), hp = wallHp(W0);
+    G.chWalls.push({ tw: t, path: pi, d, x: q.x, y: q.y, ang: q.ang, hp, maxHp: hp, thorns: W0.thorns || 0, acc: 0, t: 0 });
+    if (G.vis) G.fx.push({ k:'ring', x: q.x, y: q.y, r0: 4, r1: 26, t: 0, life: 0.4, c: '#f3e7cb', w: 3 });
+  }
+}
+function wallsTick(dt){
+  for (const t of G.towers){
+    if (t.type !== 'chess' || !t.s || !t.s.walls) continue;
+    if (t.wallRound !== G.round && G.roundActive) buildWalls(t);
+    else if (t.wallN !== t.s.walls.n) buildWalls(t);
+  }
+  if (!G.chWalls || !G.chWalls.length) return;
+  for (const w of G.chWalls) w.t += dt;
+  const before = G.chWalls.length;
+  G.chWalls = G.chWalls.filter(w => w.hp > 0 && G.towers.includes(w.tw));
+  if (G.chWalls.length !== before) for (const t of G.towers) if (t.type === 'chess') t.wallN = t.s.walls ? t.s.walls.n : 0;
+}
+/* called as a pest moves from d0 to e.d: a standing wall in between stops it, and it chews */
+function wallBlock(e, d0, dt){
+  if (e.def.fly || e.hopT > 0 || e.burrowT > 0 || e.air || e.blowD > 0 || e.charmT > 0) return;
+  for (const w of G.chWalls){
+    if (w.path !== e.path || w.hp <= 0) continue;
+    const front = w.d - e.r - 9;
+    if (d0 <= front + 0.5 && e.d > front){
+      e.d = front;
+      w.hp -= chewRate(e) * dt;
+      e.chewT = 0.2;
+      if (w.thorns){ w.acc += dt; if (w.acc >= 0.5){ w.acc = 0; damage(e, w.thorns, 'normal', w.tw, { ignoreImmune: true }); } }
+      if (w.hp <= 0){
+        w.hp = 0;
+        if (G.vis){ for (let i = 0; i < 10; i++){ const a = rand(0, TAU), v = rand(40, 120); part(w.x, w.y, Math.cos(a) * v, Math.sin(a) * v, 0.5, i % 2 ? '#3a2a1e' : '#f3e7cb', 3, 'spark'); } }
+        Hooks.sfx('clack');
+      }
+      return;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------
+   The Queen's elements: poison, brand, lightning and ice, in turn or all at once
+   --------------------------------------------------------------------- */
+const ELEMENTS = ['poison', 'brand', 'bolt', 'ice'];
+const ELEMENT_COL = { poison:'#7ed957', brand:'#ff8a3d', bolt:'#ffe066', ice:'#9fe0ff' };
+function fireElements(t, a, id){
+  const range = t.s.range, list = [];
+  for (const e of query(t.x, t.y, range, QK)) if (canTarget(t, e, a) && Math.hypot(e.x - t.x, e.y - t.y) <= range + e.r) list.push(e);
+  if (!list.length) return false;
+  t.elI = ((t.elI || 0) + 1) % 4;
+  const els = a.all ? ELEMENTS : a.both ? [ELEMENTS[t.elI], ELEMENTS[(t.elI + 2) % 4]] : [ELEMENTS[t.elI]];
+  const hit = list.slice(0, a.pierce);
+  for (const el of els){
+    if (el === 'bolt'){
+      const tough = hit.slice().sort((p, q) => q.hp - p.hp).slice(0, a.bolt || 3);
+      for (const e of tough){ damage(e, a.dmg * 2, 'energy', t, a); if (G.vis) G.fx.push({ k:'zap', segs: [[t.x, t.y - 20, e.x, e.y]], t:0, life:0.17, c:'#ffe066' }); }
+      continue;
+    }
+    for (const e of hit){
+      if (e.dead) continue;
+      if (el === 'poison'){ damage(e, a.dmg, 'normal', t, a); if (!e.dead) addBurn(e, { dmg: a.poison, tick: 0.5, dur: 3 }, t, true); e.poisonT = 3; }
+      else if (el === 'brand'){ damage(e, a.dmg, 'normal', t, a); if (!e.dead) setVuln(e, { amt: a.brand, dur: 3 }); e.brandT = 3; }
+      else if (el === 'ice'){ damage(e, a.dmg, 'cold', t, a); if (!e.dead){ if (e.big) slowE(e, 0.6, 1.5); else freezeE(e, { dur: a.ice, ignoreImmune: true }, t); } }
+    }
+  }
+  t.elNow = els; t.fire2 = 0.3;
+  if (G.vis) for (const el of els) G.fx.push({ k:'ring', x: t.x, y: t.y, r0: t.size, r1: range, t: 0, life: 0.4, c: ELEMENT_COL[el], w: 3 });
+  return true;
+}
+/* the wall squares on the kitchen floor: a raised chess square, light or dark, cracking as it is chewed */
+function drawChessWalls(g, time){
+  if (!G.chWalls || !G.chWalls.length) return;
+  for (const w of G.chWalls){
+    if (w.hp <= 0) continue;
+    const k = Math.min(1, w.t * 5), s = 13 * k, f = w.hp / w.maxHp;
+    g.save(); g.translate(w.x, w.y); g.rotate(w.ang || 0);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(-s + 2, -s + 3, s * 2, s * 2);
+    const dark = onDark(w.x, w.y);
+    g.fillStyle = dark ? '#5a3b26' : '#f0e2c4'; g.fillRect(-s, -s, s * 2, s * 2);
+    g.strokeStyle = dark ? '#2e1d12' : '#9c8058'; g.lineWidth = 2; g.strokeRect(-s, -s, s * 2, s * 2);
+    g.fillStyle = dark ? '#7a5236' : '#fff6e0'; g.fillRect(-s + 2, -s + 2, s * 2 - 4, 3);
+    if (w.thorns){ g.fillStyle = '#c9d2d6'; for (const [x, y] of [[-s, -s], [s, -s], [-s, s], [s, s]]){ g.beginPath(); g.moveTo(x, y); g.lineTo(x * 0.7, y * 0.4); g.lineTo(x * 0.4, y * 0.7); g.closePath(); g.fill(); } }
+    if (f < 0.7){ g.strokeStyle = dark ? '#c9a77a' : '#6a4a2a'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-s * 0.6, -s * 0.2); g.lineTo(0, s * 0.1); g.lineTo(s * 0.4, -s * 0.5); if (f < 0.4){ g.moveTo(0, s * 0.1); g.lineTo(-s * 0.1, s * 0.7); } g.stroke(); }
+    g.restore();
+    if (f < 1){ g.fillStyle = 'rgba(20,24,28,0.75)'; g.fillRect(w.x - 13, w.y - 21, 26, 4); g.fillStyle = f > 0.5 ? '#f3e7cb' : f > 0.25 ? '#ffd166' : '#ff6b4a'; g.fillRect(w.x - 12, w.y - 20, 24 * f, 2); }
+  }
 }

@@ -1696,7 +1696,7 @@ const MODELS3D = (() => {
     const H = Art.look3d.PIECE_HALF;
     let p;
     if (kind === 'rook') p = halfProfile(H.rook, 7).concat([[8.7, 24.4, 1], [6.2, 24.4, 1], [6.2, 22.8, 1], [0, 22.8]]);
-    else if (kind === 'queen') p = halfProfile(H.queen, 9).concat([[7.6, 29.4, 1], [3.4, 28.6, 1], [0, 28.6]]);
+    else if (kind === 'queen' || kind === 'king') p = halfProfile(H.queen, 9).concat([[7.6, 29.4, 1], [3.4, 28.6, 1], [0, 28.6]]);
     else if (kind === 'knight') p = halfProfile(Art.look3d.FOOT.concat([[0, -3.9]]));
     else p = halfProfile(H[kind]);
     return PROF[kind] = p;
@@ -1739,6 +1739,12 @@ const MODELS3D = (() => {
       for (let i = 0; i < 8; i++){ const q = i / 8 * TAU; B.push().at(Math.cos(q) * 7.4, Math.sin(q) * 7.4, 30.4); if (o.trim) lit(B, '#ffe08a', 0.3); else paint(); B.sphere(1.15, 8, 5); B.pop(); }
       paint(); B.push().at(0, 0, 28.6).scale(1, 1, 0.66).dome(3.8, 16, 5).pop(); B.push().at(0, 0, 33.4).sphere(2.2, 12, 7).pop();
       if (o.gem){ B.push().at(0, 4.6, 25.4); lit(B, '#9b5de5', 0.4); B.sphere(1.5, 10, 6); B.pop(); }
+    } else if (kind === 'king'){
+      if (o.trim) gold(B); else paint();
+      B.push().at(0, 0, 28.4).cyl(7.2, 7.4, 1.6, 20).pop();
+      paint(); B.push().at(0, 0, 29.6).scale(1, 1, 0.75).dome(4.6, 16, 5).pop();
+      if (o.trim) gold(B); else paint();
+      B.push().at(0, 0, 37).box(1.8, 1.8, 6).pop(); B.push().at(0, 0, 38).box(5.6, 1.8, 1.8).pop();
     } else if (kind === 'knight'){
       paint();
       B.push().rotX(Math.PI / 2).at(0, 0, -3).extrude(knightOutline(), 6).pop();
@@ -1759,7 +1765,7 @@ const MODELS3D = (() => {
     return B;
   }
   function chessMain(up){ let p = -1, m = 0; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
-  const CH_KIND = ['rook', 'bishop', 'knight'];
+  const CH_KIND = ['rook', 'knight', 'king'];
   function chess(B, c){
     const up = c.up, par = c.par, L = Art.look3d;
     /* the square of board: a wooden frame round sixteen squares */
@@ -1791,15 +1797,12 @@ const MODELS3D = (() => {
     let q = -1;
     for (let i = 0; i < 3; i++) if (i !== p && up[i] > 0) q = i;
     if (kind === 'rook'){
-      if (tier >= 5) place('rook', 0, 0, 1.08, { trim: true, flag: true }, true);
-      else if (tier >= 3){ place('rook', -6.5, -6, 0.78, { trim: tier >= 4 }); place('rook', 4, 2.5, 0.88, { trim: tier >= 4 }, true); }
+      if (tier >= 3){ place('bishop', -6.5, -6, 0.78, { glow: tier >= 4, trim: tier >= 5, col: L.CH_EBONY }); place('rook', 4, 2.5, tier >= 5 ? 1.0 : 0.88, { trim: tier >= 4, flag: tier >= 5 }, true); }
       else place('rook', 0, 0, 0.98, {}, true);
-    } else if (kind === 'bishop'){
-      if (tier >= 5){
-        B.push().at(0, 0, 3.6 + 26.5); B.part(hop); B.part(time => ({ rz: time * 0.8 })); lit(B, '#ffd166', 0.85); B.torus(8.2, 0.5, 26, 4); B.endPart(); B.endPart(); B.pop();
-        place('bishop', 0, 0, 1.06, { trim: true, glow: true }, true);
-      } else if (tier >= 3){ place('bishop', -6.5, -6, 0.8, { glow: tier >= 4, col: L.CH_EBONY }); place('bishop', 4, 2.5, 0.88, { glow: tier >= 4 }, true); }
-      else place('bishop', 0, 0, 0.95, {}, true);
+    } else if (kind === 'king'){
+      const tr = tier >= 5;
+      if (tier >= 3){ place('queen', -6.5, -6, 0.8, { trim: tr, gem: tier >= 4 }); place('king', 4, 2.5, 0.86, { trim: tr }, true); }
+      else { place('pawn', -7, -6, 0.6, {}); place('king', 3.5, 2.5, 0.88, { trim: tr }, true); }
     } else {
       const o = { bridle: tier >= 3, armor: tier >= 4, gold: tier >= 5, crown: tier >= 5 };
       if (tier >= 5) o.col = L.mixHex('#f2c14e', '#ffffff', 0.25);

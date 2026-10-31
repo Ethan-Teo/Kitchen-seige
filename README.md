@@ -40,6 +40,6 @@ The source is in `src/`. `python3 build.py` puts every script and the stylesheet
 
 Tests:
 - `node test/<name>.js` runs a game test (no browser needed), for example `node test/rounds.js`.
-- `python3 test/<name>.py` runs a browser test with Playwright and Chromium: `browser`, `flows`, `new_towers`, `utensils_ui`, `spray_ui`, `models3d`, `kitchens_ui`, `expeditions_ui`, `polish_ui`, `gallery_ui`, `coop_ui`, `rice_ui`, `gamemods_ui`.
+- `python3 test/<name>.py` runs a browser test with Playwright and Chromium: `browser`, `flows`, `new_towers`, `utensils_ui`, `spray_ui`, `models3d`, `kitchens_ui`, `expeditions_ui`, `polish_ui`, `gallery_ui`, `coop_ui`, `rice_ui`, `gamemods_ui`, `chess_ui`.
 
 GitHub Actions runs the game tests on every push (`.github/workflows/tests.yml`).

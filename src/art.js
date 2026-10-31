@@ -647,6 +647,9 @@ const Art = (() => {
       }
       if (e.slipT > 0){ g.strokeStyle = 'rgba(255,255,255,' + (e.slipT * 2).toFixed(3) + ')'; g.lineWidth = 1.6; g.lineCap = 'round'; for (const y of [-e.r * 0.4, e.r * 0.4]){ g.beginPath(); g.moveTo(e.r * 0.9, y); g.lineTo(e.r * 1.9, y); g.stroke(); } }
     }
+    /* the Queen's poison (a green sheen) and brand (a glowing mark) */
+    if (e.poisonT > 0){ ell(g, 0, 0, e.r * 0.9, e.r * 0.72); g.fillStyle = 'rgba(126,217,87,' + (0.18 + 0.1 * Math.sin(t * 6 + e.id)).toFixed(3) + ')'; g.fill(); }
+    if (e.brandT > 0){ g.strokeStyle = 'rgba(255,138,61,0.9)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(-e.r * 0.35, -e.r * 0.35); g.lineTo(e.r * 0.35, e.r * 0.35); g.moveTo(e.r * 0.35, -e.r * 0.35); g.lineTo(-e.r * 0.35, e.r * 0.35); g.stroke(); }
     /* coated in sticky rice: grains stuck all over it */
     if (e.riceT > 0){ const n = e.big ? 9 : 5; for (let i = 0; i < n; i++){ const an = i * 2.39 + e.id * 0.7, d = e.r * (0.25 + (i % 3) * 0.22); g.save(); g.translate(Math.cos(an) * d, Math.sin(an) * d * 0.85); g.rotate(an * 1.7); ell(g, 0, 0, e.big ? 2.6 : 1.8, e.big ? 1.2 : 0.85); fillStroke(g, '#fffdf2', 'rgba(150,140,110,0.8)', 0.5); g.restore(); } }
     if (e.soakT > 0){ ell(g, 0, 0, e.r * 0.9, e.r * 0.7); g.fillStyle = 'rgba(214,160,52,0.28)'; g.fill(); ell(g, -e.r * 0.3, -e.r * 0.3, e.r * 0.25, e.r * 0.12, -0.6); g.fillStyle = 'rgba(255,255,255,0.5)'; g.fill(); }
@@ -2427,10 +2430,10 @@ const Art = (() => {
   function turnedPiece(g, kind, col, o){
     o = o || {};
     const out = o.out || shade(col, -0.62);
-    symPath(g, PIECE_HALF[kind]);
+    symPath(g, PIECE_HALF[kind] || PIECE_HALF.queen);
     g.fillStyle = pieceGrad(g, col, 9.4); g.fill();
     g.strokeStyle = out; g.lineWidth = 1.1; g.lineJoin = 'round'; g.stroke();
-    rims(g, PIECE_RIMS[kind], col);
+    rims(g, PIECE_RIMS[kind] || PIECE_RIMS.queen, col);
     if (kind === 'pawn'){
       /* its round head */
       circle(g, 0, -19.4, 5.1);
@@ -2455,6 +2458,12 @@ const Art = (() => {
       if (o.glow){ g.strokeStyle = 'rgba(255,240,180,0.85)'; g.lineWidth = 0.6; g.stroke(); }
       circle(g, 0, -31.3, 1.8); g.fillStyle = o.trim ? '#f2c14e' : col; g.fill(); g.strokeStyle = out; g.lineWidth = 0.9; g.stroke();
       if (o.trim){ g.strokeStyle = '#e8b93a'; g.lineWidth = 1.2; g.beginPath(); g.ellipse(0, -17.6, 3.6, 1, 0, 0, Math.PI); g.stroke(); }
+    } else if (kind === 'king'){
+      /* his crown: a band, a dome and a cross on top */
+      ell(g, 0, -28.6, 7.4, 2); g.fillStyle = o.trim ? '#f2c14e' : shade(col, -0.15); g.fill(); g.strokeStyle = out; g.lineWidth = 0.8; g.stroke();
+      ell(g, 0, -30.2, 4.6, 3); g.fillStyle = pieceGrad(g, col, 4); g.fill(); g.strokeStyle = out; g.lineWidth = 0.9; g.stroke();
+      g.fillStyle = o.trim ? '#f2c14e' : col; g.strokeStyle = out; g.lineWidth = 0.8;
+      g.beginPath(); g.rect(-1.1, -39, 2.2, 7); g.rect(-3.3, -36.8, 6.6, 2.2); g.fill(); g.stroke();
     } else if (kind === 'queen'){
       /* her crown: a ball on every point, a dome and a jewel */
       for (const x of [-7.9, -4.8, -1.6, 1.6, 4.8, 7.9]){ const y = Math.abs(x) > 7 ? -29.3 : Math.abs(x) > 4 ? -30.5 : -30.9; circle(g, x, y, 1.15); g.fillStyle = o.trim ? '#ffe08a' : shade(col, 0.2); g.fill(); g.strokeStyle = out; g.lineWidth = 0.7; g.stroke(); }
@@ -2525,7 +2534,7 @@ const Art = (() => {
   }
   /* which piece a build shows: the path furthest along (the earlier path on a tie), or -1 for the pawn */
   function chessMain(up){ let p = -1, m = 0; for (let i = 0; i < 3; i++) if (up[i] > m){ m = up[i]; p = i; } return p; }
-  const CH_KIND = ['rook', 'bishop', 'knight'];
+  const CH_KIND = ['rook', 'knight', 'king'];
   function drawChess(g, t, up, time, par){
     const col = bodyColor('chess', up, par);
     chessTile(g, par || t.rank >= 8);
@@ -2544,15 +2553,12 @@ const Art = (() => {
     let q = -1;
     for (let i = 0; i < 3; i++) if (i !== p && up[i] > 0) q = i;
     if (kind === 'rook'){
-      if (tier >= 5) pieceAt(g, 'rook', 0, 9 - hop, 1.14, col, { trim: true, flag: true, time });
-      else if (tier >= 3){ pieceAt(g, 'rook', -6.5, 3.5, 0.8, col, { trim: tier >= 4 }); pieceAt(g, 'rook', 4, 10 - hop, 0.9, col, { trim: tier >= 4 }); }
+      if (tier >= 3){ pieceAt(g, 'bishop', -6.5, 3.5, 0.8, CH_EBONY, { glow: tier >= 4, out: '#1c110b', trim: tier >= 5 }); pieceAt(g, 'rook', 4, 10 - hop, tier >= 5 ? 1.02 : 0.92, col, { trim: tier >= 4, flag: tier >= 5, time }); }
       else pieceAt(g, 'rook', 0, 8 - hop, 0.98, col);
-    } else if (kind === 'bishop'){
-      if (tier >= 5){
-        g.save(); g.strokeStyle = 'rgba(255,209,102,0.75)'; g.lineWidth = 1.3; g.beginPath(); g.ellipse(0, -22.5 - hop, 8.5, 3, 0, 0, TAU); g.stroke(); g.restore();
-        pieceAt(g, 'bishop', 0, 9 - hop, 1.12, col, { trim: true, glow: true });
-      } else if (tier >= 3){ pieceAt(g, 'bishop', -6.5, 3.5, 0.82, CH_EBONY, { glow: tier >= 4, out: '#1c110b' }); pieceAt(g, 'bishop', 4, 10 - hop, 0.9, col, { glow: tier >= 4 }); }
-      else pieceAt(g, 'bishop', 0, 8 - hop, 0.95, col);
+    } else if (kind === 'king'){
+      const tr = tier >= 5;
+      if (tier >= 3){ pieceAt(g, 'queen', -6.5, 4, 0.82, col, { trim: tr, gem: tier >= 4 }); pieceAt(g, 'king', 4.5, 10 - hop, 0.88, col, { trim: tr }); }
+      else { pieceAt(g, 'pawn', -7, 6, 0.6, col); pieceAt(g, 'king', 3, 10 - hop, 0.9, col, { trim: tr }); }
     } else {
       const o = { face, bridle: tier >= 3, armor: tier >= 4, gold: tier >= 5, crown: tier >= 5 };
       pieceAt(g, 'knight', 0, 8 - hop, tier >= 5 ? 1.1 : 1, tier >= 5 ? mixHex('#f2c14e', '#ffffff', 0.25) : col, o);
